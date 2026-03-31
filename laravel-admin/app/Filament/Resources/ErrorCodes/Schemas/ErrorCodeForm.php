@@ -23,25 +23,21 @@ class ErrorCodeForm
                     ->label('Beschreibung')
                     ->rows(3),
 
-                Textarea::make('solution_text')
-                    ->label('Lösung')
+                Textarea::make('solution_customer_text')
+                    ->label('Kunden-Lösung')
+                    ->rows(3),
+
+                Textarea::make('solution_agent_text')
+                    ->label('Agent-Lösung')
+                    ->rows(3),
+
+                Textarea::make('solution_technician_text')
+                    ->label('Techniker-Lösung')
                     ->rows(4),
 
                 Select::make('manufacturer_id')
                     ->label('Hersteller')
                     ->relationship('manufacturer', 'name')
-                    ->searchable()
-                    ->preload(),
-
-                Select::make('product_id')
-                    ->label('Produkt')
-                    ->relationship('product', 'model_number')
-                    ->searchable()
-                    ->preload(),
-
-                Select::make('video_id')
-                    ->label('Video')
-                    ->relationship('video', 'title')
                     ->searchable()
                     ->preload(),
 
@@ -61,19 +57,8 @@ class ErrorCodeForm
                     ->label('Schweregrad')
                     ->maxLength(20),
 
-                Toggle::make('requires_technician')
-                    ->label('Techniker erforderlich'),
-
                 Toggle::make('requires_parts')
                     ->label('Ersatzteile erforderlich'),
-
-                Textarea::make('context_text')
-                    ->label('Kontext')
-                    ->rows(3),
-
-                Textarea::make('metadata')
-                    ->label('Metadata (JSON)')
-                    ->rows(3),
             ]);
     }
 }

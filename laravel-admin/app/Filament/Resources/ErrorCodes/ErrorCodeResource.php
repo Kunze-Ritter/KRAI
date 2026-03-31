@@ -42,7 +42,7 @@ class ErrorCodeResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with(['manufacturer', 'product']);
+        return parent::getEloquentQuery()->with(['manufacturer']);
     }
 
     public static function getRelations(): array

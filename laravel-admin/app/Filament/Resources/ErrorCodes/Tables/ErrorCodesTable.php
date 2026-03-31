@@ -28,18 +28,14 @@ class ErrorCodesTable
                     ->searchable()
                     ->sortable(),
 
-                TextColumn::make('product.model_number')
+                TextColumn::make('product_list')
                     ->label('Produkt')
-                    ->searchable()
-                    ->sortable(),
+                    ->searchable(false)
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('severity_level')
                     ->label('Schweregrad')
                     ->toggleable(isToggledHiddenByDefault: true),
-
-                IconColumn::make('requires_technician')
-                    ->label('Techniker')
-                    ->boolean(),
 
                 IconColumn::make('requires_parts')
                     ->label('Teile')
@@ -59,9 +55,6 @@ class ErrorCodesTable
                 SelectFilter::make('manufacturer_id')
                     ->label('Hersteller')
                     ->relationship('manufacturer', 'name'),
-
-                TernaryFilter::make('requires_technician')
-                    ->label('Techniker erforderlich'),
 
                 TernaryFilter::make('requires_parts')
                     ->label('Teile erforderlich'),
