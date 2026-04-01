@@ -233,7 +233,7 @@ class MetadataProcessorAI(BaseProcessor):
     # Service-check reference lookup for Lexmark-style PDFs
     # ------------------------------------------------------------------
     _SEE_PAGE_PATTERN = _re.compile(
-        r"[Ff]or more information[,\s]*see\s+(.+?)\s+on\s+page\s+\d+",
+        r"(?:[Ff]or more information[,\s]*)?[Ss]ee\s+(.+?)\s+on\s+page\s+\d+",
         _re.DOTALL,
     )
     # Matches bare step markers: "1.", "2.", "a.", "b.", "10.", "c."

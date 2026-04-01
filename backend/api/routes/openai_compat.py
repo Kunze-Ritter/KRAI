@@ -28,26 +28,22 @@ Session Management
 
 import asyncio
 import hashlib
-import httpx
 import json
 import logging
 import os
 import re
 import time
 import uuid
+from collections.abc import AsyncGenerator
+from typing import Any
 from urllib.parse import urlparse
-from typing import Any, AsyncGenerator, Optional, Union
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from api.agent_scope import (
-    AgentScope,
-    build_scope_filters,
-    extract_scope_from_openai_payload,
-    normalize_scope,
-)
+from api.agent_scope import AgentScope, build_scope_filters, extract_scope_from_openai_payload, normalize_scope
 from api.middleware.auth_middleware import require_permission
 
 logger = logging.getLogger(__name__)
@@ -60,13 +56,11 @@ router = APIRouter(prefix="/v1", tags=["OpenAI Compatible"])
 #   https://minio.example.com/images     (production)
 # Falls back to OBJECT_STORAGE_PUBLIC_URL (without bucket path) if not set.
 _MINIO_IMAGES_PUBLIC = (
-    os.getenv('OBJECT_STORAGE_PUBLIC_URL_IMAGES') or
-    os.getenv('OBJECT_STORAGE_PUBLIC_URL', '')
-).rstrip('/')
+    os.getenv("OBJECT_STORAGE_PUBLIC_URL_IMAGES") or os.getenv("OBJECT_STORAGE_PUBLIC_URL", "")
+).rstrip("/")
 _MINIO_DOCUMENTS_PUBLIC = (
-    os.getenv('OBJECT_STORAGE_PUBLIC_URL_DOCUMENTS') or
-    os.getenv('OBJECT_STORAGE_PUBLIC_URL', '')
-).rstrip('/')
+    os.getenv("OBJECT_STORAGE_PUBLIC_URL_DOCUMENTS") or os.getenv("OBJECT_STORAGE_PUBLIC_URL", "")
+).rstrip("/")
 
 
 def _rewrite_storage_url(url: str) -> str:
@@ -90,11 +84,7 @@ def _rewrite_document_url(url: str | None) -> str | None:
         return url
     parsed = urlparse(url)
     internal_origin = f"{parsed.scheme}://{parsed.netloc}"
-    public_origin = (
-        urlparse(_MINIO_DOCUMENTS_PUBLIC).scheme
-        + "://"
-        + urlparse(_MINIO_DOCUMENTS_PUBLIC).netloc
-    )
+    public_origin = urlparse(_MINIO_DOCUMENTS_PUBLIC).scheme + "://" + urlparse(_MINIO_DOCUMENTS_PUBLIC).netloc
     return url.replace(internal_origin, public_origin, 1)
 
 
@@ -102,30 +92,31 @@ def _rewrite_document_url(url: str | None) -> str | None:
 # Pydantic models (OpenAI request/response format)
 # ---------------------------------------------------------------------------
 
+
 class ImageUrl(BaseModel):
     url: str  # "data:image/jpeg;base64,..." or https URL
 
 
 class ContentPart(BaseModel):
-    type: str                          # "text" | "image_url"
-    text: Optional[str] = None
-    image_url: Optional[ImageUrl] = None
+    type: str  # "text" | "image_url"
+    text: str | None = None
+    image_url: ImageUrl | None = None
 
 
 class OAIMessage(BaseModel):
-    role: str                                        # system | user | assistant
-    content: Union[str, list[ContentPart]]
+    role: str  # system | user | assistant
+    content: str | list[ContentPart]
 
 
 class ChatCompletionRequest(BaseModel):
     model: str = "krai"
     messages: list[OAIMessage]
     stream: bool = False
-    temperature: Optional[float] = None
-    max_tokens: Optional[int] = None
-    user: Optional[str] = None          # treated as session_id hint when set
-    metadata: Optional[dict[str, Any]] = None
-    scope: Optional[AgentScope] = None
+    temperature: float | None = None
+    max_tokens: int | None = None
+    user: str | None = None  # treated as session_id hint when set
+    metadata: dict[str, Any] | None = None
+    scope: AgentScope | None = None
     reset_scope: bool = False
 
 
@@ -133,7 +124,8 @@ class ChatCompletionRequest(BaseModel):
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _session_id(messages: list[OAIMessage], user: Optional[str]) -> str:
+
+def _session_id(messages: list[OAIMessage], user: str | None) -> str:
     """Return a stable session identifier for this conversation thread.
 
     Priority: explicit ``user`` field → hash of first user message content.
@@ -142,8 +134,8 @@ def _session_id(messages: list[OAIMessage], user: Optional[str]) -> str:
         return user[:64]
     for msg in messages:
         if msg.role == "user":
-            text = msg.content if isinstance(msg.content, str) else json.dumps(
-                [p.model_dump() for p in msg.content]  # type: ignore[union-attr]
+            text = (
+                msg.content if isinstance(msg.content, str) else json.dumps([p.model_dump() for p in msg.content])  # type: ignore[union-attr]
             )
             return "oai_" + hashlib.sha256(text.encode()).hexdigest()[:32]
     return "oai_" + uuid.uuid4().hex
@@ -151,7 +143,7 @@ def _session_id(messages: list[OAIMessage], user: Optional[str]) -> str:
 
 def _extract_last_user_content(
     messages: list[OAIMessage],
-) -> tuple[Union[str, list], list[str]]:
+) -> tuple[str | list, list[str]]:
     """Extract text and image URLs from the last user message.
 
     Returns ``(content, image_urls)`` where *content* is either a plain
@@ -172,10 +164,7 @@ def _extract_last_user_content(
         if image_urls:
             # Build multi-modal content list for the LLM
             content: list = [{"type": "text", "text": " ".join(text_parts)}]
-            content += [
-                {"type": "image_url", "image_url": {"url": url}}
-                for url in image_urls
-            ]
+            content += [{"type": "image_url", "image_url": {"url": url}} for url in image_urls]
             return content, image_urls
         return " ".join(text_parts), []
     return "", []
@@ -366,8 +355,8 @@ def _video_row_relevance(
 
 def _build_video_search_plan(text: str, scope: dict[str, str] | None = None) -> dict[str, Any]:
     model_match = _MODEL_RE.search(text)
-    tray_match = re.search(r'\btray\s*\d+\b', text, re.IGNORECASE)
-    jam_match = re.search(r'\b(paper\s+jam|jam|stau)\b', text, re.IGNORECASE)
+    tray_match = re.search(r"\btray\s*\d+\b", text, re.IGNORECASE)
+    jam_match = re.search(r"\b(paper\s+jam|jam|stau)\b", text, re.IGNORECASE)
     manufacturer = _detect_query_manufacturer(text, scope)
 
     issue_terms: list[str] = []
@@ -379,7 +368,7 @@ def _build_video_search_plan(text: str, scope: dict[str, str] | None = None) -> 
         issue_terms.append(jam_match.group(0))
 
     expansion_terms: list[str] = []
-    tray_number_match = re.search(r'(\d+)', tray_match.group(0)) if tray_match else None
+    tray_number_match = re.search(r"(\d+)", tray_match.group(0)) if tray_match else None
     tray_number = tray_number_match.group(1) if tray_number_match else None
     if manufacturer and manufacturer.lower().startswith("hp") and jam_match:
         expansion_terms.append("paper jam")
@@ -399,18 +388,11 @@ def _build_video_search_plan(text: str, scope: dict[str, str] | None = None) -> 
         search_term_sets = [[issue_terms[0]]]
     else:
         tokens = [
-            token
-            for token in re.findall(r'\b\w[\w\-\.]{2,}\b', text)
-            if token.lower() not in _VIDEO_QUERY_STOPWORDS
+            token for token in re.findall(r"\b\w[\w\-\.]{2,}\b", text) if token.lower() not in _VIDEO_QUERY_STOPWORDS
         ]
-        manufacturer_tokens = {
-            token.lower() for token in re.findall(r"\w+", manufacturer or "")
-        }
+        manufacturer_tokens = {token.lower() for token in re.findall(r"\w+", manufacturer or "")}
         ranked_tokens = sorted(
-            dict.fromkeys(
-                token for token in tokens
-                if token.lower() not in manufacturer_tokens
-            ),
+            dict.fromkeys(token for token in tokens if token.lower() not in manufacturer_tokens),
             key=lambda token: (
                 0 if _PARTS_KEYWORDS.search(token) else 1,
                 -len(token),
@@ -692,16 +674,16 @@ async def _sse_stream(
 
 # Matches: 99.00.02 / 50.FF.02 / C-2801 / C2801 / SC542 / 541-011 / E001
 _ERROR_CODE_RE = re.compile(
-    r'\b([A-Z0-9]{1,4}(?:[.\-][A-Z0-9]{1,4}){1,5})\b'   # dotted/dashed: 99.00.02, 50.FF.02, C-2801
-    r'|\b([A-Z]{1,3}[-]?\d{3,6})\b',                      # alpha+digits:  SC542, C9402, E001
+    r"\b([A-Z0-9]{1,4}(?:[.\-][A-Z0-9]{1,4}){1,5})\b"  # dotted/dashed: 99.00.02, 50.FF.02, C-2801
+    r"|\b([A-Z]{1,3}[-]?\d{3,6})\b",  # alpha+digits:  SC542, C9402, E001
     re.IGNORECASE,
 )
 
 # HP/Konica/Ricoh model patterns: M507, E50045, MFP 8601, bizhub 308, Aficio MP201
 _MODEL_RE = re.compile(
-    r'\b(E\d{3,6}|M\d{3,4}|P\d{4,6}|bizhub\s*\d{3,4}|Aficio\s*\w+|'
-    r'MFP\s*\d{4,5}|MP\s*\d{3,4}|C\d{3,4}(?:dn|dw|n)?|LaserJet\s*\w+|'
-    r'\w+[-]\d{3,5}(?:dn|dw|n|i|f)?)\b',
+    r"\b(E\d{3,6}|M\d{3,4}|P\d{4,6}|bizhub\s*\d{3,4}|Aficio\s*\w+|"
+    r"MFP\s*\d{4,5}|MP\s*\d{3,4}|C\d{3,4}(?:dn|dw|n)?|LaserJet\s*\w+|"
+    r"\w+[-]\d{3,5}(?:dn|dw|n|i|f)?)\b",
     re.IGNORECASE,
 )
 
@@ -740,22 +722,27 @@ _CHUNK_SOLUTION_SQL = """
 # Uses DISTINCT ON to deduplicate chunks from multiple processing runs.
 _FULL_SOLUTION_SQL = """
     WITH code_chunk AS (
-        SELECT c.id, c.document_id, c.page_start
+        SELECT c.id, c.document_id, c.page_start,
+               -- Whether this chunk has a real solution header (not just a code-table row)
+               CASE WHEN c.text_chunk ILIKE '%Recommended action%' THEN 0
+                    WHEN c.text_chunk ILIKE '%Follow these troubleshooting%' THEN 1
+                    ELSE 2 END AS prio
         FROM   krai_intelligence.chunks c
         JOIN   krai_core.documents d ON c.document_id = d.id
         WHERE  d.filename = $1
           AND  c.text_chunk ILIKE $2
           AND  c.page_start > 20
-        ORDER  BY
-            CASE WHEN c.text_chunk ILIKE '%Recommended action%' THEN 0 ELSE 1 END,
-            c.page_start
+        ORDER  BY prio, c.page_start
         LIMIT  1
     ),
+    -- When anchor chunk is a bare table row (prio=2), limit the page window tightly
+    -- so we don't drag in unrelated procedures from 20+ pages away.
     deduped AS (
         SELECT DISTINCT ON (c.text_chunk) c.text_chunk, c.page_start
         FROM   krai_intelligence.chunks c
         JOIN   code_chunk cc ON c.document_id = cc.document_id
-        WHERE  c.page_start BETWEEN cc.page_start - 2 AND cc.page_start + 20
+        WHERE  c.page_start BETWEEN cc.page_start - 2
+                             AND    cc.page_start + (CASE WHEN cc.prio < 2 THEN 20 ELSE 8 END)
         ORDER  BY c.text_chunk, c.page_start, c.id
     )
     SELECT text_chunk, page_start FROM deduped
@@ -801,36 +788,36 @@ def _format_solution_text(text: str) -> str:
     if not text:
         return text
     # Bullet char: ensure each item starts on its own line
-    text = re.sub(r'●\s*\n\s*', '\n- ', text)
-    text = re.sub(r'●\s+', '\n- ', text)
+    text = re.sub(r"●\s*\n\s*", "\n- ", text)
+    text = re.sub(r"●\s+", "\n- ", text)
     # Numbered step split across lines: "1.\n  Text" → "1. Text"
-    text = re.sub(r'(\d+)\.\s*\n\s*([A-Z\(])', r'\1. \2', text)
+    text = re.sub(r"(\d+)\.\s*\n\s*([A-Z\(])", r"\1. \2", text)
     # Numbered steps inline without newline: "..sentence.1. Next" → "..sentence.\n1. Next"
-    text = re.sub(r'([a-z\.])(\d+)\.\s+([A-Z])', r'\1\n\2. \3', text)
+    text = re.sub(r"([a-z\.])(\d+)\.\s+([A-Z])", r"\1\n\2. \3", text)
     # Sub-steps "a.\n", "b.\n" → join with next line
-    text = re.sub(r'\n([a-z])\.\s*\n\s*([A-Z\(])', r'\n\1. \2', text)
+    text = re.sub(r"\n([a-z])\.\s*\n\s*([A-Z\(])", r"\n\1. \2", text)
     # Bold "Recommended action" section headers (single-pass regex, avoids double-bolding)
     text = re.sub(
-        r'Recommended action(?:\s+for\s+(?:HP\s+service|service\s+or\s+support|customers|(?:call-center\s+)?agents(?:\s+and\s+technicians)?|onsite\s+technicians))?',
-        lambda m: f'\n\n**{m.group(0).strip()}**\n\n',
+        r"Recommended action(?:\s+for\s+(?:HP\s+service|service\s+or\s+support|customers|(?:call-center\s+)?agents(?:\s+and\s+technicians)?|onsite\s+technicians))?",
+        lambda m: f"\n\n**{m.group(0).strip()}**\n\n",
         text,
     )
     # Remove HP catch-all variant lines like "13.B9.Dz" (standalone lines, also at end)
-    text = re.sub(r'(?:^|\n)[0-9A-Fa-f]{2}\.[0-9A-Fa-f]{2}\.[A-Za-z][a-z]?\s*(?=\n|$)', '', text)
+    text = re.sub(r"(?:^|\n)[0-9A-Fa-f]{2}\.[0-9A-Fa-f]{2}\.[A-Za-z][a-z]?\s*(?=\n|$)", "", text)
     # Remove PDF chapter/section headings that slip into solution text
-    text = re.sub(r'\n?Chapter\s+\d+[^\n]*\n?', '\n', text)
-    text = re.sub(r'\nENWW\n', '\n', text)
+    text = re.sub(r"\n?Chapter\s+\d+[^\n]*\n?", "\n", text)
+    text = re.sub(r"\nENWW\n", "\n", text)
     # Remove PDF table header artefacts (pre-boot menu tables etc.)
-    text = re.sub(r'\nTable\s+\d+[-–]\d+[^\n]*\n', '\n', text)
-    text = re.sub(r'\n(?:Menu option|First level|Second level|Third level|Description)\n', '\n', text)
+    text = re.sub(r"\nTable\s+\d+[-–]\d+[^\n]*\n", "\n", text)
+    text = re.sub(r"\n(?:Menu option|First level|Second level|Third level|Description)\n", "\n", text)
     # Remove lonely "Administrator" / "Administrator (continued)" lines from HP pre-boot tables
-    text = re.sub(r'\nAdministrator(?:\s*\(continued\))?\n', '\n', text)
+    text = re.sub(r"\nAdministrator(?:\s*\(continued\))?\n", "\n", text)
     # Collapse 3+ blank lines → one blank line
-    text = re.sub(r'\n{3,}', '\n\n', text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
 
 
-def _extract_solution_from_chunk(chunk_text: str, error_code: str) -> Optional[str]:
+def _extract_solution_from_chunk(chunk_text: str, error_code: str) -> str | None:
     """Pull the solution/recommended-action block for ``error_code`` out of a raw chunk."""
     # Find the section starting at the error code
     idx = chunk_text.upper().find(error_code.upper())
@@ -844,15 +831,22 @@ def _extract_solution_from_chunk(chunk_text: str, error_code: str) -> Optional[s
             # Grab up to 1200 chars from that marker
             block = section[m : m + 1200].strip()
             # Stop at the next error-code heading (e.g. "99.00.03 ...")
-            stop = re.search(r'\n\d+\.\d+\.\d+\s', block)
+            stop = re.search(r"\n\d+\.\d+\.\d+\s", block)
             if stop:
                 block = block[: stop.start()].strip()
             return block if len(block) > 20 else None
     # No explicit marker — return numbered steps if any
-    steps = re.findall(r'\n\d+\.\s+[^\n]{10,}', section[:1200])
+    steps = re.findall(r"\n\d+\.\s+[^\n]{10,}", section[:1200])
     if steps:
         return "\n".join(steps[:6]).strip()
     return None
+
+
+_CODE_HEADING_RE = re.compile(
+    # Matches both numeric (10.05.60) and x-placeholder (10.0x.60) HP code headings
+    r"\n\d{2,3}[.\-][0-9x]{2}[.\-][0-9xa-fA-F]{2,}\s+\S",
+    re.MULTILINE,
+)
 
 
 def _extract_levels_from_combined(combined_text: str, error_code: str) -> dict:
@@ -862,34 +856,68 @@ def _extract_levels_from_combined(combined_text: str, error_code: str) -> dict:
     Finds where error_code starts and extracts all three HP solution levels from
     that point onwards, stopping at the next different error-code heading.
 
-    Note: HP service manuals sometimes place shared "family" steps (1–N) before
-    the individual error code entries.  Those shared steps are NOT included here —
-    only the code-specific section is extracted.
+    When the specific code appears inside a dense table listing (e.g. 10.0x.35 variants),
+    the individual code line is very short and the shared "Recommended action" comes AFTER
+    the whole table.  In that case we back up to the family-code line (e.g. 10.0x.35) and
+    extract from there so the shared solution is included.
+
+    In all cases the block is truncated at the first *different* error-code section
+    heading so that adjacent sections don't contaminate the extracted levels.
     """
     from backend.utils.hp_solution_filter import extract_all_hp_levels
 
     idx = combined_text.upper().find(error_code.upper())
     if idx == -1:
         block = combined_text
+        anchor_len = 0
     else:
         block = combined_text[idx:]
+        anchor_len = len(error_code)
         # Stop at the next DIFFERENT error-code heading on its own line
         stop = re.search(
-            r'\n[A-Z0-9]{1,4}[.\-][A-Z0-9]{1,4}[.\-][A-Z0-9]{1,4}\s+[A-Z]',
-            block[len(error_code):],
+            r"\n[A-Z0-9]{1,4}[.\-][A-Z0-9]{1,4}[.\-][A-Z0-9]{1,4}\s+[A-Z]",
+            block[anchor_len:],
             re.IGNORECASE,
         )
         if stop:
-            block = block[:len(error_code) + stop.start()]
+            candidate = block[: anchor_len + stop.start()]
+            # Only truncate if the candidate block is substantial (≥200 chars) or already
+            # contains a "Recommended action" header.
+            if len(candidate) >= 200 or re.search(r"Recommended\s+action", candidate, re.IGNORECASE):
+                block = candidate
+            # else: candidate is tiny (code appears inside a table listing) —
+            # try to back up to the family code line (e.g. "10.0x.35" for "10.00.35")
+            else:
+                family_pat = re.sub(
+                    r"(\d{2,3})\.(\d{2})\.(\d{1,3})",
+                    lambda m: f"{m.group(1)}.0x.{m.group(3)}",
+                    error_code,
+                )
+                family_idx = combined_text.upper().rfind(family_pat.upper(), 0, idx)
+                if family_idx != -1:
+                    block = combined_text[family_idx:]
+                    anchor_len = len(family_pat)
+                # else: keep full block (no family line found)
 
-    return extract_all_hp_levels(block)
+    # Truncate at the first adjacent section's code heading, but only AFTER we've
+    # passed the first "Recommended action" header.  Without this guard the pattern
+    # would fire inside the code-variant table (e.g. "10.00.35 Black toner cartridge")
+    # and produce an empty block.
+    first_rec = re.search(r"Recommended\s+action", block[anchor_len:], re.IGNORECASE)
+    if first_rec:
+        search_from = anchor_len + first_rec.end()
+        adjacent = _CODE_HEADING_RE.search(block[search_from:])
+        if adjacent:
+            block = block[: search_from + adjacent.start()]
+
+    return extract_all_hp_levels(block, manufacturer="HP")
 
 
 async def _fast_path_lookup(
     pool,
     text: str,
     scope: dict[str, str] | None = None,
-) -> Optional[tuple[str, dict[str, Any] | None]]:
+) -> tuple[str, dict[str, Any] | None] | None:
     """Try an instant DB lookup if ``text`` contains an error code.
 
     Also detects a model number in the query (e.g. "M507", "E50045", "bizhub 308")
@@ -900,18 +928,25 @@ async def _fast_path_lookup(
         - A "not found" message when a code is detected but absent from DB.
         - ``None`` when no error-code pattern is detected.
     """
-    m = _ERROR_CODE_RE.search(text)
-    if not m:
+    # Collect all matches; prefer dotted/dashed codes (group 1) over plain alpha+digit codes
+    # (group 2), and skip matches that look like model numbers (e.g. E877, M507).
+    all_matches = list(_ERROR_CODE_RE.finditer(text))
+    if not all_matches:
         return None
+
+    # Prefer group-1 matches (dotted/dashed like 13.A8.D4) over group-2 (SC542, E001)
+    group1 = [m for m in all_matches if m.group(1) and not _MODEL_RE.fullmatch(m.group(1))]
+    group2 = [m for m in all_matches if m.group(2) and not _MODEL_RE.fullmatch(m.group(2))]
+    m = (group1 or group2 or all_matches)[0]
 
     raw_code = (m.group(1) or m.group(2)).upper()
     variants = [raw_code]
-    no_dash = raw_code.replace('-', '')
+    no_dash = raw_code.replace("-", "")
     if no_dash != raw_code:
         variants.append(no_dash)
 
     # Detect optional model number in user message (ignore the error code itself)
-    text_without_code = text[:m.start()] + text[m.end():]
+    text_without_code = text[: m.start()] + text[m.end() :]
     model_match = _MODEL_RE.search(text_without_code)
     raw_model = model_match.group(0).strip() if model_match else None
     active_scope = normalize_scope(scope)
@@ -923,8 +958,8 @@ async def _fast_path_lookup(
                 model_filter_enabled = raw_model and not any(
                     active_scope.get(key) for key in ("product", "product_id", "series")
                 )
-                for apply_model_filter in ([True, False] if model_filter_enabled else [False]):
-                    params: list[object] = [f'%{v}%']
+                for apply_model_filter in [True, False] if model_filter_enabled else [False]:
+                    params: list[object] = [f"%{v}%"]
                     where_clauses = [
                         "ec.is_category IS NOT TRUE",
                         "ec.error_code ILIKE $1",
@@ -1008,10 +1043,10 @@ async def _fast_path_lookup(
             groups[key] = {
                 "code": row["error_code"],
                 "desc": row["error_description"] or "—",
-                "sol_customer":   row_cust,
-                "sol_agent":      row_agent,
+                "sol_customer": row_cust,
+                "sol_agent": row_agent,
                 "sol_technician": row_tech,
-                "mfr":  row["manufacturer_name"] or "",
+                "mfr": row["manufacturer_name"] or "",
                 "sources": [],  # list of (filename, page, models_list)
             }
         else:
@@ -1022,8 +1057,8 @@ async def _fast_path_lookup(
                 groups[key]["sol_agent"] = row_agent
             if len(row_cust) > len(groups[key]["sol_customer"]):
                 groups[key]["sol_customer"] = row_cust
-        fn  = row["document_filename"]
-        pg  = row["page_number"]
+        fn = row["document_filename"]
+        pg = row["page_number"]
         mdl = [value for value in (_product_label(row), row["series_name"]) if value]
         src_key = f"{fn}:{pg}"
         if fn and src_key not in {f"{s[0]}:{s[1]}" for s in groups[key]["sources"]}:
@@ -1048,47 +1083,84 @@ async def _fast_path_lookup(
                     for ir in img_rows:
                         if not _is_meaningful_response_image(ir):
                             continue
-                        url = _rewrite_storage_url(ir['storage_url'])
+                        url = _rewrite_storage_url(ir["storage_url"])
                         if url not in seen_urls:
                             seen_urls.add(url)
-                            caption = ir['ai_description'] or ir['image_type'] or 'Bild'
+                            caption = ir["ai_description"] or ir["image_type"] or "Bild"
                             image_md_list.append(f"![{caption}]({url})")
 
                     # Only fetch chunks when DB solution columns are short/missing
-                    db_tech_len = len(group["sol_technician"] or "")
-                    if db_tech_len < 200:
-                        chunk_rows = await conn.fetch(_FULL_SOLUTION_SQL, fn, f'%{raw_code}%')
+                    # OR when the solution looks like a Table of Contents (dot leaders)
+                    # OR when the solution looks contaminated (code-table or harness table)
+                    # NOTE: chunk extraction uses HP-specific level parsing; skip for non-HP
+                    # manufacturers to avoid dumping entire Kyocera/Lexmark code tables.
+                    mfr_name = (group.get("mfr") or "").lower()
+                    is_hp_doc = "hewlett" in mfr_name or mfr_name == "hp"
+                    db_tech = group["sol_technician"] or ""
+                    db_tech_len = len(db_tech)
+                    is_toc = bool(re.search(r"\.{10,}", db_tech))
+                    is_contaminated = bool(
+                        re.search(r"Harness Part number|Connection\s+Type", db_tech, re.IGNORECASE)
+                        or re.search(r"\n1[0-9]\.[0-9x]{2}\.[0-9a-fA-F]{2,}\s+\S", db_tech)
+                    )
+                    if is_hp_doc and (db_tech_len < 200 or is_toc or is_contaminated):
+                        chunk_rows = await conn.fetch(_FULL_SOLUTION_SQL, fn, f"%{raw_code}%")
                         if chunk_rows:
-                            combined = '\n'.join(row['text_chunk'] for row in chunk_rows)
-                            levels = _extract_levels_from_combined(combined, raw_code)
-                            new_tech_len = len(levels.get("technician") or "")
-                            if any(levels.values()) and new_tech_len >= max(db_tech_len, 100):
-                                full_solutions[fn] = {**levels, 'images': image_md_list}
-                                continue
+                            combined = "\n".join(row["text_chunk"] for row in chunk_rows)
+                            # Skip chunks that are pure error-code reference tables with no
+                            # actual solution steps (e.g. Lexmark tables that only say
+                            # "see service check on page N").  Require at least one of:
+                            # - a recognised solution/action header
+                            # - at least 2 numbered steps (1. text or 1 Text)
+                            _has_solution_header = bool(
+                                re.search(
+                                    r"Recommended\s+action|Corrective\s+action|"
+                                    r"Troubleshooting\s+steps?|Solution\s*:|Procedure\s*:|Action\s*:",
+                                    combined,
+                                    re.IGNORECASE,
+                                )
+                            )
+                            _numbered_steps = re.findall(
+                                r"^\s*\d+[\.\)][ \t]+\S|^\s*\d+[ \t]+[A-Z]",
+                                combined,
+                                re.MULTILINE,
+                            )
+                            if not _has_solution_header and len(_numbered_steps) < 2:
+                                # No useful solution content — skip chunk fallback
+                                pass
+                            else:
+                                levels = _extract_levels_from_combined(combined, raw_code)
+                                new_tech_len = len(levels.get("technician") or "")
+                                best_len = max(
+                                    new_tech_len,
+                                    len(levels.get("agent") or ""),
+                                    len(levels.get("customer") or ""),
+                                )
+                                if any(levels.values()) and best_len >= max(db_tech_len, 100):
+                                    full_solutions[fn] = {**levels, "images": image_md_list}
+                                    continue
 
                     # DB solution is good — just store images (no text override)
                     if image_md_list and fn not in full_solutions:
-                        full_solutions[fn] = {'images': image_md_list}
+                        full_solutions[fn] = {"images": image_md_list}
     except Exception as exc:
         logger.warning("full_solution_lookup error: %s", exc)
 
     # ── Chunk fallback only when ALL three DB columns are empty ───────────────
-    solution_from_chunk: Optional[str] = None
+    solution_from_chunk: str | None = None
     related_videos = []
     related_documents = []
     related_tables = []
     first_group = next(iter(groups.values()))
-    has_db_solution = bool(
-        first_group["sol_technician"] or first_group["sol_agent"] or first_group["sol_customer"]
-    )
+    has_db_solution = bool(first_group["sol_technician"] or first_group["sol_agent"] or first_group["sol_customer"])
 
     if not has_db_solution:
         try:
             async with pool.acquire() as conn:
                 chunk_rows = await conn.fetch(
                     _CHUNK_SOLUTION_SQL,
-                    f'%{raw_code}%',
-                    '%Recommended action%',
+                    f"%{raw_code}%",
+                    "%Recommended action%",
                 )
             for cr in chunk_rows:
                 sol = _extract_solution_from_chunk(cr["text_chunk"], raw_code)
@@ -1126,9 +1198,7 @@ async def _fast_path_lookup(
                     exclude_document_ids=matched_document_ids,
                 )
             for doc_filename in {row["document_filename"] for row in rows if row["document_filename"]}:
-                related_tables.extend(
-                    await conn.fetch(_TABLE_BY_DOC_PAGE_SQL, doc_filename, raw_code, f"%{raw_code}%")
-                )
+                related_tables.extend(await conn.fetch(_TABLE_BY_DOC_PAGE_SQL, doc_filename, raw_code, f"%{raw_code}%"))
     except Exception as exc:
         logger.warning("related_context_lookup error: %s", exc)
 
@@ -1144,16 +1214,16 @@ async def _fast_path_lookup(
     # ── Format output ─────────────────────────────────────────────────────────
     parts: list[str] = []
     for group in groups.values():
-        code    = group["code"]
-        desc    = group["desc"]
-        sol_c   = group["sol_customer"]
-        sol_a   = group["sol_agent"]
-        sol_t   = group["sol_technician"]
-        mfr     = group["mfr"]
+        code = group["code"]
+        desc = group["desc"]
+        sol_c = group["sol_customer"]
+        sol_a = group["sol_agent"]
+        sol_t = group["sol_technician"]
+        mfr = group["mfr"]
         sources = group["sources"]
 
         # Strip leading punctuation/spaces from description (PDF extraction artifact)
-        desc = re.sub(r'^[\s,;:\-–—]+', '', desc).strip() or "—"
+        desc = re.sub(r"^[\s,;:\-–—]+", "", desc).strip() or "—"
         header = f"### Fehler `{code}` – {desc}"
         if mfr:
             header += f"  *({mfr})*"
@@ -1172,18 +1242,18 @@ async def _fast_path_lookup(
             if not candidate:
                 continue
             # Prefer any candidate that has images
-            if candidate.get('images'):
+            if candidate.get("images"):
                 full = candidate
                 break
             if not full:
                 full = candidate
-        sol_t_full = _format_solution_text(full.get('technician') or sol_t or "")
-        sol_a_full = _format_solution_text(full.get('agent') or sol_a or "")
-        sol_c_full = _format_solution_text(full.get('customer') or sol_c or "")
+        sol_t_full = _format_solution_text(full.get("technician") or (sol_t if not full else "") or "")
+        sol_a_full = _format_solution_text(full.get("agent") or (sol_a if not full else "") or "")
+        sol_c_full = _format_solution_text(full.get("customer") or (sol_c if not full else "") or "")
         sol_t_full = _strip_hp_family_lines(sol_t_full, code)
         sol_a_full = _strip_hp_family_lines(sol_a_full, code)
         sol_c_full = _strip_hp_family_lines(sol_c_full, code)
-        images_md: list[str] = full.get('images') or []
+        images_md: list[str] = full.get("images") or []
 
         # Solution: technician preferred → agent → customer → chunk fallback
         if sol_t_full:
@@ -1246,9 +1316,7 @@ async def _fast_path_lookup(
                 parts.append(src)
 
         if not raw_model and not active_scope.get("product") and len(sources) > 1:
-            parts.append(
-                f"\n> 💡 Nenne dein Modell für eine gefilterte Antwort — z.B. `{code} M507`"
-            )
+            parts.append(f"\n> 💡 Nenne dein Modell für eine gefilterte Antwort — z.B. `{code} M507`")
 
     if related_videos:
         parts.append("\n## 🎬 Passende Videos\n")
@@ -1357,14 +1425,14 @@ async def _fast_path_lookup(
 # ---------------------------------------------------------------------------
 
 _PARTS_KEYWORDS = re.compile(
-    r'\b(ersatzteil|spare.?part|part.?number|teilenummer|bauteil|fuser|drum|toner|'
-    r'roller|belt|kit|assembly|unit|motor|sensor|board|pcb)\b',
+    r"\b(ersatzteil|spare.?part|part.?number|teilenummer|bauteil|fuser|drum|toner|"
+    r"roller|belt|kit|assembly|unit|motor|sensor|board|pcb)\b",
     re.IGNORECASE,
 )
 
 _VIDEO_KEYWORDS = re.compile(
-    r'\b(video|youtube|tutorial|anleitung|howto|how.?to|reparatur|repair|'
-    r'wartung|maintenance|replace|austausch|einbau|installation)\b',
+    r"\b(video|youtube|tutorial|anleitung|howto|how.?to|reparatur|repair|"
+    r"wartung|maintenance|replace|austausch|einbau|installation)\b",
     re.IGNORECASE,
 )
 
@@ -1454,17 +1522,25 @@ _RELATED_DOCUMENTS_BASE_SQL = """
 """
 
 
-async def _parts_lookup(pool, text: str, scope: dict[str, str] | None = None) -> Optional[str]:
+async def _parts_lookup(pool, text: str, scope: dict[str, str] | None = None) -> str | None:
     """Return spare-parts results when query mentions part-related keywords."""
     if not _PARTS_KEYWORDS.search(text):
         return None
     active_scope = normalize_scope(scope)
     # Extract longest token as search term
-    tokens = [t for t in re.findall(r'\b\w[\w\-\.]{2,}\b', text) if not re.match(r'^(was|ist|wie|gibt|es|der|die|das|und|oder|ich|du|wir|sie|ein|für|mit|von|bei|nach|auf|an|im|zur|zum)$', t, re.I)]
+    tokens = [
+        t
+        for t in re.findall(r"\b\w[\w\-\.]{2,}\b", text)
+        if not re.match(
+            r"^(was|ist|wie|gibt|es|der|die|das|und|oder|ich|du|wir|sie|ein|für|mit|von|bei|nach|auf|an|im|zur|zum)$",
+            t,
+            re.I,
+        )
+    ]
     term = max(tokens, key=len) if tokens else text[:40]
     try:
         async with pool.acquire() as conn:
-            params: list[object] = [f'%{term}%']
+            params: list[object] = [f"%{term}%"]
             where_clauses = [
                 "("
                 "pc.part_number ILIKE $1 OR "
@@ -1498,7 +1574,7 @@ async def _parts_lookup(pool, text: str, scope: dict[str, str] | None = None) ->
             )
             if not rows and len(term) > 6:
                 # Retry with shorter stem
-                params[0] = f'%{term[:6]}%'
+                params[0] = f"%{term[:6]}%"
                 rows = await conn.fetch(
                     f"""
                     {_PARTS_BASE_SQL}
@@ -1517,12 +1593,12 @@ async def _parts_lookup(pool, text: str, scope: dict[str, str] | None = None) ->
     if active_scope and _scope_label(active_scope):
         lines.append(f"_Scope: { _scope_label(active_scope) }_\n")
     for r in rows:
-        price = f" — ${r['price_usd']:.2f}" if r['price_usd'] else ""
-        mfr = f" *({r['manufacturer_name']})*" if r['manufacturer_name'] else ""
+        price = f" — ${r['price_usd']:.2f}" if r["price_usd"] else ""
+        mfr = f" *({r['manufacturer_name']})*" if r["manufacturer_name"] else ""
         lines.append(f"**{r['part_number']}** – {r['part_name']}{mfr}{price}")
         if _product_label(r) or r["series_name"]:
             lines.append(f"  Gerät: {_product_label(r) or r['series_name']}")
-        if r['description']:
+        if r["description"]:
             lines.append(f"  _{r['description'][:120]}_")
     return "\n".join(lines)
 
@@ -1531,7 +1607,7 @@ async def _video_lookup(
     pool,
     text: str,
     scope: dict[str, str] | None = None,
-) -> Optional[tuple[str, dict[str, Any]]]:
+) -> tuple[str, dict[str, Any]] | None:
     """Return ranked video results with related context for video/tutorial queries."""
     if not _VIDEO_KEYWORDS.search(text):
         return None
@@ -1546,7 +1622,7 @@ async def _video_lookup(
         async with pool.acquire() as conn:
             ranked_rows: dict[str, tuple[dict[str, Any], int]] = {}
             for search_terms in search_term_sets:
-                params: list[object] = [f'%{term}%' for term in search_terms]
+                params: list[object] = [f"%{term}%" for term in search_terms]
                 where_clauses = []
                 for index in range(1, len(search_terms) + 1):
                     where_clauses.append(
@@ -1650,9 +1726,7 @@ async def _video_lookup(
                     "model": search_plan["model"],
                     "issue_terms": search_plan["issue_terms"],
                 },
-                "related_documents": [
-                    _serialize_document_match(document) for document in related_documents
-                ],
+                "related_documents": [_serialize_document_match(document) for document in related_documents],
             },
         )
 
@@ -1669,12 +1743,12 @@ async def _video_lookup(
             understood_bits.append(f"HP-Erweiterung `{', '.join(search_plan['expansion_terms'])}`")
         lines.append(f"_Verstanden als: {' · '.join(understood_bits)}_\n")
     for r in ordered_rows:
-        dur = f" ({r['duration']//60}:{r['duration']%60:02d})" if r['duration'] else ""
-        ch = f" — {r['channel_title']}" if r['channel_title'] else ""
+        dur = f" ({r['duration']//60}:{r['duration']%60:02d})" if r["duration"] else ""
+        ch = f" — {r['channel_title']}" if r["channel_title"] else ""
         lines.append(f"**[{r['title']}]({r['video_url']})**{dur}{ch}")
         if _product_label(r) or r["series_name"]:
             lines.append(f"  Gerät: {_product_label(r) or r['series_name']}")
-        if r['description']:
+        if r["description"]:
             lines.append(f"  _{r['description'][:120]}_\n")
     if related_documents:
         lines.append("\n## 📚 Relevante Dokumente\n")
@@ -1717,14 +1791,12 @@ async def _video_lookup(
                 )
                 for row in ordered_rows
             ],
-            "related_documents": [
-                _serialize_document_match(document) for document in related_documents
-            ],
+            "related_documents": [_serialize_document_match(document) for document in related_documents],
         },
     )
 
 
-async def _semantic_fast_lookup(pool, text: str, scope: dict[str, str] | None = None) -> Optional[str]:
+async def _semantic_fast_lookup(pool, text: str, scope: dict[str, str] | None = None) -> str | None:
     """Embedding-based semantic search — no LLM, uses pgvector directly (~1.5 s)."""
     ollama_url = os.getenv("OLLAMA_URL", "http://krai-ollama-prod:11434")
     embed_model = os.getenv("OLLAMA_MODEL_EMBEDDING", "nomic-embed-text:latest")
@@ -1786,12 +1858,12 @@ async def _semantic_fast_lookup(pool, text: str, scope: dict[str, str] | None = 
     if active_scope and _scope_label(active_scope):
         lines.append(f"_Scope: { _scope_label(active_scope) }_\n")
     for i, r in enumerate(rows, 1):
-        doc = r['original_filename'] or r['filename'] or "Unbekanntes Dokument"
-        page = f", Seite {r['page_start']}" if r['page_start'] else ""
+        doc = r["original_filename"] or r["filename"] or "Unbekanntes Dokument"
+        page = f", Seite {r['page_start']}" if r["page_start"] else ""
         lines.append(f"### Ergebnis {i} — 📄 {doc}{page}")
         if _product_label(r) or r["series_name"]:
             lines.append(f"_Gerät: {_product_label(r) or r['series_name']}_")
-        lines.append(r['text_chunk'][:600].strip())
+        lines.append(r["text_chunk"][:600].strip())
         lines.append("")
     return "\n".join(lines)
 
@@ -1799,6 +1871,7 @@ async def _semantic_fast_lookup(pool, text: str, scope: dict[str, str] | None = 
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
+
 
 @router.get("/models")
 async def list_models(
@@ -1811,10 +1884,7 @@ async def list_models(
     elif llm_backend == "openrouter":
         backend_model = os.getenv("OPENROUTER_MODEL", "openrouter/free")
     else:
-        backend_model = (
-            os.getenv("OLLAMA_MODEL_CHAT")
-            or os.getenv("OLLAMA_MODEL_TEXT", "llama3.2:latest")
-        )
+        backend_model = os.getenv("OLLAMA_MODEL_CHAT") or os.getenv("OLLAMA_MODEL_TEXT", "llama3.2:latest")
     return {
         "object": "list",
         "data": [
@@ -1922,6 +1992,7 @@ async def chat_completions(
     _AGENT_TIMEOUT = int(os.getenv("KRAI_AGENT_TIMEOUT", "30"))
 
     if body.stream:
+
         async def _gen() -> AsyncGenerator[str, None]:
             try:
                 async with asyncio.timeout(_AGENT_TIMEOUT):
