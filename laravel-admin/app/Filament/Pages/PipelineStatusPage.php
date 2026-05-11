@@ -2,7 +2,6 @@
 
 namespace App\Filament\Pages;
 
-use App\Services\BackendApiService;
 use App\Services\MonitoringService;
 use Filament\Pages\Page;
 
@@ -25,7 +24,7 @@ class PipelineStatusPage extends Page
         try {
             $response = app(MonitoringService::class)->getPipelineStatus();
 
-            if (!($response['success'] ?? false)) {
+            if (! ($response['success'] ?? false)) {
                 return [
                     'success' => false,
                     'error' => $response['error'] ?? 'Unbekannter Fehler',
@@ -63,7 +62,7 @@ class PipelineStatusPage extends Page
         try {
             $response = app(MonitoringService::class)->getDataQuality();
 
-            if (!($response['success'] ?? false)) {
+            if (! ($response['success'] ?? false)) {
                 return [
                     'success' => false,
                     'error' => $response['error'] ?? 'Unbekannter Fehler',
@@ -90,74 +89,84 @@ class PipelineStatusPage extends Page
     public function getPipelineActivityData(): array
     {
         try {
-            $queueResponse = app(MonitoringService::class)->getQueueStatus();
-            $errorResponse = app(BackendApiService::class)->getErrors([
-                'page' => 1,
-                'page_size' => 10,
-            ]);
+            $response = app(MonitoringService::class)->getPipelineActivity();
 
-            $queueItems = is_array($queueResponse['data']['queue_items'] ?? null)
-                ? $queueResponse['data']['queue_items']
-                : [];
-            $errors = is_array($errorResponse['data']['errors'] ?? null)
-                ? $errorResponse['data']['errors']
-                : [];
-
-            $activity = [];
-
-            foreach ($queueItems as $item) {
-                if (! is_array($item)) {
-                    continue;
-                }
-
-                $activity[] = [
-                    'type' => 'queue',
-                    'timestamp' => $item['started_at'] ?? $item['scheduled_at'] ?? null,
-                    'document_id' => $item['document_id'] ?? null,
-                    'stage_name' => $item['task_type'] ?? null,
-                    'status' => $item['status'] ?? 'unknown',
-                    'message' => sprintf(
-                        'Queue %s fuer %s',
-                        $item['status'] ?? 'unknown',
-                        $item['task_type'] ?? 'unknown'
-                    ),
-                    'priority' => $item['priority'] ?? null,
+            if (! ($response['success'] ?? false)) {
+                return [
+                    'success' => false,
+                    'error' => $response['error'] ?? 'Unbekannter Fehler',
+                    'active_documents' => [],
+                    'activity' => [],
+                    'recent_failures' => [],
+                    'terminal_lines' => [],
                 ];
             }
 
-            foreach ($errors as $error) {
-                if (! is_array($error)) {
+            $data = is_array($response['data'] ?? null) ? $response['data'] : [];
+            $activeDocuments = is_array($data['active_documents'] ?? null) ? $data['active_documents'] : [];
+            $recentActivity = is_array($data['recent_activity'] ?? null) ? $data['recent_activity'] : [];
+            $recentFailures = is_array($data['recent_failures'] ?? null) ? $data['recent_failures'] : [];
+
+            // Normalize recent_activity + recent_failures into one chronological list
+            // that matches the existing blade view's expected shape.
+            $activity = [];
+
+            foreach ($recentActivity as $entry) {
+                if (! is_array($entry)) {
                     continue;
                 }
-
                 $activity[] = [
-                    'type' => 'error',
-                    'timestamp' => $error['created_at'] ?? null,
-                    'document_id' => $error['document_id'] ?? null,
-                    'stage_name' => $error['stage_name'] ?? null,
-                    'status' => 'error',
-                    'message' => $error['error_message'] ?? 'Pipeline-Fehler',
+                    'type' => 'stage',
+                    'timestamp' => $entry['timestamp'] ?? null,
+                    'document_id' => $entry['document_id'] ?? null,
+                    'stage_name' => $entry['stage_name'] ?? null,
+                    'status' => $entry['status'] ?? 'unknown',
+                    'message' => $entry['message'] ?? sprintf(
+                        'Stage %s: %s',
+                        $entry['stage_name'] ?? 'unknown',
+                        $entry['status'] ?? 'unknown'
+                    ),
                     'priority' => null,
                 ];
             }
 
-            usort($activity, function (array $left, array $right): int {
-                return strcmp((string) ($right['timestamp'] ?? ''), (string) ($left['timestamp'] ?? ''));
-            });
+            foreach ($recentFailures as $failure) {
+                if (! is_array($failure)) {
+                    continue;
+                }
+                $activity[] = [
+                    'type' => 'error',
+                    'timestamp' => $failure['created_at'] ?? null,
+                    'document_id' => $failure['document_id'] ?? null,
+                    'stage_name' => $failure['stage_name'] ?? null,
+                    'status' => 'error',
+                    'message' => $failure['error_message'] ?? 'Pipeline-Fehler',
+                    'priority' => null,
+                ];
+            }
+
+            usort($activity, fn (array $a, array $b): int => strcmp(
+                (string) ($b['timestamp'] ?? ''),
+                (string) ($a['timestamp'] ?? '')
+            ));
 
             $activity = array_slice($activity, 0, 20);
 
             return [
-                'success' => ($queueResponse['success'] ?? false) || ($errorResponse['success'] ?? false),
-                'error' => $queueResponse['error'] ?? $errorResponse['error'] ?? null,
+                'success' => true,
+                'error' => null,
+                'active_documents' => $activeDocuments,
                 'activity' => $activity,
+                'recent_failures' => $recentFailures,
                 'terminal_lines' => $this->formatTerminalLines($activity),
             ];
         } catch (\Throwable $e) {
             return [
                 'success' => false,
                 'error' => $e->getMessage(),
+                'active_documents' => [],
                 'activity' => [],
+                'recent_failures' => [],
                 'terminal_lines' => [],
             ];
         }
@@ -191,7 +200,7 @@ class PipelineStatusPage extends Page
 
     public function getStageStatusBadge(array $stage): array
     {
-        if (!empty($stage['active'])) {
+        if (! empty($stage['active'])) {
             return ['label' => 'Running', 'color' => 'warning'];
         }
 
@@ -199,7 +208,7 @@ class PipelineStatusPage extends Page
             return ['label' => 'Attention', 'color' => 'danger'];
         }
 
-        if (!empty($stage['completed'])) {
+        if (! empty($stage['completed'])) {
             return ['label' => 'Completed', 'color' => 'success'];
         }
 

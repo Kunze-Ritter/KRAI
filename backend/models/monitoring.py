@@ -1,9 +1,10 @@
 """Pydantic models for monitoring and metrics."""
+
 from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -50,8 +51,8 @@ class StageMetrics(BaseModel):
     avg_duration_seconds: float = Field(..., description="Average duration in seconds")
     success_rate: float = Field(..., description="Success rate percentage (0-100)")
     is_active: bool = Field(False, description="True if processing_count > 0 or last activity < 60s")
-    last_activity: Optional[datetime] = Field(None, description="Timestamp of last stage activity")
-    current_document_id: Optional[str] = Field(None, description="ID of currently processing document")
+    last_activity: datetime | None = Field(None, description="Timestamp of last stage activity")
+    current_document_id: str | None = Field(None, description="ID of currently processing document")
     error_count_last_hour: int = Field(0, description="Number of errors in last hour")
 
     model_config = ConfigDict(
@@ -84,8 +85,8 @@ class ProcessorHealthStatus(BaseModel):
     is_active: bool = Field(..., description="True if processor is actively processing")
     documents_processing: int = Field(..., description="Number of documents currently processing")
     documents_in_queue: int = Field(..., description="Number of documents in queue")
-    last_activity: Optional[datetime] = Field(None, description="Timestamp of last activity")
-    current_document_id: Optional[str] = Field(None, description="ID of currently processing document")
+    last_activity: datetime | None = Field(None, description="Timestamp of last activity")
+    current_document_id: str | None = Field(None, description="ID of currently processing document")
     error_rate_percent: float = Field(..., description="Error rate in last hour (0-100)")
     avg_processing_time_seconds: float = Field(..., description="Average processing time in seconds")
     health_score: float = Field(..., description="Health score (0-100)")
@@ -113,7 +114,7 @@ class ProcessorHealthStatus(BaseModel):
 class ProcessorHealthResponse(BaseModel):
     """Processor health response."""
 
-    processors: List[ProcessorHealthStatus]
+    processors: list[ProcessorHealthStatus]
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
     model_config = ConfigDict(from_attributes=True)
@@ -123,7 +124,7 @@ class StageQueueResponse(BaseModel):
     """Stage queue response."""
 
     stage_name: str = Field(..., description="Stage name")
-    queue_items: List[QueueItem] = Field(..., description="Queue items")
+    queue_items: list[QueueItem] = Field(..., description="Queue items")
     pending_count: int = Field(..., description="Number of pending items")
     processing_count: int = Field(..., description="Number of processing items")
     avg_wait_time_seconds: float = Field(..., description="Average wait time in seconds")
@@ -140,8 +141,8 @@ class StageErrorLog(BaseModel):
     document_id: str = Field(..., description="Document ID")
     stage_name: str = Field(..., description="Stage name")
     error_message: str = Field(..., description="Error message")
-    error_code: Optional[str] = Field(None, description="Error code")
-    stack_trace: Optional[str] = Field(None, description="Stack trace")
+    error_code: str | None = Field(None, description="Error code")
+    stack_trace: str | None = Field(None, description="Stack trace")
     occurred_at: datetime = Field(..., description="When error occurred")
     retry_count: int = Field(..., description="Number of retries")
     can_retry: bool = Field(..., description="Whether retry is possible")
@@ -168,7 +169,7 @@ class StageErrorLogsResponse(BaseModel):
     """Stage error logs response."""
 
     stage_name: str = Field(..., description="Stage name")
-    errors: List[StageErrorLog] = Field(..., description="Error logs")
+    errors: list[StageErrorLog] = Field(..., description="Error logs")
     total_errors: int = Field(..., description="Total number of errors")
     error_rate_percent: float = Field(..., description="Error rate percentage (0-100)")
     timestamp: datetime = Field(default_factory=datetime.utcnow)
@@ -183,9 +184,9 @@ class HardwareStatus(BaseModel):
     ram_percent: float = Field(..., description="RAM usage percentage")
     ram_available_gb: float = Field(..., description="Available RAM in GB")
     gpu_available: bool = Field(..., description="GPU availability")
-    gpu_percent: Optional[float] = Field(None, description="GPU usage percentage")
-    gpu_memory_used_gb: Optional[float] = Field(None, description="GPU memory used in GB")
-    gpu_memory_total_gb: Optional[float] = Field(None, description="Total GPU memory in GB")
+    gpu_percent: float | None = Field(None, description="GPU usage percentage")
+    gpu_memory_used_gb: float | None = Field(None, description="GPU memory used in GB")
+    gpu_memory_total_gb: float | None = Field(None, description="Total GPU memory in GB")
 
     model_config = ConfigDict(
         from_attributes=True,
@@ -207,8 +208,61 @@ class PipelineStatusResponse(BaseModel):
     """Complete pipeline status response."""
 
     pipeline_metrics: PipelineMetrics
-    stage_metrics: List[StageMetrics]
+    stage_metrics: list[StageMetrics]
     hardware_status: HardwareStatus
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# Pipeline activity (single source of truth for the Filament Pipeline Status page)
+
+
+class ActiveDocument(BaseModel):
+    """A document currently moving through the pipeline."""
+
+    document_id: str
+    filename: str
+    processing_status: str
+    current_stage: str | None = None
+    progress: float = Field(0.0, ge=0.0, le=1.0)
+    updated_at: datetime | None = None
+
+
+class ActivityEntry(BaseModel):
+    """A single recent stage transition."""
+
+    timestamp: datetime | None = None
+    type: str = Field(..., description="'stage' | 'failure'")
+    document_id: str | None = None
+    stage_name: str | None = None
+    status: str
+    message: str | None = None
+
+
+class FailureEntry(BaseModel):
+    """A single recent pipeline failure."""
+
+    error_id: str
+    document_id: str | None = None
+    stage_name: str | None = None
+    error_message: str | None = None
+    error_type: str | None = None
+    created_at: datetime | None = None
+
+
+class PipelineActivityResponse(BaseModel):
+    """Single source of truth for the Filament Pipeline Status page.
+
+    Derived entirely from existing tables (krai_core.documents,
+    krai_system.stage_tracking, krai_system.pipeline_errors) so the page no
+    longer needs to merge three independent endpoints client-side.
+    """
+
+    pipeline_metrics: PipelineMetrics
+    active_documents: list[ActiveDocument] = Field(default_factory=list)
+    recent_activity: list[ActivityEntry] = Field(default_factory=list)
+    recent_failures: list[FailureEntry] = Field(default_factory=list)
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
     model_config = ConfigDict(from_attributes=True)
@@ -222,11 +276,11 @@ class QueueItem(BaseModel):
     task_type: str = Field(..., description="Type of task")
     status: str = Field(..., description="Current status")
     priority: int = Field(..., description="Task priority")
-    document_id: Optional[str] = Field(None, description="Associated document ID")
+    document_id: str | None = Field(None, description="Associated document ID")
     scheduled_at: datetime = Field(..., description="When task was scheduled")
-    started_at: Optional[datetime] = Field(None, description="When task started")
+    started_at: datetime | None = Field(None, description="When task started")
     retry_count: int = Field(0, description="Number of retries")
-    error_message: Optional[str] = Field(None, description="Error message if failed")
+    error_message: str | None = Field(None, description="Error message if failed")
 
     model_config = ConfigDict(
         from_attributes=True,
@@ -255,7 +309,7 @@ class QueueMetrics(BaseModel):
     completed_count: int = Field(..., description="Completed items")
     failed_count: int = Field(..., description="Failed items")
     avg_wait_time_seconds: float = Field(..., description="Average wait time in seconds")
-    by_task_type: Dict[str, int] = Field(..., description="Item count by task type")
+    by_task_type: dict[str, int] = Field(..., description="Item count by task type")
 
     model_config = ConfigDict(
         from_attributes=True,
@@ -277,7 +331,7 @@ class QueueStatusResponse(BaseModel):
     """Queue status response."""
 
     queue_metrics: QueueMetrics
-    queue_items: List[QueueItem]
+    queue_items: list[QueueItem]
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
     model_config = ConfigDict(from_attributes=True)
@@ -290,7 +344,7 @@ class DuplicateMetrics(BaseModel):
     total_duplicates: int = Field(..., description="Total duplicate documents")
     duplicate_by_hash: int = Field(..., description="Duplicates detected by file hash")
     duplicate_by_filename: int = Field(..., description="Duplicates detected by filename")
-    duplicate_documents: List[Dict[str, Any]] = Field(..., description="List of duplicate document details")
+    duplicate_documents: list[dict[str, Any]] = Field(..., description="List of duplicate document details")
 
     model_config = ConfigDict(
         from_attributes=True,
@@ -311,8 +365,8 @@ class ValidationMetrics(BaseModel):
     """Validation error metrics."""
 
     total_validation_errors: int = Field(..., description="Total validation errors")
-    errors_by_stage: Dict[str, int] = Field(..., description="Error count by stage")
-    documents_with_errors: List[Dict[str, Any]] = Field(..., description="Documents with validation errors")
+    errors_by_stage: dict[str, int] = Field(..., description="Error count by stage")
+    documents_with_errors: list[dict[str, Any]] = Field(..., description="Documents with validation errors")
 
     model_config = ConfigDict(
         from_attributes=True,
@@ -336,7 +390,7 @@ class ProcessingMetrics(BaseModel):
     failed: int = Field(..., description="Failed documents")
     success_rate: float = Field(..., description="Success rate percentage (0-100)")
     avg_processing_time: float = Field(..., description="Average processing time in seconds")
-    processing_by_type: Dict[str, int] = Field(..., description="Processing count by document type")
+    processing_by_type: dict[str, int] = Field(..., description="Processing count by document type")
 
     model_config = ConfigDict(
         from_attributes=True,
@@ -388,13 +442,15 @@ class AlertType(str, Enum):
 class AlertRule(BaseModel):
     """Alert rule configuration."""
 
-    id: Optional[str] = Field(None, description="Rule ID (auto-generated on creation)")
+    id: str | None = Field(None, description="Rule ID (auto-generated on creation)")
     name: str = Field(..., description="Rule name")
     alert_type: AlertType = Field(..., description="Type of alert")
     severity: AlertSeverity = Field(..., description="Alert severity")
     threshold_value: float = Field(..., description="Threshold value")
     threshold_operator: str = Field(..., description="Comparison operator (>, <, ==, >=, <=)")
-    metric_key: Optional[str] = Field(None, description="Specific metric to monitor (e.g., 'cpu', 'ram', 'duplicates', 'validation_errors')")
+    metric_key: str | None = Field(
+        None, description="Specific metric to monitor (e.g., 'cpu', 'ram', 'duplicates', 'validation_errors')"
+    )
     enabled: bool = Field(True, description="Whether rule is enabled")
 
     model_config = ConfigDict(
@@ -421,7 +477,9 @@ class CreateAlertRule(BaseModel):
     severity: AlertSeverity = Field(..., description="Alert severity")
     threshold_value: float = Field(..., description="Threshold value")
     threshold_operator: str = Field(..., description="Comparison operator (>, <, ==, >=, <=)")
-    metric_key: Optional[str] = Field(None, description="Specific metric to monitor (e.g., 'cpu', 'ram', 'duplicates', 'validation_errors')")
+    metric_key: str | None = Field(
+        None, description="Specific metric to monitor (e.g., 'cpu', 'ram', 'duplicates', 'validation_errors')"
+    )
     enabled: bool = Field(True, description="Whether rule is enabled")
 
     model_config = ConfigDict(
@@ -446,11 +504,11 @@ class Alert(BaseModel):
     severity: AlertSeverity = Field(..., description="Alert severity")
     title: str = Field(..., description="Alert title")
     message: str = Field(..., description="Alert message")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
+    metadata: dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
     triggered_at: datetime = Field(..., description="When alert was triggered")
     acknowledged: bool = Field(False, description="Whether alert is acknowledged")
-    acknowledged_at: Optional[datetime] = Field(None, description="When alert was acknowledged")
-    acknowledged_by: Optional[str] = Field(None, description="User who acknowledged alert")
+    acknowledged_at: datetime | None = Field(None, description="When alert was acknowledged")
+    acknowledged_by: str | None = Field(None, description="User who acknowledged alert")
 
     model_config = ConfigDict(
         from_attributes=True,
@@ -474,7 +532,7 @@ class Alert(BaseModel):
 class AlertListResponse(BaseModel):
     """Alert list response."""
 
-    alerts: List[Alert]
+    alerts: list[Alert]
     total: int = Field(..., description="Total number of alerts")
     unacknowledged_count: int = Field(..., description="Number of unacknowledged alerts")
 
@@ -498,7 +556,7 @@ class WebSocketMessage(BaseModel):
     """WebSocket message format."""
 
     type: str = Field(..., description="Message type")
-    data: Dict[str, Any] = Field(..., description="Message data")
+    data: dict[str, Any] = Field(..., description="Message data")
     timestamp: datetime = Field(default_factory=datetime.utcnow, description="Message timestamp")
 
     model_config = ConfigDict(
@@ -515,18 +573,18 @@ class WebSocketMessage(BaseModel):
 
 class PerformanceMetrics(BaseModel):
     """Performance metrics for a single pipeline stage."""
-    
+
     stage_name: str = Field(..., description="Name of the pipeline stage")
-    baseline_avg_seconds: Optional[float] = Field(None, description="Baseline average processing time in seconds")
-    current_avg_seconds: Optional[float] = Field(None, description="Current average processing time in seconds")
-    baseline_p50_seconds: Optional[float] = Field(None, description="Baseline P50 processing time in seconds")
-    current_p50_seconds: Optional[float] = Field(None, description="Current P50 processing time in seconds")
-    baseline_p95_seconds: Optional[float] = Field(None, description="Baseline P95 processing time in seconds")
-    current_p95_seconds: Optional[float] = Field(None, description="Current P95 processing time in seconds")
-    baseline_p99_seconds: Optional[float] = Field(None, description="Baseline P99 processing time in seconds")
-    current_p99_seconds: Optional[float] = Field(None, description="Current P99 processing time in seconds")
-    improvement_percentage: Optional[float] = Field(None, description="Performance improvement percentage")
-    measurement_date: Optional[datetime] = Field(None, description="Date of measurement")
+    baseline_avg_seconds: float | None = Field(None, description="Baseline average processing time in seconds")
+    current_avg_seconds: float | None = Field(None, description="Current average processing time in seconds")
+    baseline_p50_seconds: float | None = Field(None, description="Baseline P50 processing time in seconds")
+    current_p50_seconds: float | None = Field(None, description="Current P50 processing time in seconds")
+    baseline_p95_seconds: float | None = Field(None, description="Baseline P95 processing time in seconds")
+    current_p95_seconds: float | None = Field(None, description="Current P95 processing time in seconds")
+    baseline_p99_seconds: float | None = Field(None, description="Baseline P99 processing time in seconds")
+    current_p99_seconds: float | None = Field(None, description="Current P99 processing time in seconds")
+    improvement_percentage: float | None = Field(None, description="Performance improvement percentage")
+    measurement_date: datetime | None = Field(None, description="Date of measurement")
 
     model_config = ConfigDict(
         from_attributes=True,
@@ -550,9 +608,9 @@ class PerformanceMetrics(BaseModel):
 
 class PerformanceMetricsResponse(BaseModel):
     """Response model for performance metrics endpoint."""
-    
-    overall_improvement: Optional[float] = Field(None, description="Average improvement across all stages")
-    stages: List[PerformanceMetrics] = Field(default_factory=list, description="Per-stage performance metrics")
+
+    overall_improvement: float | None = Field(None, description="Average improvement across all stages")
+    stages: list[PerformanceMetrics] = Field(default_factory=list, description="Per-stage performance metrics")
     timestamp: datetime = Field(default_factory=datetime.utcnow, description="Response timestamp")
 
     model_config = ConfigDict(

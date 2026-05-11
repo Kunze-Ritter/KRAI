@@ -238,6 +238,59 @@ class MonitoringService
     /**
      * Get pipeline status
      */
+    /**
+     * Fetch the single pipeline-activity endpoint that powers the Filament
+     * Pipeline Status page. Returns a normalized envelope with
+     * pipeline_metrics + active_documents + recent_activity + recent_failures.
+     */
+    public function getPipelineActivity(): array
+    {
+        $ttl = config('krai.monitoring.cache_ttl.pipeline', 15);
+        $cacheKey = 'monitoring.pipeline_activity';
+
+        return $this->deduplicatedRequest($cacheKey, $ttl, function () use ($ttl, $cacheKey) {
+            return Cache::remember($cacheKey, $ttl, function () {
+                $url = "{$this->baseUrl}/api/v1/monitoring/pipeline-activity";
+
+                try {
+                    $response = $this->createHttpClient()->get($url);
+
+                    if ($response->successful()) {
+                        return [
+                            'success' => true,
+                            'data' => $response->json(),
+                            'error' => null,
+                        ];
+                    }
+
+                    Log::error('Failed to fetch pipeline activity', [
+                        'url' => $url,
+                        'status' => $response->status(),
+                        'body' => $response->body(),
+                    ]);
+
+                    return [
+                        'success' => false,
+                        'data' => [],
+                        'error' => "HTTP {$response->status()}: {$response->body()}",
+                    ];
+                } catch (\Exception $e) {
+                    Log::error('Exception fetching pipeline activity', [
+                        'url' => $url,
+                        'message' => $e->getMessage(),
+                        'class' => get_class($e),
+                    ]);
+
+                    return [
+                        'success' => false,
+                        'data' => [],
+                        'error' => $e->getMessage(),
+                    ];
+                }
+            });
+        });
+    }
+
     public function getPipelineStatus(): array
     {
         $ttl = config('krai.monitoring.cache_ttl.pipeline', 15);
