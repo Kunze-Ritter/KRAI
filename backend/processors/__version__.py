@@ -5,7 +5,7 @@ Auto-updated with each significant release
 
 __version__ = "0.50.0"
 __commit__ = "5b992dc"
-__date__ = "2026-03-31"
+__date__ = "2026-05-12"
 
 # Version History:
 # 2.1.3 (b676d3e) - Fix: Product logging noise + parts catalog constraint migration

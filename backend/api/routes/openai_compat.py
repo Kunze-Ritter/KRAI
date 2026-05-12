@@ -520,10 +520,9 @@ def _is_meaningful_response_image(row) -> bool:
         return False
     if image_type == "table":
         return False
-    if contains_text and len(ocr_text) > 40 and image_type not in {"diagram", "photo", "schematic", "flowchart"}:
-        return False
-
-    return True
+    return not (
+        contains_text and len(ocr_text) > 40 and image_type not in {"diagram", "photo", "schematic", "flowchart"}
+    )
 
 
 async def _find_related_videos(
@@ -717,6 +716,18 @@ _CHUNK_SOLUTION_SQL = """
     LIMIT  3
 """
 
+# Non-HP variant: skip early TOC/index pages (page_start > 20) so
+# we hit the actual content section, not the table-of-contents.
+_CHUNK_DESC_FALLBACK_SQL = """
+    SELECT c.text_chunk, d.filename, c.page_start
+    FROM   krai_intelligence.chunks c
+    JOIN   krai_core.documents d ON c.document_id = d.id
+    WHERE  c.text_chunk ILIKE $1
+      AND  c.page_start > 20
+    ORDER  BY c.page_start
+    LIMIT  5
+"""
+
 # Full solution: fetch the chunk containing the error code PLUS all consecutive
 # chunks from the same document on the same and immediately following pages.
 # Uses DISTINCT ON to deduplicate chunks from multiple processing runs.
@@ -724,15 +735,32 @@ _FULL_SOLUTION_SQL = """
     WITH code_chunk AS (
         SELECT c.id, c.document_id, c.page_start,
                -- Whether this chunk has a real solution header (not just a code-table row)
+               -- prio=0: HP-style "Recommended action" header
+               -- prio=1: HP alt header or Kyocera procedure table (contains "Measures" column)
+               -- prio=2: bare code-table row (only the code + description, no procedure)
                CASE WHEN c.text_chunk ILIKE '%Recommended action%' THEN 0
                     WHEN c.text_chunk ILIKE '%Follow these troubleshooting%' THEN 1
+                    WHEN c.text_chunk ILIKE '%Measures%' THEN 1
                     ELSE 2 END AS prio
         FROM   krai_intelligence.chunks c
         JOIN   krai_core.documents d ON c.document_id = d.id
         WHERE  d.filename = $1
           AND  c.text_chunk ILIKE $2
           AND  c.page_start > 20
-        ORDER  BY prio, c.page_start
+        ORDER  BY prio,
+                  -- Secondary sort: among same-prio "Measures" chunks, prefer the one
+                  -- where the target code appears closest to "Measures" in the text.
+                  -- This avoids picking self-diagnostic table chunks where many unrelated
+                  -- codes appear between the target code and the Measures header.
+                  -- Note: PostgreSQL does not resolve SELECT aliases inside CASE expressions
+                  -- in ORDER BY, so the prio CASE is repeated here.
+                  CASE WHEN c.text_chunk ILIKE '%Measures%'
+                            AND c.text_chunk NOT ILIKE '%Recommended action%'
+                            AND c.text_chunk NOT ILIKE '%Follow these troubleshooting%' THEN
+                       ABS(POSITION(UPPER(TRIM('%' FROM $2)) IN UPPER(c.text_chunk))
+                           - POSITION('MEASURES' IN UPPER(c.text_chunk)))
+                  ELSE 0 END ASC,
+                  c.page_start
         LIMIT  1
     ),
     -- When anchor chunk is a bare table row (prio=2), limit the page window tightly
@@ -808,7 +836,7 @@ def _format_solution_text(text: str) -> str:
     text = re.sub(r"\n?Chapter\s+\d+[^\n]*\n?", "\n", text)
     text = re.sub(r"\nENWW\n", "\n", text)
     # Remove PDF table header artefacts (pre-boot menu tables etc.)
-    text = re.sub(r"\nTable\s+\d+[-–]\d+[^\n]*\n", "\n", text)
+    text = re.sub(r"\nTable\s+\d+[-–]\d+[^\n]*\n", "\n", text)  # noqa: RUF001  # en-dash present in PDF text
     text = re.sub(r"\n(?:Menu option|First level|Second level|Third level|Description)\n", "\n", text)
     # Remove lonely "Administrator" / "Administrator (continued)" lines from HP pre-boot tables
     text = re.sub(r"\nAdministrator(?:\s*\(continued\))?\n", "\n", text)
@@ -817,28 +845,135 @@ def _format_solution_text(text: str) -> str:
     return text.strip()
 
 
-def _extract_solution_from_chunk(chunk_text: str, error_code: str) -> str | None:
+def _extract_solution_from_chunk(chunk_text: str, error_code: str, allow_desc_fallback: bool = False) -> str | None:
     """Pull the solution/recommended-action block for ``error_code`` out of a raw chunk."""
-    # Find the section starting at the error code
-    idx = chunk_text.upper().find(error_code.upper())
+    # Find the section starting at the error code.
+    # Skip TOC-style occurrences (line immediately after code contains dotted leaders "....N")
+    # so that e.g. a table-of-contents entry like "C0830.....7-448" is ignored and we
+    # land on the actual description/procedure entry instead.
+    search_start = 0
+    idx = -1
+    upper_text = chunk_text.upper()
+    upper_code = error_code.upper()
+    while True:
+        pos = upper_text.find(upper_code, search_start)
+        if pos == -1:
+            break
+        # Peek at the rest of the line and the next line to detect TOC entries
+        snippet = chunk_text[pos : pos + 120]
+        lines_after = snippet.split("\n", 2)
+        # If the current line or the very next line has dotted leaders → TOC entry, skip
+        is_toc = any(re.search(r"\.{4,}\s*\d+", ln) for ln in lines_after[:2])
+        if not is_toc:
+            idx = pos
+            break
+        search_start = pos + len(error_code)
+
     if idx == -1:
         return None
     section = chunk_text[idx:]
-    # Look for "Recommended action" / "Empfohlene" / numbered steps
+    # Look for "Recommended action" / "Empfohlene" / solution markers.
+    # Non-Measures markers: use first occurrence only.
+    # Measures: loop through ALL occurrences, skipping authentication/login procedures
+    # that appear before the real hardware fix steps on Kyocera FAX multi-code pages
+    # (IC Card login failure procedure comes first, actual FAX PWB / SSD fix comes later).
+    _AUTH_PROC_RE = re.compile(  # noqa: N806  # function-scoped regex constant
+        r"IC\s*Card|KeyPWB|Department\s+Management.*?Authentication|"
+        r"Log\s+in\s+by\s+key\s+board|Set.*?IC\s+Card\s+authentication|"
+        r"Changing\s+the\s+setting.*?IC\s+Card",
+        re.IGNORECASE | re.DOTALL,
+    )
+    _HW_ACTION_RE = re.compile(  # noqa: N806  # function-scoped regex constant
+        r"\b(replac|reinstall|check\b|firmware|execut|reset\b|install\b|"
+        r"turn\s+off|reattach|remov|upgrade|initializ|U\d{3,}\b)",
+        re.IGNORECASE,
+    )
     for marker in ("Recommended action", "Empfohlene", "Lösung:", "Solution:"):
         m = section.find(marker)
-        if m != -1:
-            # Grab up to 1200 chars from that marker
-            block = section[m : m + 1200].strip()
-            # Stop at the next error-code heading (e.g. "99.00.03 ...")
-            stop = re.search(r"\n\d+\.\d+\.\d+\s", block)
-            if stop:
-                block = block[: stop.start()].strip()
-            return block if len(block) > 20 else None
+        if m == -1:
+            continue
+        block = section[m : m + 1200].strip()
+        stop = re.search(r"\n\d+\.\d+\.\d+\s", block)
+        if stop:
+            block = block[: stop.start()].strip()
+        if len(block) > 20:
+            return block
+    # Measures: loop through all occurrences, skipping bad blocks
+    search_pos = 0
+    while True:
+        m = section.find("Measures", search_pos)
+        if m == -1:
+            break
+        block = section[m : m + 1200].strip()
+        block = re.sub(r"^Measures\s*\nReference\s*\n", "", block)
+        block = re.sub(r"^Measures\s*\n", "", block)
+        # Remove pure table-header lines (Step, Check description, Assumed cause)
+        block = re.sub(
+            r"^(Step|Check description|Assumed cause|Reference)\s*$",
+            "",
+            block,
+            flags=re.MULTILINE,
+        )
+        # Join hyphenated word-splits from PDF column layout (e.g. "Instal-\nlation")
+        block = re.sub(r"(\w)-\n(\w)", r"\1\2", block)
+        # Remove Reference column fragments that appear between procedure steps
+        block = re.sub(
+            r"\n(?:FAX\s+)?Instal(?:lation\s*)?Guide\b[^\n]*",
+            "",
+            block,
+            flags=re.IGNORECASE,
+        )
+        block = re.sub(r"\nFirmware\s+Update\b[^\n]*", "", block, flags=re.IGNORECASE)
+        block = re.sub(r"\nError\s+code\s*\n\s*Contents[^\n]*", "", block, flags=re.IGNORECASE)
+        block = re.sub(r"\n{3,}", "\n\n", block).strip()
+        # Reject Kyocera configuration tables (Items/Contents headers, not procedures)
+        if re.search(r"^Items\s*$", block, re.MULTILINE) and re.search(r"^Contents\s*$", block, re.MULTILINE):
+            search_pos = m + len("Measures")
+            continue
+        # Skip authentication/login-only blocks that precede the real hardware procedure
+        if _AUTH_PROC_RE.search(block) and not _HW_ACTION_RE.search(block):
+            search_pos = m + len("Measures")
+            continue
+        # Stop at the next error-code heading (e.g. "99.00.03 ...")
+        stop = re.search(r"\n\d+\.\d+\.\d+\s", block)
+        if stop:
+            block = block[: stop.start()].strip()
+        if len(block) > 20:
+            return block
+        search_pos = m + len("Measures")
     # No explicit marker — return numbered steps if any
     steps = re.findall(r"\n\d+\.\s+[^\n]{10,}", section[:1200])
     if steps:
-        return "\n".join(steps[:6]).strip()
+        # Reject if these "steps" are actually a harness/connector table
+        # (contains "Drawer connector" or "Part number" style entries)
+        steps_text = "\n".join(steps)
+        if not re.search(r"Drawer connector|Part number|Connection\s+Type", steps_text, re.IGNORECASE):
+            return steps_text[: 6 * 120].strip() if len(steps) >= 1 else None
+    # Description-only fallback for non-HP manufacturers (e.g. Kyocera FAX codes):
+    # extract meaningful text immediately after the error code line.
+    if allow_desc_fallback:
+        lines = section.splitlines()
+        desc_lines = []
+        for line in lines[1:8]:  # skip first line (the code itself), take up to 7 more
+            stripped = line.strip()
+            if not stripped:
+                if desc_lines:
+                    break  # stop at first blank line after content
+                continue
+            # Skip TOC-style lines: "Something ..... 7-375"
+            if re.search(r"\.{4,}\s*\d+", stripped):
+                break
+            # Stop if we hit the next error code (e.g. "C0040:" or "C0070:")
+            # Also matches codes on their own line like "C0060" (no colon/space after)
+            if re.match(r"^[A-Z]\d{4}([:\s]|$)", stripped):
+                break
+            # Also stop at "(1-N)C0070:" style TOC entries
+            if re.match(r"^\(\d+-\d+\)[A-Z]\d{4}", stripped):
+                break
+            desc_lines.append(stripped)
+        if desc_lines:
+            text = "\n".join(desc_lines).strip()
+            return text if len(text) > 20 else None
     return None
 
 
@@ -1152,21 +1287,99 @@ async def _fast_path_lookup(
     related_documents = []
     related_tables = []
     first_group = next(iter(groups.values()))
+    # Treat harness/connector-table solutions as absent — they are extraction artifacts
+    # containing component names (e.g. "• Drawer connector … Image drive PWB") but no
+    # actionable procedure steps.
+    _tech = first_group["sol_technician"] or ""
+    _is_harness_garbage = bool(
+        re.search(r"Drawer\s+connector|Harness\s+Part\s+number|Connection\s+Type", _tech, re.IGNORECASE)
+        and not re.search(r"(check|replac|remov|install|turn off|firmware)", _tech, re.IGNORECASE)
+    )
+    if _is_harness_garbage:
+        for _g in groups.values():
+            _g["sol_technician"] = ""
+            _g["sol_agent"] = ""
+            _g["sol_customer"] = ""
     has_db_solution = bool(first_group["sol_technician"] or first_group["sol_agent"] or first_group["sol_customer"])
 
     if not has_db_solution:
+        mfr_lower = (first_group.get("mfr") or "").lower()
+        is_hp = "hewlett" in mfr_lower or mfr_lower == "hp"
         try:
             async with pool.acquire() as conn:
-                chunk_rows = await conn.fetch(
-                    _CHUNK_SOLUTION_SQL,
-                    f"%{raw_code}%",
-                    "%Recommended action%",
-                )
-            for cr in chunk_rows:
-                sol = _extract_solution_from_chunk(cr["text_chunk"], raw_code)
-                if sol:
-                    solution_from_chunk = sol
-                    break
+                if is_hp:
+                    chunk_rows = await conn.fetch(
+                        _CHUNK_SOLUTION_SQL,
+                        f"%{raw_code}%",
+                        "%Recommended action%",
+                    )
+                    for cr in chunk_rows:
+                        sol = _extract_solution_from_chunk(cr["text_chunk"], raw_code)
+                        if sol:
+                            solution_from_chunk = sol
+                            break
+                else:
+                    # Non-HP (Kyocera, Lexmark, etc.): try FULL_SOLUTION_SQL for every
+                    # source document (anchor chunk + surrounding pages).  When multiple
+                    # documents contain the code we score each candidate result against
+                    # the error description so that the most relevant procedure wins.
+                    error_desc_lower = (first_group.get("desc") or "").lower()
+                    # Significant keywords from the description (≥4 chars, not boilerplate)
+                    _stop_words = {
+                        "this",
+                        "that",
+                        "with",
+                        "from",
+                        "have",
+                        "been",
+                        "which",
+                        "when",
+                        "error",
+                        "fault",
+                        "code",
+                        "message",
+                        "occur",
+                        "cannot",
+                        "does",
+                        "into",
+                    }
+                    desc_keywords = [
+                        w for w in set(re.findall(r"\b[a-z]{4,}\b", error_desc_lower)) if w not in _stop_words
+                    ]
+                    best_sol: str | None = None
+                    best_score: int = -1
+                    seen_filenames: set[str] = set()
+                    for grp in groups.values():
+                        for src_fn, _pg, _mdl in grp.get("sources", []):
+                            if not src_fn or src_fn in seen_filenames:
+                                continue
+                            seen_filenames.add(src_fn)
+                            combined_rows = await conn.fetch(_FULL_SOLUTION_SQL, src_fn, f"%{raw_code}%")
+                            if not combined_rows:
+                                continue
+                            combined = "\n".join(row["text_chunk"] for row in combined_rows)
+                            sol = _extract_solution_from_chunk(combined, raw_code, allow_desc_fallback=True)
+                            if not sol:
+                                continue
+                            # Score candidate: count how many description keywords appear
+                            sol_lower = sol.lower()
+                            score = sum(1 for kw in desc_keywords if kw in sol_lower)
+                            if score > best_score:
+                                best_score = score
+                                best_sol = sol
+                    if best_sol:
+                        solution_from_chunk = best_sol
+                    if not solution_from_chunk:
+                        # Fallback: search any chunk across all documents with this code
+                        chunk_rows = await conn.fetch(
+                            _CHUNK_DESC_FALLBACK_SQL,
+                            f"%{raw_code}%",
+                        )
+                        for cr in chunk_rows:
+                            sol = _extract_solution_from_chunk(cr["text_chunk"], raw_code, allow_desc_fallback=True)
+                            if sol:
+                                solution_from_chunk = sol
+                                break
         except Exception as exc:
             logger.warning("chunk_solution_lookup error: %s", exc)
 
@@ -1223,8 +1436,8 @@ async def _fast_path_lookup(
         sources = group["sources"]
 
         # Strip leading punctuation/spaces from description (PDF extraction artifact)
-        desc = re.sub(r"^[\s,;:\-–—]+", "", desc).strip() or "—"
-        header = f"### Fehler `{code}` – {desc}"
+        desc = re.sub(r"^[\s,;:\-–—]+", "", desc).strip() or "—"  # noqa: RUF001
+        header = f"### Fehler `{code}` – {desc}"  # noqa: RUF001
         if mfr:
             header += f"  *({mfr})*"
         if raw_model:
@@ -1278,10 +1491,15 @@ async def _fast_path_lookup(
             parts.append("\n**👤 Anwender-Lösung:**\n")
             parts.append(sol_c_full)
         elif solution_from_chunk:
-            parts.append("\n**Lösung** *(aus Service-Manual)*:\n")
+            # Use a description label when the content has no numbered steps (non-HP fallback)
+            _has_steps = bool(re.search(r"^\s*\d+[\.\)]\s+\S", solution_from_chunk, re.MULTILINE))
+            if _has_steps:
+                parts.append("\n**Lösung** *(aus Service-Manual)*:\n")
+            else:
+                parts.append("\n**ℹ️ Fehlerbeschreibung** *(aus Service-Manual)*:\n")  # noqa: RUF001
             parts.append(_format_solution_text(solution_from_chunk))
         else:
-            parts.append("\n⚠️ *Keine Lösung in der Datenbank hinterlegt.*")
+            parts.append("\n⚠️ *Keine Schritt-für-Schritt-Lösung verfügbar. Bitte Service-Manual konsultieren.*")
 
         # Sources with model coverage
         if sources:
@@ -1595,7 +1813,7 @@ async def _parts_lookup(pool, text: str, scope: dict[str, str] | None = None) ->
     for r in rows:
         price = f" — ${r['price_usd']:.2f}" if r["price_usd"] else ""
         mfr = f" *({r['manufacturer_name']})*" if r["manufacturer_name"] else ""
-        lines.append(f"**{r['part_number']}** – {r['part_name']}{mfr}{price}")
+        lines.append(f"**{r['part_number']}** – {r['part_name']}{mfr}{price}")  # noqa: RUF001
         if _product_label(r) or r["series_name"]:
             lines.append(f"  Gerät: {_product_label(r) or r['series_name']}")
         if r["description"]:
@@ -1989,7 +2207,7 @@ async def chat_completions(
             body.model,
         )
 
-    _AGENT_TIMEOUT = int(os.getenv("KRAI_AGENT_TIMEOUT", "30"))
+    _AGENT_TIMEOUT = int(os.getenv("KRAI_AGENT_TIMEOUT", "30"))  # noqa: N806  # function-scoped constant
 
     if body.stream:
 

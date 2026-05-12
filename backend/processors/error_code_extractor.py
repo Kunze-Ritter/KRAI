@@ -13,51 +13,41 @@ OEM/REBRAND SUPPORT:
 - Example: Konica Minolta 5000i uses Brother error codes
 """
 
-import re
 import json
+import re
 from pathlib import Path
-from typing import List, Optional, Tuple, Dict, Any
+from typing import Any
 from uuid import UUID
-from multiprocessing import Pool, cpu_count
-from .logger import get_logger
-from .models import ExtractedErrorCode, ValidationError as ValError
-from .exceptions import ManufacturerPatternNotFoundError
-from backend.utils.hp_solution_filter import extract_hp_technician_solution, extract_all_hp_levels
-from backend.utils.manufacturer_normalizer import normalize_manufacturer
+
 from backend.config.oem_mappings import get_effective_manufacturer
-from .chunk_linker import link_error_codes_to_chunks
+from backend.utils.hp_solution_filter import extract_all_hp_levels
+from backend.utils.manufacturer_normalizer import normalize_manufacturer
 
 # Import from refactored modules
 from .error_code_patterns import (
-    REJECT_CODES,
-    TECHNICAL_TERMS,
-    RECOMMENDED_ACTION_PATTERN,
-    SOLUTION_KEYWORDS_PATTERN,
-    NUMBERED_STEPS_PATTERN,
     BULLET_PATTERN,
+    CLASSIFICATION_PATTERN,
+    MAX_BATCH_CODE_LENGTH,
+    NUMBERED_STEPS_PATTERN,
+    RECOMMENDED_ACTION_PATTERN,
+    REJECT_CODES,
+    SECTION_END_NOTE,
+    SECTION_END_NUMBERED,
+    SECTION_END_TITLE,
+    SENTENCE_END_PATTERN,
+    SOLUTION_KEYWORDS_PATTERN,
     STEP_LINE_PATTERN,
     STEP_MATCH_PATTERN,
-    SECTION_END_NOTE,
-    SECTION_END_TITLE,
-    SECTION_END_NUMBERED,
-    CLASSIFICATION_PATTERN,
-    SENTENCE_END_PATTERN,
-    MAX_BATCH_CODE_LENGTH,
-    load_error_code_config,
-    slugify_error_code as _slugify,
+    TECHNICAL_TERMS,
 )
-
-from .error_code_hierarchy import derive_parent_code, create_category_entries
+from .error_code_patterns import slugify_error_code as _slugify
+from .logger import get_logger
+from .models import ExtractedErrorCode
+from .models import ValidationError as ValError
 
 try:
-    from rich.progress import (
-        Progress,
-        SpinnerColumn,
-        TextColumn,
-        BarColumn,
-        TaskProgressColumn,
-        TimeRemainingColumn,
-    )
+    from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn, TimeRemainingColumn
+
     RICH_PROGRESS_AVAILABLE = True
 except ImportError:
     Progress = SpinnerColumn = TextColumn = BarColumn = TaskProgressColumn = TimeRemainingColumn = None  # type: ignore
@@ -68,36 +58,37 @@ logger = get_logger()
 
 class ErrorCodeExtractor:
     """Extract error codes using manufacturer-specific patterns"""
-    
-    def __init__(self, config_path: Optional[Path] = None):
+
+    def __init__(self, config_path: Path | None = None):
         """Initialize error code extractor with configuration"""
 
         self.logger = get_logger()
         self._chunk_cache = {}  # Cache chunks to avoid repeated queries
-        self._missing_manufacturer_events: List[Dict[str, Any]] = []
-        
+        self._missing_manufacturer_events: list[dict[str, Any]] = []
+
         if config_path is None:
             config_path = Path(__file__).parent.parent / "config" / "error_code_patterns.json"
-        
+
         self.config_path = config_path
         self.patterns_config = self._load_config()
         self.extraction_rules = self.patterns_config.get("extraction_rules", {})
-        
-        logger.info(f"Loaded error code patterns for {len([k for k in self.patterns_config.keys() if k != 'extraction_rules'])} manufacturers")
-    
-    def _load_config(self) -> Dict[str, Any]:
+
+        logger.info(
+            f"Loaded error code patterns for {len([k for k in self.patterns_config if k != 'extraction_rules'])} manufacturers"
+        )
+
+    def _load_config(self) -> dict[str, Any]:
         """Load error code patterns configuration"""
         try:
-            with open(self.config_path, 'r', encoding='utf-8') as f:
-                config = json.load(f)
-            return config
+            with open(self.config_path, encoding="utf-8") as f:
+                return json.load(f)
         except FileNotFoundError:
             logger.warning(f"Error code patterns config not found: {self.config_path}")
             return {"extraction_rules": {}}
         except json.JSONDecodeError as e:
             logger.error(f"Invalid JSON in error code patterns config: {e}")
             return {"extraction_rules": {}}
-    
+
     @staticmethod
     def _slugify(name: str) -> str:
         return _slugify(name)
@@ -105,27 +96,24 @@ class ErrorCodeExtractor:
     def _reset_missing_manufacturer_events(self):
         self._missing_manufacturer_events.clear()
 
-    def _get_missing_manufacturer_events(self) -> List[Dict[str, Any]]:
+    def _get_missing_manufacturer_events(self) -> list[dict[str, Any]]:
         return list(self._missing_manufacturer_events)
 
     def reset_missing_manufacturer_events(self) -> None:
         """Public helper to clear missing-manufacturer telemetry buffer."""
         self._reset_missing_manufacturer_events()
 
-    def get_missing_manufacturer_events(self) -> List[Dict[str, Any]]:
+    def get_missing_manufacturer_events(self) -> list[dict[str, Any]]:
         """Return missing-manufacturer telemetry collected during extraction."""
         return self._get_missing_manufacturer_events()
 
-    def _get_manufacturer_key(self, manufacturer_name: Optional[str]) -> Optional[str]:
+    def _get_manufacturer_key(self, manufacturer_name: str | None) -> str | None:
         """Convert manufacturer name to config key using unified normalization"""
         if not manufacturer_name:
             return None
 
         canonical = normalize_manufacturer(manufacturer_name) or manufacturer_name
-        slug_candidates = {
-            self._slugify(manufacturer_name),
-            self._slugify(canonical)
-        }
+        slug_candidates = {self._slugify(manufacturer_name), self._slugify(canonical)}
 
         for candidate in list(slug_candidates):
             if candidate.endswith("inc"):
@@ -133,7 +121,7 @@ class ErrorCodeExtractor:
             if candidate.endswith("corp"):
                 slug_candidates.add(candidate[:-4])
 
-        for config_key in self.patterns_config.keys():
+        for config_key in self.patterns_config:
             if config_key == "extraction_rules":
                 continue
             key_slug = self._slugify(config_key)
@@ -144,29 +132,29 @@ class ErrorCodeExtractor:
                     return config_key
 
         return None
-    
+
     def enrich_error_codes_from_document(
         self,
-        error_codes: List[ExtractedErrorCode],
+        error_codes: list[ExtractedErrorCode],
         full_document_text: str,
-        manufacturer_name: Optional[str] = None,
-        product_series: Optional[str] = None
-    ) -> List[ExtractedErrorCode]:
+        manufacturer_name: str | None = None,
+        product_series: str | None = None,
+    ) -> list[ExtractedErrorCode]:
         """
         Enrich error codes with full details from entire document
-        
+
         OPTIMIZED: Batch processing with compiled regex patterns
         OEM-AWARE: Uses OEM manufacturer patterns for rebranded products
-        
+
         For codes found in lists (e.g., "List of JAM code"), search the entire
         document for detailed sections with Classification, Cause, Measures.
-        
+
         Args:
             error_codes: List of error codes to enrich
             full_document_text: Full text of entire document
             manufacturer_name: Brand manufacturer name (e.g., "Konica Minolta")
             product_series: Product series for OEM detection (e.g., "5000i")
-            
+
         Returns:
             Enriched error codes with full details
         """
@@ -174,41 +162,36 @@ class ErrorCodeExtractor:
         # Check if this is a rebranded product and use OEM patterns
         effective_manufacturer = manufacturer_name
         if manufacturer_name and product_series:
-            oem_manufacturer = get_effective_manufacturer(
-                manufacturer_name, 
-                product_series, 
-                for_purpose='error_codes'
-            )
+            oem_manufacturer = get_effective_manufacturer(manufacturer_name, product_series, for_purpose="error_codes")
             if oem_manufacturer != manufacturer_name:
                 self.logger.info(
                     f"🔄 OEM Detected: {manufacturer_name} {product_series} uses {oem_manufacturer} error codes"
                 )
                 effective_manufacturer = oem_manufacturer
-        
+
         # Use effective manufacturer for pattern lookup
         manufacturer_name = effective_manufacturer
         # OPTIMIZATION 1: Skip enrichment if all codes already have good solutions
         codes_needing_enrichment = [
-            ec for ec in error_codes
-            if not ec.solution_technician_text or len(ec.solution_technician_text) <= 500
+            ec for ec in error_codes if not ec.solution_technician_text or len(ec.solution_technician_text) <= 500
         ]
-        
+
         if not codes_needing_enrichment:
             self.logger.debug("All error codes already have good solutions, skipping enrichment")
             return error_codes
-        
+
         self.logger.info(f"Enriching {len(codes_needing_enrichment)}/{len(error_codes)} error codes...")
-        
+
         # Performance note: This is CPU-bound (regex). For 3919 codes:
         # - Single-threaded: ~1 minute (after optimization)
         # - Multi-threaded: Not beneficial (Python GIL + regex overhead)
         # - GPU/NPU: Not applicable (regex is CPU-only)
-        
+
         # OPTIMIZATION 2: Build a single regex pattern for all codes (batch search)
         # Group codes by pattern to reduce regex complexity
-        code_to_original: Dict[str, ExtractedErrorCode] = {}
-        pattern_entries: List[Tuple[str, str]] = []  # (original_code, escaped_code)
-        long_code_values: List[str] = []
+        code_to_original: dict[str, ExtractedErrorCode] = {}
+        pattern_entries: list[tuple[str, str]] = []  # (original_code, escaped_code)
+        long_code_values: list[str] = []
 
         for error_code in codes_needing_enrichment:
             code_value = (error_code.error_code or "").strip()
@@ -220,9 +203,7 @@ class ErrorCodeExtractor:
 
             if len(code_value) > MAX_BATCH_CODE_LENGTH:
                 self.logger.debug(
-                    "Skipping batch regex for long code '%s' (len=%s) - streaming fallback",
-                    code_value,
-                    len(code_value)
+                    "Skipping batch regex for long code '%s' (len=%s) - streaming fallback", code_value, len(code_value)
                 )
                 long_code_values.append(code_value)
                 continue
@@ -232,7 +213,7 @@ class ErrorCodeExtractor:
                 self.logger.debug(
                     "Escaped pattern for code '%s' exceeds limit (len=%s) - streaming fallback",
                     code_value,
-                    len(escaped_code)
+                    len(escaped_code),
                 )
                 long_code_values.append(code_value)
                 continue
@@ -244,38 +225,28 @@ class ErrorCodeExtractor:
         batchable_count = len(pattern_entries)
         if long_code_values:
             self.logger.info(
-                "   Streaming fallback for %s long codes (excluded from batch regex)",
-                len(long_code_values)
+                "   Streaming fallback for %s long codes (excluded from batch regex)", len(long_code_values)
             )
 
-        self.logger.info(
-            "   Building batch regex for %s codes...",
-            batchable_count
-        )
+        self.logger.info("   Building batch regex for %s codes...", batchable_count)
 
-        all_matches: Dict[str, List[Tuple[int, int]]] = {}
+        all_matches: dict[str, list[tuple[int, int]]] = {}
 
         if batchable_count:
             all_matches = self._collect_with_batches(
-                full_document_text,
-                pattern_entries,
-                batch_size=100,
-                existing_matches=all_matches
+                full_document_text, pattern_entries, batch_size=100, existing_matches=all_matches
             )
 
         if long_code_values:
             self._streaming_fallback(
-                full_document_text,
-                long_code_values,
-                matches=all_matches,
-                batch_label="long-codes"
+                full_document_text, long_code_values, matches=all_matches, batch_label="long-codes"
             )
-        
+
         # OPTIMIZATION 4: Process each code with its pre-found matches
         enriched_codes = []
-        
+
         self.logger.info(f"   Starting enrichment loop for {len(error_codes)} codes...")
-        
+
         # Progress tracking
         progress_console = getattr(self.logger, "console", None)
         if RICH_PROGRESS_AVAILABLE and progress_console is not None:
@@ -294,63 +265,63 @@ class ErrorCodeExtractor:
             progress_context = self.logger.progress_bar([], "Enriching error codes")
 
         with progress_context as progress:
-            task = progress.add_task(
-                f"[cyan]Enriching {len(error_codes)} error codes...",
-                total=len(error_codes)
-            )
-            
+            task = progress.add_task(f"[cyan]Enriching {len(error_codes)} error codes...", total=len(error_codes))
+
             # Performance tracking
             import time
+
             loop_start = time.time()
             processed_count = 0
-            
+
             for error_code in error_codes:
                 # Skip if already has good solution
                 if error_code.solution_technician_text and len(error_code.solution_technician_text) > 100:
                     enriched_codes.append(error_code)
                     progress.update(task, advance=1)
                     continue
-                
+
                 # DEBUG: Log first code to see where it hangs
                 if processed_count == 0:
                     self.logger.info(f"   Processing first code: {error_code.error_code}")
-                
+
                 # Get pre-found matches for this code
                 matches = all_matches.get(error_code.error_code, [])
-                
+
                 # OPTIMIZATION: Filter matches to only those in error code context
                 # Avoid false positives (e.g., product names like "C4080" that appear everywhere)
                 filtered_matches = []
                 for start_pos, end_pos in matches:
                     # Check context before the match (100 chars)
-                    context_before = full_document_text[max(0, start_pos - 100):start_pos].lower()
+                    context_before = full_document_text[max(0, start_pos - 100) : start_pos].lower()
                     # Look for error code indicators
-                    if any(keyword in context_before for keyword in ['error', 'code', 'trouble', 'fault', 'alarm', 'jam']):
+                    if any(
+                        keyword in context_before for keyword in ["error", "code", "trouble", "fault", "alarm", "jam"]
+                    ):
                         filtered_matches.append((start_pos, end_pos))
                         if len(filtered_matches) >= 10:  # Limit to 10 good matches
                             break
-                
+
                 # Fallback: If no filtered matches, use first 3 raw matches
                 matches = filtered_matches if filtered_matches else matches[:3]
-                
+
                 if processed_count == 0:
                     self.logger.info(f"   Found {len(matches)} matches for first code (limited to 10)")
-                
+
                 # Try each occurrence to find the detailed section
                 best_description = error_code.error_description
                 best_solution_raw = error_code.solution_technician_text  # raw full text for enrichment
                 best_confidence = error_code.confidence
-                
+
                 for match_idx, (start_pos, end_pos) in enumerate(matches):
                     if processed_count == 0 and match_idx == 0:
-                        self.logger.info(f"   Extracting context for first match...")
-                    
+                        self.logger.info("   Extracting context for first match...")
+
                     # Extract larger context (up to 3000 chars for detailed sections)
                     context = self._extract_context(full_document_text, start_pos, end_pos, context_size=3000)
-                    
+
                     if processed_count == 0 and match_idx == 0:
                         self.logger.info(f"   Context extracted ({len(context)} chars), extracting description...")
-                    
+
                     # Try to extract structured description
                     description = self._extract_description(
                         full_document_text,
@@ -358,37 +329,37 @@ class ErrorCodeExtractor:
                         max_length=1500,
                         code_start_pos=start_pos,
                     )
-                    
+
                     if processed_count == 0 and match_idx == 0:
-                        self.logger.info(f"   Description extracted, extracting solution...")
+                        self.logger.info("   Description extracted, extracting solution...")
                     if description and len(description) > len(best_description):
                         best_description = description
                         best_confidence = min(0.95, best_confidence + 0.1)
-                    
+
                     # Try to extract solution
                     solution = self._extract_solution(context, full_document_text, end_pos)
-                    
+
                     if processed_count == 0 and match_idx == 0:
-                        self.logger.info(f"   Solution extracted, creating enriched code...")
-                    
-                    if solution and len(solution) > len(best_solution_raw or ''):
+                        self.logger.info("   Solution extracted, creating enriched code...")
+
+                    if solution and len(solution) > len(best_solution_raw or ""):
                         best_solution_raw = solution
                         best_confidence = min(0.95, best_confidence + 0.1)
-                        
+
                         # OPTIMIZATION 5: Early exit if we found a good solution
                         if len(best_solution_raw) > 1500:
                             break
-                
+
                 # Split raw solution text into the 3 levels
-                enriched_manufacturer = getattr(error_code, 'manufacturer_name', manufacturer_name)
-                enriched_effective = getattr(error_code, 'effective_manufacturer', effective_manufacturer)
-                sol_levels = extract_all_hp_levels(best_solution_raw or '')
+                enriched_manufacturer = getattr(error_code, "manufacturer_name", manufacturer_name)
+                enriched_effective = getattr(error_code, "effective_manufacturer", effective_manufacturer)
+                sol_levels = extract_all_hp_levels(best_solution_raw or "", manufacturer=enriched_effective)
                 enriched_code = ExtractedErrorCode(
                     error_code=error_code.error_code,
                     error_description=best_description,
-                    solution_customer_text=sol_levels['customer'],
-                    solution_agent_text=sol_levels['agent'],
-                    solution_technician_text=sol_levels['technician'],
+                    solution_customer_text=sol_levels["customer"],
+                    solution_agent_text=sol_levels["agent"],
+                    solution_technician_text=sol_levels["technician"],
                     context_text=error_code.context_text,
                     confidence=best_confidence,
                     page_number=error_code.page_number,
@@ -399,7 +370,7 @@ class ErrorCodeExtractor:
                 )
                 enriched_codes.append(enriched_code)
                 progress.update(task, advance=1)
-                
+
                 # Log progress every 100 codes
                 processed_count += 1
                 if processed_count % 100 == 0:
@@ -412,12 +383,12 @@ class ErrorCodeExtractor:
     def _collect_with_batches(
         self,
         document_text: str,
-        pattern_entries: List[Tuple[str, str]],
+        pattern_entries: list[tuple[str, str]],
         batch_size: int,
-        existing_matches: Optional[Dict[str, List[Tuple[int, int]]]] = None
-    ) -> Dict[str, List[Tuple[int, int]]]:
+        existing_matches: dict[str, list[tuple[int, int]]] | None = None,
+    ) -> dict[str, list[tuple[int, int]]]:
         """Collect regex matches while handling large batches defensively."""
-        matches: Dict[str, List[Tuple[int, int]]] = existing_matches or {}
+        matches: dict[str, list[tuple[int, int]]] = existing_matches or {}
         total_patterns = len(pattern_entries)
         if total_patterns == 0:
             return matches
@@ -426,7 +397,7 @@ class ErrorCodeExtractor:
         sorted_entries = sorted(pattern_entries, key=lambda entry: len(entry[1]), reverse=True)
 
         for batch_start in range(0, total_patterns, batch_size):
-            batch = sorted_entries[batch_start:batch_start + batch_size]
+            batch = sorted_entries[batch_start : batch_start + batch_size]
             if not batch:
                 continue
 
@@ -434,16 +405,9 @@ class ErrorCodeExtractor:
             # Guard alternation length to avoid regex DoS
             if len(alternation) > 100_000:
                 self.logger.warning(
-                    "Batch alternation length %s exceeds cap, splitting batch (size=%s)",
-                    len(alternation),
-                    len(batch)
+                    "Batch alternation length %s exceeds cap, splitting batch (size=%s)", len(alternation), len(batch)
                 )
-                self._collect_with_batches(
-                    document_text,
-                    batch,
-                    max(1, batch_size // 2),
-                    matches
-                )
+                self._collect_with_batches(document_text, batch, max(1, batch_size // 2), matches)
                 continue
 
             pattern = rf"\b({alternation})\b"
@@ -454,31 +418,17 @@ class ErrorCodeExtractor:
                     "Regex compilation failed for batch starting at %s (size=%s): %s",
                     batch_start,
                     len(batch),
-                    regex_error
+                    regex_error,
                 )
                 # Retry with smaller batches
                 if batch_size > 1:
                     half = max(1, batch_size // 2)
-                    self.logger.info(
-                        "Retrying batch starting at %s with smaller size %s",
-                        batch_start,
-                        half
-                    )
-                    self._collect_with_batches(
-                        document_text,
-                        batch,
-                        half,
-                        matches
-                    )
+                    self.logger.info("Retrying batch starting at %s with smaller size %s", batch_start, half)
+                    self._collect_with_batches(document_text, batch, half, matches)
                     continue
                 # Fallback to streaming search for smallest unit
                 codes = [entry[0] for entry in batch]
-                self._streaming_fallback(
-                    document_text,
-                    codes,
-                    matches,
-                    batch_label="regex-error"
-                )
+                self._streaming_fallback(document_text, codes, matches, batch_label="regex-error")
                 continue
 
             for match in compiled_regex.finditer(document_text):
@@ -488,18 +438,10 @@ class ErrorCodeExtractor:
         return matches
 
     def _streaming_fallback(
-        self,
-        document_text: str,
-        codes: List[str],
-        matches: Dict[str, List[Tuple[int, int]]],
-        batch_label: str
+        self, document_text: str, codes: list[str], matches: dict[str, list[tuple[int, int]]], batch_label: str
     ) -> None:
         """Perform serial search for codes when batch regex fails or is unsuitable."""
-        self.logger.info(
-            "   Streaming fallback (%s) for %s codes",
-            batch_label,
-            len(codes)
-        )
+        self.logger.info("   Streaming fallback (%s) for %s codes", batch_label, len(codes))
 
         for code in codes:
             start = 0
@@ -512,12 +454,8 @@ class ErrorCodeExtractor:
                 start = end_idx
 
     def extract_from_text(
-        self,
-        text: str,
-        page_number: int,
-        manufacturer_name: Optional[str] = None,
-        product_series: Optional[str] = None
-    ) -> List[ExtractedErrorCode]:
+        self, text: str, page_number: int, manufacturer_name: str | None = None, product_series: str | None = None
+    ) -> list[ExtractedErrorCode]:
         """
         Extract error codes from text using manufacturer-specific patterns
 
@@ -534,11 +472,7 @@ class ErrorCodeExtractor:
 
         effective_manufacturer = manufacturer_name
         if manufacturer_name and product_series:
-            oem_manufacturer = get_effective_manufacturer(
-                manufacturer_name,
-                product_series,
-                for_purpose='error_codes'
-            )
+            oem_manufacturer = get_effective_manufacturer(manufacturer_name, product_series, for_purpose="error_codes")
             if oem_manufacturer and oem_manufacturer != manufacturer_name:
                 self.logger.info(
                     f"🔄 OEM Detected: {manufacturer_name} {product_series} uses {oem_manufacturer} error codes"
@@ -555,7 +489,7 @@ class ErrorCodeExtractor:
             )
 
         # Determine which patterns to use
-        patterns_to_use: List[Tuple[str, Dict[str, Any]]] = []
+        patterns_to_use: list[tuple[str, dict[str, Any]]] = []
 
         if manufacturer_key and manufacturer_key in self.patterns_config:
             # Use manufacturer-specific patterns ONLY (no generic fallback to avoid false positives like part numbers)
@@ -566,18 +500,20 @@ class ErrorCodeExtractor:
                 logger.warning(
                     "⚠️  No error code patterns configured for '%s' (effective: '%s')",
                     manufacturer_name,
-                    effective_manufacturer or "unknown"
+                    effective_manufacturer or "unknown",
                 )
-                self._missing_manufacturer_events.append({
-                    "manufacturer": manufacturer_name,
-                    "effective_manufacturer": effective_manufacturer,
-                    "page": page_number
-                })
+                self._missing_manufacturer_events.append(
+                    {
+                        "manufacturer": manufacturer_name,
+                        "effective_manufacturer": effective_manufacturer,
+                        "page": page_number,
+                    }
+                )
                 return []
             logger.warning("No manufacturer specified for error code extraction - skipping")
             return []
 
-        found_codes: List[ExtractedErrorCode] = []
+        found_codes: list[ExtractedErrorCode] = []
         seen_codes = set()
 
         for mfr_key, mfr_config in patterns_to_use:
@@ -606,13 +542,25 @@ class ErrorCodeExtractor:
 
                     context = self._extract_context(text, match.start(), match.end())
 
-                    if re.match(r'^\d{2}-\d{2}$', code):
+                    if re.match(r"^\d{2}-\d{2}$", code):
                         context_lower = context.lower()
-                        jam_keywords = ['jam', 'misfeed', 'paper', 'feed', 'transport', 'duplex', 'tray', 'bypass', 'section']
+                        jam_keywords = [
+                            "jam",
+                            "misfeed",
+                            "paper",
+                            "feed",
+                            "transport",
+                            "duplex",
+                            "tray",
+                            "bypass",
+                            "section",
+                        ]
                         if not any(kw in context_lower for kw in jam_keywords):
-                            logger.debug(f"Skipping JAM code '{code}' - no jam-related context (use J-{code} format for explicit JAM codes)")
+                            logger.debug(
+                                f"Skipping JAM code '{code}' - no jam-related context (use J-{code} format for explicit JAM codes)"
+                            )
                             continue
-                    elif re.match(r'^J-\d{2}-\d{2}$', code):
+                    elif re.match(r"^J-\d{2}-\d{2}$", code):
                         logger.debug(f"Accepted JAM code '{code}' - explicit J- prefix")
 
                     if not self._validate_context(context):
@@ -621,6 +569,7 @@ class ErrorCodeExtractor:
                     description = self._extract_description(
                         text,
                         match.end(),
+                        max_length=2000,
                         code_start_pos=match.start(),
                     )
                     if not description or self._is_generic_description(description):
@@ -634,14 +583,14 @@ class ErrorCodeExtractor:
                     hierarchy_rules = mfr_config.get("hierarchy_rules")
                     parent_code = self._derive_parent_code(code, hierarchy_rules)
 
-                    sol_levels = extract_all_hp_levels(solution or '')
+                    sol_levels = extract_all_hp_levels(solution or "", manufacturer=effective_manufacturer)
                     try:
                         error_code = ExtractedErrorCode(
                             error_code=code,
                             error_description=description,
-                            solution_customer_text=sol_levels['customer'],
-                            solution_agent_text=sol_levels['agent'],
-                            solution_technician_text=sol_levels['technician'],
+                            solution_customer_text=sol_levels["customer"],
+                            solution_agent_text=sol_levels["agent"],
+                            solution_technician_text=sol_levels["technician"],
                             context_text=context,
                             confidence=confidence,
                             page_number=page_number,
@@ -665,9 +614,7 @@ class ErrorCodeExtractor:
         for _mfr_key, mfr_config in patterns_to_use:
             hierarchy_rules = mfr_config.get("hierarchy_rules")
             if hierarchy_rules:
-                categories = self._create_category_entries(
-                    unique_codes, hierarchy_rules, _mfr_key, manufacturer_name
-                )
+                categories = self._create_category_entries(unique_codes, hierarchy_rules, _mfr_key, manufacturer_name)
                 unique_codes.extend(categories)
 
         unique_codes.sort(key=lambda x: x.confidence, reverse=True)
@@ -678,9 +625,9 @@ class ErrorCodeExtractor:
             unique_codes = unique_codes[:max_codes]
 
         return unique_codes
-    
+
     @staticmethod
-    def _derive_parent_code(code: str, hierarchy_rules: Optional[Dict[str, Any]]) -> Optional[str]:
+    def _derive_parent_code(code: str, hierarchy_rules: dict[str, Any] | None) -> str | None:
         """Derive parent category code from a specific error code.
 
         Supports two strategies configured via hierarchy_rules:
@@ -706,15 +653,15 @@ class ErrorCodeExtractor:
 
     def _create_category_entries(
         self,
-        codes: List[ExtractedErrorCode],
-        hierarchy_rules: Dict[str, Any],
+        codes: list[ExtractedErrorCode],
+        hierarchy_rules: dict[str, Any],
         mfr_key: str,
-        manufacturer_name: Optional[str],
-    ) -> List[ExtractedErrorCode]:
+        manufacturer_name: str | None,
+    ) -> list[ExtractedErrorCode]:
         """Create category entries for parent codes that don't already exist."""
         parent_codes = {c.parent_code for c in codes if c.parent_code}
         existing_codes = {c.error_code for c in codes}
-        categories: List[ExtractedErrorCode] = []
+        categories: list[ExtractedErrorCode] = []
         for parent in sorted(parent_codes):
             if parent in existing_codes:
                 continue
@@ -750,67 +697,60 @@ class ErrorCodeExtractor:
     def _validate_context(self, context: str) -> bool:
         """Validate that context looks like an error code section"""
         context_lower = context.lower()
-        
+
         # Check for required keywords
         required_keywords = self.extraction_rules.get("require_context_keywords", [])
         has_required = any(kw in context_lower for kw in required_keywords)
-        
+
         # Check for excluded keywords
         excluded_keywords = self.extraction_rules.get("exclude_if_near", [])
         has_excluded = any(kw in context_lower for kw in excluded_keywords)
-        
+
         return has_required and not has_excluded
-    
-    
-    def _extract_context(
-        self,
-        text: str,
-        start_pos: int,
-        end_pos: int,
-        context_size: int = 500
-    ) -> str:
+
+    def _extract_context(self, text: str, start_pos: int, end_pos: int, context_size: int = 500) -> str:
         """
         Extract context around error code
-        
+
         Args:
             text: Full text
             start_pos: Error code start position
             end_pos: Error code end position
             context_size: Characters to include before/after
-            
+
         Returns:
             Context text
         """
         context_start = max(0, start_pos - context_size)
         context_end = min(len(text), end_pos + context_size)
-        
+
         context = text[context_start:context_end]
         return context.strip()
-    
+
     def _extract_description(
         self,
         text: str,
         code_end_pos: int,
         max_length: int = 500,
-        code_start_pos: Optional[int] = None,
-    ) -> Optional[str]:
+        code_start_pos: int | None = None,
+    ) -> str | None:
         """
         Extract error description (text after error code)
-        
+
         For Konica Minolta: Looks for 'Classification' section
         For others: Extracts text after error code
-        
+
         Args:
             text: Full text
             code_end_pos: Position where error code ends
             max_length: Maximum description length
-            
+
         Returns:
             Description or None
         """
         # Extract text after code
-        remaining_text = text[code_end_pos:code_end_pos + max_length * 2]
-        
+        remaining_text = text[code_end_pos : code_end_pos + max_length * 2]
+
         # Try to find structured sections (Konica Minolta format)
         # PERFORMANCE: Use pre-compiled pattern
         classification_match = CLASSIFICATION_PATTERN.search(remaining_text)
@@ -818,30 +758,56 @@ class ErrorCodeExtractor:
             description = classification_match.group(1).strip()
             # Limit to max_length
             if len(description) > max_length:
-                description = description[:max_length].rsplit(' ', 1)[0]
+                description = description[:max_length].rsplit(" ", 1)[0]
             return description
-        
+
         # Fallback: Extract text after code (original logic)
         remaining_text = remaining_text[:max_length]
-        
+
+        # Skip leading whitespace/newlines so codes in table rows (where the
+        # description appears on the NEXT line) don't cause an immediate
+        # sentence-end hit at position 0 and fall through to the backward search.
+        remaining_text_trimmed = remaining_text.lstrip()
+
+        # Pre-normalize soft-wrapped lines: PDF tables/columns often break sentences
+        # at narrow widths (e.g. Lexmark: "Paper fed from the MPF was\ndetected...").
+        # Join lines where the continuation starts with a lowercase letter or comma
+        # so SENTENCE_END_PATTERN can find the real sentence boundary (period).
+        remaining_text_trimmed = re.sub(r"\n(?=[a-z,])", " ", remaining_text_trimmed)
+
         # Find end of sentence or paragraph
         # PERFORMANCE: Use pre-compiled pattern
-        sentence_end = SENTENCE_END_PATTERN.search(remaining_text)
-        
+        sentence_end = SENTENCE_END_PATTERN.search(remaining_text_trimmed)
+
         if sentence_end:
-            description = remaining_text[:sentence_end.start()].strip()
+            description = remaining_text_trimmed[: sentence_end.start()].strip()
         else:
-            description = remaining_text.strip()
-        
-        # Keep searching with fallback heuristics when forward description is too short.
-        if len(description) < 20:
+            description = remaining_text_trimmed.strip()
+
+        # Keep searching with fallback heuristics when forward description is near-empty.
+        # Only clear truly insufficient results: ≤ 5 chars or a single non-letter token.
+        if len(description) < 5 or (len(description) < 15 and " " not in description):
             description = ""
-        
-        # Remove common prefixes
-        for prefix in [':', '-', '–', '—', 'error', 'code']:
+
+        # Remove common prefixes (including = which appears in HP CPMD table cells)
+        for prefix in ["=", ":", "-", "-", "—", "error", "code"]:  # second "-" placeholder
             description = description.lstrip(prefix).strip()
-        
-        if description and len(description) >= 20:
+
+        # Strip leading standalone numbers/symbols (e.g. "70 Black toner" → "Black toner", "06 Over heat" → "Over heat")
+        description = re.sub(r"^[\d●•\s]+(?=[A-Za-z])", "", description).strip()
+
+        # Strip trailing bullet/list symbols (e.g. "Over heat error ●" → "Over heat error")
+        description = re.sub(r"[\s●•]+$", "", description).strip()
+
+        # Strip outer parentheses if the whole description is wrapped (e.g. "(Dual-cassette feeder)")
+        if description.startswith("(") and description.endswith(")"):
+            description = description[1:-1].strip()
+
+        # Return a complete inline phrase immediately (≥ 2 words starting with a letter)
+        # so table-format codes like "10.05.35 Black drum unit" don't fall through to
+        # backward search which would pick up the previous line's text.
+        _words = description.split()
+        if description and (len(description) >= 100 or (len(_words) >= 2 and description[0].isalpha())):
             return description
 
         # Fallback for table/list layouts where the useful description appears
@@ -865,53 +831,66 @@ class ErrorCodeExtractor:
                     if len(candidate) >= 20:
                         return candidate[:max_length]
 
+        # Return shorter forward result as last resort (e.g. "Dual-cassette feeder")
+        if description and len(description) >= 10:
+            return description
+
         return None
-    
-    def _extract_solution(
-        self,
-        context: str,
-        full_text: str,
-        code_end_pos: int
-    ) -> Optional[str]:
+
+    def _extract_solution(self, context: str, full_text: str, code_end_pos: int) -> str | None:
         """
         Extract solution steps from context or following text
-        
+
         Handles multiple formats:
         - "Recommended action for customers" (HP style)
         - "Solution:" sections
         - Numbered troubleshooting steps
         - Bullet point lists
-        
+
         Returns:
             Solution text or None
         """
         # Extended text window for better extraction (increased for multi-page procedures)
-        text_after = full_text[code_end_pos:code_end_pos + 5000]
+        text_after = full_text[code_end_pos : code_end_pos + 5000]
         combined_text = context + "\n" + text_after
-        
+
         # Pattern 1: HP/Manufacturer style "Recommended action" OR Konica Minolta "Measures/Correction"
         # PERFORMANCE: Use pre-compiled pattern (avoids recompilation 3919+ times!)
-        match = RECOMMENDED_ACTION_PATTERN.search(combined_text)
+        # Search text_after only (not combined_text) to avoid context-tail contamination:
+        # combined_text includes 500 chars AFTER the code match, which can bleed into procedure
+        # steps mid-sentence, causing description text from the next code match to be
+        # appended as a step continuation (e.g. ": Paper feed communication error" on step 2).
+        match = RECOMMENDED_ACTION_PATTERN.search(text_after)
         if match:
-            solution = match.group(1).strip()
-            # Clean up and limit length
-            lines = solution.split('\n')
-            # Take up to 50 lines (increased from 20 for longer procedures)
+            # Use full post-header text (not just group(1)) so multi-line steps are captured via continuation logic
+            post_header = text_after[match.start(1) : match.start(1) + 3000]
+            # Clip at earliest section-end marker to avoid capturing unrelated content
+            earliest_end = len(post_header)
+            for end_pat in [SECTION_END_NUMBERED, SECTION_END_NOTE, SECTION_END_TITLE]:
+                end_m = end_pat.search(post_header)
+                if end_m and end_m.start() < earliest_end:
+                    earliest_end = end_m.start()
+            post_header = post_header[:earliest_end]
+            lines = post_header.split("\n")
             filtered_lines = []
-            for line in lines[:50]:
+            for line in lines[:80]:
                 # Match main steps (1., 1)) AND sub-steps (  1), 2), a), etc.)
                 # PERFORMANCE: Use pre-compiled pattern
                 if STEP_LINE_PATTERN.match(line):
                     filtered_lines.append(line.strip())
-                elif filtered_lines and len(line.strip()) > 3:  # Continuation line (lowered from 10 to catch short words)
-                    filtered_lines[-1] += ' ' + line.strip()
+                elif (
+                    filtered_lines and len(line.strip()) > 3
+                ):  # Continuation line (lowered from 10 to catch short words)
+                    filtered_lines[-1] += " " + line.strip()
                 elif filtered_lines and not line.strip():  # Empty line between steps - keep going
                     continue
-                elif filtered_lines and line.strip() and line.strip()[0].isupper():  # Stop at section header (must start with capital)
+                elif (
+                    filtered_lines and line.strip() and len(line.strip()) <= 3 and line.strip()[0].isupper()
+                ):  # Very short section marker
                     break
             if filtered_lines:
-                return '\n'.join(filtered_lines)
-        
+                return "\n".join(filtered_lines)
+
         # Pattern 2: Standard "Solution:" or "Fix:" sections
         # PERFORMANCE: Use pre-compiled pattern
         match = SOLUTION_KEYWORDS_PATTERN.search(combined_text)
@@ -922,187 +901,198 @@ class ErrorCodeExtractor:
             for pattern in [SECTION_END_NOTE, SECTION_END_TITLE, SECTION_END_NUMBERED]:
                 section_end = pattern.search(solution)
                 if section_end:
-                    solution = solution[:section_end.start()]
+                    solution = solution[: section_end.start()]
                     break
             return solution[:3000].strip()  # Limit length (increased from 1000 to 3000)
-        
+
         # Pattern 3: Numbered steps without header (1., 1), 2), Step 1, ...)
         # PERFORMANCE: Use pre-compiled pattern
         match = NUMBERED_STEPS_PATTERN.search(text_after)
         if match:
-            steps = match.group(1).strip()
-            # Take up to 30 steps (increased from 15 for complex multi-step procedures)
-            lines = [l.strip() for l in steps.split('\n') if l.strip()]
+            # Use text from match.start() rather than match.group(1) to avoid lazy-quantifier
+            # truncation: the outer {2,} greedy group is satisfied with the minimum 2 reps, so
+            # the 2nd line's lazy .{15,500}? stops at only 15 chars instead of the full line.
+            remaining = text_after[match.start() :]
+            lines = [ln.strip() for ln in remaining.split("\n") if ln.strip()]
             step_lines = []
             for line in lines[:30]:
                 # PERFORMANCE: Use pre-compiled pattern
                 if STEP_MATCH_PATTERN.match(line):
                     step_lines.append(line)
                 elif step_lines and len(line) > 20:  # Continuation of previous step
-                    step_lines[-1] += ' ' + line
+                    step_lines[-1] += " " + line
             if len(step_lines) >= 2:
-                return '\n'.join(step_lines)
-        
+                return "\n".join(step_lines)
+
         # Pattern 4: Bullet point lists
         # PERFORMANCE: Use pre-compiled pattern
         match = BULLET_PATTERN.search(text_after)
         if match:
-            bullets = match.group(1).strip()
-            lines = [l.strip() for l in bullets.split('\n') if l.strip()][:30]
-            solution = '\n'.join(lines)
-            
-            # Return raw full-text — levels are split later at ExtractedErrorCode creation
-            return solution
-        
+            # Skip if bullets are from a "Relevant electrical parts" section (not a procedure).
+            # Check both before AND inside the match — the "-" trouble-isolation marker can
+            # be the first "bullet", with the parts header appearing inside the match group.
+            search_window = text_after[: match.start() + len(match.group(1))]
+            if not re.search(
+                r"(?:Relevant electrical parts|Relevant parts|Electrical parts)", search_window, re.IGNORECASE
+            ):
+                bullets = match.group(1).strip()
+                lines = [ln.strip() for ln in bullets.split("\n") if ln.strip()][:30]
+                return "\n".join(lines)
+
+                # Return raw full-text — levels are split later at ExtractedErrorCode creation
+
         # No solution found — return full combined text (levels split at creation)
+        # Guard: if result looks like a Table of Contents (dot leaders ......), discard it
+        if combined_text and re.search(r"\.{10,}", combined_text):
+            return None
+        # Guard: if result looks like a trouble code listing table, discard it
+        if combined_text and re.search(r"Trouble Code\s*\nContents\s*\nRank", combined_text):
+            return None
+        # Guard: only return fallback if text_after contains numbered steps.
+        # Requiring steps in text_after (not just combined_text) prevents context from
+        # neighboring sections from being returned as this code's solution.
+        # Supports both "1. Step" and "1 Check" (Lexmark) formats.
+        # Use [ \t]+ (not \s+) to avoid false positives where "245.\n200.05" looks like a step.
+        if not re.search(r"^\s*\d+[\.\)][ \t]+\w|^\s*\d+[ \t]+[A-Z]", text_after, re.MULTILINE):
+            return None
         return combined_text if combined_text else None
-    
+
     def _is_generic_description(self, description: str) -> bool:
         """
         Check if description is too generic to be useful
-        
+
         Returns:
             True if generic
         """
+        # Fragment check: description starting with lowercase is likely a
+        # continuation from a preceding code's text in an index/list table.
+        if description and description[0].islower():
+            return True
+
         generic_phrases = [
-            'refer to manual',
-            'see documentation',
-            'contact support',
-            'error code',
-            'see page',
-            'refer to page',
-            'table',
-            'figure'
+            "refer to manual",
+            "see documentation",
+            "contact support",
+            "error code",
+            "see page",
+            "refer to page",
+            "table",
+            "figure",
         ]
-        
+
         desc_lower = description.lower()
-        
+
         # If short and contains generic phrase
         if len(description) < 50:
             for phrase in generic_phrases:
                 if phrase in desc_lower:
                     return True
-        
+
         return False
-    
-    def _calculate_confidence(
-        self,
-        code: str,
-        description: str,
-        solution: Optional[str],
-        context: str
-    ) -> float:
+
+    def _calculate_confidence(self, code: str, description: str, solution: str | None, context: str) -> float:
         """
         Calculate extraction confidence based on quality indicators
-        
+
         Returns:
             Confidence score (0.0 - 1.0)
         """
         confidence = 0.0
-        
+
         # Base confidence for valid format
         confidence += 0.3
-        
+
         # Has proper description (not generic)
         if description and len(description) > 30:
             confidence += 0.2
         if description and len(description) > 100:
             confidence += 0.1
-        
+
         # Has solution steps
         if solution:
             confidence += 0.2
             # Bonus for numbered or bulleted steps
-            if re.search(r'\d+\.|\•|\*', solution):
+            if re.search(r"\d+\.|\•|\*", solution):
                 confidence += 0.1
-        
+
         # Context contains technical terms
         context_lower = context.lower()
-        tech_term_count = sum(
-            1 for term in TECHNICAL_TERMS if term in context_lower
-        )
+        tech_term_count = sum(1 for term in TECHNICAL_TERMS if term in context_lower)
         if tech_term_count > 0:
             confidence += 0.1
         if tech_term_count > 3:
             confidence += 0.1
-        
+
         # Code appears multiple times (important!)
         if context.count(code) > 1:
             confidence += 0.1
-        
+
         # Context has reasonable length
         if 200 < len(context) < 2000:
             confidence += 0.05
-        
+
         return min(confidence, 1.0)
-    
-    def _determine_severity(
-        self,
-        description: str,
-        solution: Optional[str]
-    ) -> str:
+
+    def _determine_severity(self, description: str, solution: str | None) -> str:
         """
         Determine error severity from description
-        
+
         Returns:
             One of: low, medium, high, critical
         """
         text = f"{description} {solution or ''}".lower()
-        
+
         # Critical keywords
-        if any(kw in text for kw in ['critical', 'fatal', 'shutdown', 'stop']):
+        if any(kw in text for kw in ["critical", "fatal", "shutdown", "stop"]):
             return "critical"
-        
+
         # High severity
-        if any(kw in text for kw in ['major', 'serious', 'damage', 'failure']):
+        if any(kw in text for kw in ["major", "serious", "damage", "failure"]):
             return "high"
-        
+
         # Low severity
-        if any(kw in text for kw in ['minor', 'warning', 'informational', 'notice']):
+        if any(kw in text for kw in ["minor", "warning", "informational", "notice"]):
             return "low"
-        
+
         # Default to medium
         return "medium"
-    
-    def _deduplicate(
-        self,
-        error_codes: List[ExtractedErrorCode]
-    ) -> List[ExtractedErrorCode]:
+
+    def _deduplicate(self, error_codes: list[ExtractedErrorCode]) -> list[ExtractedErrorCode]:
         """
         Remove duplicate error codes, keep highest confidence
-        
+
         Args:
             error_codes: List of error codes
-            
+
         Returns:
             Deduplicated list
         """
         if not error_codes:
             return []
-        
+
         # Group by error_code
         seen = {}
         for ec in error_codes:
             key = ec.error_code
             if key not in seen or ec.confidence > seen[key].confidence:
                 seen[key] = ec
-        
+
         return list(seen.values())
-    
+
     def extract_from_structured_data(
         self,
-        structured_data: Dict[str, Any],
-        manufacturer: Optional[str],
-        document_id: Optional[UUID] = None,
-        source_url: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        structured_data: dict[str, Any],
+        manufacturer: str | None,
+        document_id: UUID | None = None,
+        source_url: str | None = None,
+    ) -> list[dict[str, Any]]:
         """Extract error codes from Firecrawl structured extraction payloads."""
 
         error_codes = structured_data.get("error_codes") or []
         if not error_codes:
             return []
 
-        dedup: Dict[str, Dict[str, Any]] = {}
+        dedup: dict[str, dict[str, Any]] = {}
         for code_data in error_codes:
             code = (code_data or {}).get("code")
             if not code:
@@ -1112,11 +1102,7 @@ class ErrorCodeExtractor:
                 self.logger.debug("Skipping invalid code format: %s", code)
                 continue
 
-            confidence = float(
-                code_data.get("confidence")
-                or structured_data.get("confidence")
-                or 0.8
-            )
+            confidence = float(code_data.get("confidence") or structured_data.get("confidence") or 0.8)
 
             entry = {
                 "code": code,
@@ -1140,7 +1126,7 @@ class ErrorCodeExtractor:
 
         return list(dedup.values())
 
-    def _validate_code_format(self, code: str, manufacturer: Optional[str]) -> bool:
+    def _validate_code_format(self, code: str, manufacturer: str | None) -> bool:
         """Validate error code format against manufacturer validation regex."""
 
         if not manufacturer:
@@ -1161,7 +1147,7 @@ class ErrorCodeExtractor:
         self,
         link_id: UUID,
         database_service: Any,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Extract error codes from enriched link content or structured data."""
 
         client = getattr(database_service, "service_client", None) or getattr(database_service, "client", None)
@@ -1171,9 +1157,7 @@ class ErrorCodeExtractor:
 
         response = (
             client.table("vw_links")
-            .select(
-                "id, url, scraped_content, manufacturer_id, document_id"
-            )
+            .select("id, url, scraped_content, manufacturer_id, document_id")
             .eq("id", str(link_id))
             .limit(1)
             .execute()
@@ -1238,18 +1222,12 @@ class ErrorCodeExtractor:
             for ec in extracted
         ]
 
-    def _get_manufacturer_name(self, manufacturer_id: Optional[str], client: Any) -> Optional[str]:
+    def _get_manufacturer_name(self, manufacturer_id: str | None, client: Any) -> str | None:
         if not manufacturer_id:
             return None
 
         try:
-            result = (
-                client.table("vw_manufacturers")
-                .select("name")
-                .eq("id", str(manufacturer_id))
-                .limit(1)
-                .execute()
-            )
+            result = client.table("vw_manufacturers").select("name").eq("id", str(manufacturer_id)).limit(1).execute()
             if result.data:
                 return result.data[0].get("name")
         except Exception as exc:  # pragma: no cover - defensive logging
@@ -1257,11 +1235,7 @@ class ErrorCodeExtractor:
 
         return None
 
-    def _get_validation_regex(
-        self,
-        manufacturer_name: Optional[str],
-        effective_manufacturer: Optional[str]
-    ) -> Optional[str]:
+    def _get_validation_regex(self, manufacturer_name: str | None, effective_manufacturer: str | None) -> str | None:
         """Resolve the appropriate validation regex for a manufacturer."""
         # Prefer effective manufacturer, but fall back to declared name for logging clarity
         for name in (effective_manufacturer, manufacturer_name):
@@ -1270,10 +1244,7 @@ class ErrorCodeExtractor:
                 return self.patterns_config[key].get("validation_regex")
         return None
 
-    def validate_extraction(
-        self,
-        error_code: ExtractedErrorCode
-    ) -> List[ValError]:
+    def validate_extraction(self, error_code: ExtractedErrorCode) -> list[ValError]:
         """
         Validate extracted error code
 
@@ -1282,21 +1253,17 @@ class ErrorCodeExtractor:
         """
         errors = []
 
-        validation_regex = self._get_validation_regex(
-            error_code.manufacturer_name,
-            error_code.effective_manufacturer
-        )
+        validation_regex = self._get_validation_regex(error_code.manufacturer_name, error_code.effective_manufacturer)
 
         if validation_regex and not re.match(validation_regex, error_code.error_code):
-            errors.append(ValError(
-                field="error_code",
-                value=error_code.error_code,
-                error_message=(
-                    "Error code doesn't match manufacturer validation regex "
-                    f"'{validation_regex}'"
-                ),
-                severity="error"
-            ))
+            errors.append(
+                ValError(
+                    field="error_code",
+                    value=error_code.error_code,
+                    error_message=("Error code doesn't match manufacturer validation regex " f"'{validation_regex}'"),
+                    severity="error",
+                )
+            )
         elif not validation_regex:
             self.logger.debug(
                 "No validation regex available for manufacturer '%s' (effective: '%s')",
@@ -1306,37 +1273,38 @@ class ErrorCodeExtractor:
 
         # Check description length
         if len(error_code.error_description) < 20:
-            errors.append(ValError(
-                field="error_description",
-                value=error_code.error_description,
-                error_message="Description too short (< 20 chars)",
-                severity="warning"
-            ))
-        
+            errors.append(
+                ValError(
+                    field="error_description",
+                    value=error_code.error_description,
+                    error_message="Description too short (< 20 chars)",
+                    severity="warning",
+                )
+            )
+
         # Check confidence
         if error_code.confidence < 0.6:
-            errors.append(ValError(
-                field="confidence",
-                value=error_code.confidence,
-                error_message="Confidence below threshold (0.6)",
-                severity="error"
-            ))
-        
+            errors.append(
+                ValError(
+                    field="confidence",
+                    value=error_code.confidence,
+                    error_message="Confidence below threshold (0.6)",
+                    severity="error",
+                )
+            )
+
         return errors
 
 
 # Convenience function
-def extract_error_codes_from_text(
-    text: str,
-    page_number: int
-) -> List[ExtractedErrorCode]:
+def extract_error_codes_from_text(text: str, page_number: int) -> list[ExtractedErrorCode]:
     """
     Convenience function to extract error codes from text
-    
+
     Args:
         text: Text to extract from
         page_number: Page number
-        
+
     Returns:
         List of validated error codes
     """
@@ -1344,53 +1312,48 @@ def extract_error_codes_from_text(
     return extractor.extract_from_text(text, page_number)
 
 
-def find_chunk_for_error_code(
-    error_code: str,
-    page_number: int,
-    chunks: List[Dict],
-    logger=None
-) -> Optional[str]:
+def find_chunk_for_error_code(error_code: str, page_number: int, chunks: list[dict], logger=None) -> str | None:
     """
     Find the intelligence chunk that contains this error code
-    
+
     Strategy:
     1. Prefer chunks on same page that contain the error code
     2. Fallback to any chunk containing the error code
     3. Return None if not found
-    
+
     Args:
         error_code: The error code to find (e.g., "66.60.32")
         page_number: Page where error code was found
         chunks: List of chunk dicts from database
         logger: Optional logger
-        
+
     Returns:
         chunk_id (UUID as string) or None
     """
     if not chunks:
         return None
-    
+
     # Strategy 1: Same page + contains error code
     for chunk in chunks:
-        chunk_page = chunk.get('page_start') or chunk.get('page_number')
-        chunk_text = chunk.get('text_chunk', '')
-        chunk_id = chunk.get('id')
-        
+        chunk_page = chunk.get("page_start") or chunk.get("page_number")
+        chunk_text = chunk.get("text_chunk", "")
+        chunk_id = chunk.get("id")
+
         if chunk_page == page_number and error_code in chunk_text and chunk_id:
             if logger:
                 logger.debug(f"Found chunk for {error_code} on page {page_number}")
             return str(chunk_id)
-    
+
     # Strategy 2: Any chunk containing error code
     for chunk in chunks:
-        chunk_text = chunk.get('text_chunk', '')
-        chunk_id = chunk.get('id')
-        
+        chunk_text = chunk.get("text_chunk", "")
+        chunk_id = chunk.get("id")
+
         if error_code in chunk_text and chunk_id:
             if logger:
                 logger.debug(f"Found chunk for {error_code} (different page)")
             return str(chunk_id)
-    
+
     if logger:
         logger.debug(f"No chunk found for {error_code}")
     return None
