@@ -5,17 +5,16 @@ from __future__ import annotations
 import json
 import logging
 import re
-from io import BytesIO
-from typing import Any, Dict, Iterable
+from collections.abc import Iterable
+from typing import Any
 
 import magic
 from fastapi import Request, status
-from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import Response
 
-from config.security_config import get_security_config
 from api.validation_error_codes import ValidationErrorCode, create_validation_error_response
+from config.security_config import get_security_config
 
 logger = logging.getLogger("krai.request_validation")
 # Keep SQLi-focused signatures and avoid wildcard MIME false-positives
@@ -84,28 +83,27 @@ class RequestValidationMiddleware(BaseHTTPMiddleware):
                 return create_validation_error_response(
                     error_code=ValidationErrorCode.REQUEST_TOO_LARGE,
                     detail=f"Request size {size_mb:.2f}MB exceeds the maximum allowed size of {self.config.MAX_REQUEST_SIZE_MB}MB. Please reduce the request size.",
-                    context={
-                        "max_size_mb": self.config.MAX_REQUEST_SIZE_MB,
-                        "received_size_mb": round(size_mb, 2)
-                    },
-                    status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
+                    context={"max_size_mb": self.config.MAX_REQUEST_SIZE_MB, "received_size_mb": round(size_mb, 2)},
+                    status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
                 )
         return None
 
+    # Headers whose values legitimately contain patterns like "--" (e.g. multipart boundary)
+    _SAFE_HEADERS = frozenset({"content-type", "accept", "accept-encoding", "accept-language", "cookie"})
+
     def _check_blacklist(self, request: Request) -> Response | None:
         suspicious_headers = [
-            header for header, value in request.headers.items() if _sql_pattern.search(value or "")
+            header
+            for header, value in request.headers.items()
+            if header.lower() not in self._SAFE_HEADERS and _sql_pattern.search(value or "")
         ]
         if suspicious_headers:
             logger.warning("Suspicious headers detected from %s", request.client)
             return create_validation_error_response(
                 error_code=ValidationErrorCode.SUSPICIOUS_INPUT,
                 detail=f"Request headers contain potentially malicious patterns. Please remove special characters or SQL/script syntax from headers: {', '.join(suspicious_headers)}.",
-                context={
-                    "suspicious_headers": suspicious_headers,
-                    "pattern_matched": "sql_injection"
-                },
-                status_code=status.HTTP_400_BAD_REQUEST
+                context={"suspicious_headers": suspicious_headers, "pattern_matched": "sql_injection"},
+                status_code=status.HTTP_400_BAD_REQUEST,
             )
         return None
 
@@ -122,11 +120,8 @@ class RequestValidationMiddleware(BaseHTTPMiddleware):
             return create_validation_error_response(
                 error_code=ValidationErrorCode.INVALID_CONTENT_TYPE,
                 detail=f"Content-Type '{content_type}' is not supported. Allowed types: {allowed_types}. Please use one of the supported content types.",
-                context={
-                    "received": content_type,
-                    "allowed": list(ALLOWED_CONTENT_TYPES)
-                },
-                status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
+                context={"received": content_type, "allowed": list(ALLOWED_CONTENT_TYPES)},
+                status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
             )
         return None
 
@@ -137,11 +132,8 @@ class RequestValidationMiddleware(BaseHTTPMiddleware):
             return create_validation_error_response(
                 error_code=ValidationErrorCode.REQUEST_TOO_LARGE,
                 detail=f"JSON payload size {size_mb:.2f}MB exceeds the maximum allowed size of {self.config.MAX_REQUEST_SIZE_MB}MB. Please reduce the payload size.",
-                context={
-                    "max_size_mb": self.config.MAX_REQUEST_SIZE_MB,
-                    "received_size_mb": round(size_mb, 2)
-                },
-                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
+                context={"max_size_mb": self.config.MAX_REQUEST_SIZE_MB, "received_size_mb": round(size_mb, 2)},
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             )
         try:
             data = json.loads(body.decode("utf-8"))
@@ -150,7 +142,7 @@ class RequestValidationMiddleware(BaseHTTPMiddleware):
                 error_code=ValidationErrorCode.INVALID_JSON,
                 detail="Request body contains invalid JSON. Please check your JSON syntax and ensure it is properly formatted.",
                 context={"parse_error": str(e)},
-                status_code=status.HTTP_400_BAD_REQUEST
+                status_code=status.HTTP_400_BAD_REQUEST,
             )
         suspicious = self._scan_payload(data)
         if suspicious:
@@ -158,11 +150,8 @@ class RequestValidationMiddleware(BaseHTTPMiddleware):
             return create_validation_error_response(
                 error_code=ValidationErrorCode.SUSPICIOUS_INPUT,
                 detail=f"Input in fields [{fields_str}] contains potentially malicious patterns. Please remove special characters or SQL/script syntax.",
-                context={
-                    "suspicious_fields": suspicious,
-                    "pattern_matched": "sql_injection_or_xss"
-                },
-                status_code=status.HTTP_400_BAD_REQUEST
+                context={"suspicious_fields": suspicious, "pattern_matched": "sql_injection_or_xss"},
+                status_code=status.HTTP_400_BAD_REQUEST,
             )
         request._body = body  # type: ignore[attr-defined]
         return None
@@ -180,11 +169,8 @@ class RequestValidationMiddleware(BaseHTTPMiddleware):
                     return create_validation_error_response(
                         error_code=ValidationErrorCode.SUSPICIOUS_INPUT,
                         detail=f"Input in field '{key}' contains potentially malicious patterns. Please remove special characters or SQL/script syntax.",
-                        context={
-                            "field": key,
-                            "pattern_matched": "sql_injection_or_xss"
-                        },
-                        status_code=status.HTTP_400_BAD_REQUEST
+                        context={"field": key, "pattern_matched": "sql_injection_or_xss"},
+                        status_code=status.HTTP_400_BAD_REQUEST,
                     )
         return None
 
@@ -194,17 +180,14 @@ class RequestValidationMiddleware(BaseHTTPMiddleware):
                 error_code=ValidationErrorCode.INVALID_FILENAME,
                 detail="Filename is required for file uploads. Please provide a valid filename.",
                 context={"reason": "filename_required"},
-                status_code=status.HTTP_400_BAD_REQUEST
+                status_code=status.HTTP_400_BAD_REQUEST,
             )
         if _is_disallowed_path(filename):
             return create_validation_error_response(
                 error_code=ValidationErrorCode.INVALID_FILENAME,
                 detail=f"Filename '{filename}' contains path traversal sequences or invalid characters. Please use a simple filename without directory paths.",
-                context={
-                    "filename": filename,
-                    "reason": "path_traversal_detected"
-                },
-                status_code=status.HTTP_400_BAD_REQUEST
+                context={"filename": filename, "reason": "path_traversal_detected"},
+                status_code=status.HTTP_400_BAD_REQUEST,
             )
         sanitized = _sanitize_filename(filename)
         ext = f".{sanitized.split('.')[-1].lower()}" if "." in sanitized else ""
@@ -213,12 +196,8 @@ class RequestValidationMiddleware(BaseHTTPMiddleware):
             return create_validation_error_response(
                 error_code=ValidationErrorCode.INVALID_FILE_TYPE,
                 detail=f"File type '{ext}' is not supported. Allowed types: {allowed_str}. Please upload a file with one of the supported extensions.",
-                context={
-                    "filename": filename,
-                    "extension": ext,
-                    "allowed_extensions": list(self.allowed_extensions)
-                },
-                status_code=status.HTTP_400_BAD_REQUEST
+                context={"filename": filename, "extension": ext, "allowed_extensions": list(self.allowed_extensions)},
+                status_code=status.HTTP_400_BAD_REQUEST,
             )
         if len(data) > self.max_file_bytes:
             size_mb = len(data) / (1024 * 1024)
@@ -228,31 +207,24 @@ class RequestValidationMiddleware(BaseHTTPMiddleware):
                 context={
                     "filename": filename,
                     "size_mb": round(size_mb, 2),
-                    "max_size_mb": self.config.MAX_FILE_SIZE_MB
+                    "max_size_mb": self.config.MAX_FILE_SIZE_MB,
                 },
-                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             )
         mime = magic.from_buffer(data[:2048], mime=True)
         if not mime:
             return create_validation_error_response(
                 error_code=ValidationErrorCode.INVALID_FILE_TYPE,
                 detail=f"Unable to detect file type for '{filename}'. The file may be corrupted or in an unsupported format.",
-                context={
-                    "filename": filename,
-                    "reason": "mime_detection_failed"
-                },
-                status_code=status.HTTP_400_BAD_REQUEST
+                context={"filename": filename, "reason": "mime_detection_failed"},
+                status_code=status.HTTP_400_BAD_REQUEST,
             )
         if mime != content_type:
             return create_validation_error_response(
                 error_code=ValidationErrorCode.MISMATCHED_FILE_TYPE,
                 detail=f"File '{filename}' has mismatched type. Declared as '{content_type}' but detected as '{mime}'. Please ensure the file type matches its content.",
-                context={
-                    "filename": filename,
-                    "declared_type": content_type,
-                    "detected_type": mime
-                },
-                status_code=status.HTTP_400_BAD_REQUEST
+                context={"filename": filename, "declared_type": content_type, "detected_type": mime},
+                status_code=status.HTTP_400_BAD_REQUEST,
             )
         return None
 
@@ -266,9 +238,8 @@ class RequestValidationMiddleware(BaseHTTPMiddleware):
             for idx, value in enumerate(data):
                 new_path = f"{path}[{idx}]"
                 suspicious_fields.extend(self._scan_payload(value, new_path))
-        elif isinstance(data, str):
-            if _sql_pattern.search(data) or _xss_pattern.search(data):
-                suspicious_fields.append(path)
+        elif isinstance(data, str) and (_sql_pattern.search(data) or _xss_pattern.search(data)):
+            suspicious_fields.append(path)
         return suspicious_fields
 
 

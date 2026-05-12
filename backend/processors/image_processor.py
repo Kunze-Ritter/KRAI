@@ -16,8 +16,8 @@ Features:
 - Integration with Image Storage Processor
 """
 
-import asyncio
 import base64
+import contextlib
 import hashlib
 import io
 import json
@@ -43,19 +43,12 @@ from requests import exceptions as requests_exceptions
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from backend.core.base_processor import BaseProcessor, Stage, ProcessingContext, ProcessingResult
+from backend.core.base_processor import BaseProcessor, ProcessingContext, ProcessingResult, Stage
 from backend.pipeline.metrics import metrics
 from backend.processors.logger import sanitize_document_name, text_stats
 from backend.services.context_extraction_service import ContextExtractionService
 
 from .stage_tracker import StageTracker
-from .image_config import (
-    create_image_session,
-    apply_image_preprocessing,
-    VisionGuard,
-    calculate_latency_percentiles,
-    check_tesseract_availability,
-)
 
 
 def _raster_to_jpeg(image_bytes: bytes, original_ext: str, quality: int = 85) -> tuple[bytes, str]:
@@ -64,26 +57,33 @@ def _raster_to_jpeg(image_bytes: bytes, original_ext: str, quality: int = 85) ->
     JPEG images are returned unchanged. Unrecognised formats are also returned
     unchanged (with the original extension) so the pipeline can still store them.
     """
-    is_jpeg = image_bytes[:2] == b'\xff\xd8'
+    is_jpeg = image_bytes[:2] == b"\xff\xd8"
     if is_jpeg:
         return image_bytes, "jpg"
 
-    is_raster = image_bytes[:4] in (b'\x89PNG', b'GIF8', b'RIFF') or original_ext.lower() in ("png", "gif", "webp", "bmp", "tiff", "tif")
+    is_raster = image_bytes[:4] in (b"\x89PNG", b"GIF8", b"RIFF") or original_ext.lower() in (
+        "png",
+        "gif",
+        "webp",
+        "bmp",
+        "tiff",
+        "tif",
+    )
     if not is_raster:
         return image_bytes, original_ext
 
     try:
         img = Image.open(io.BytesIO(image_bytes))
-        if img.mode in ('RGBA', 'LA', 'P'):
-            bg = Image.new('RGB', img.size, (255, 255, 255))
-            if img.mode == 'P':
-                img = img.convert('RGBA')
-            bg.paste(img, mask=img.split()[-1] if img.mode in ('RGBA', 'LA') else None)
+        if img.mode in ("RGBA", "LA", "P"):
+            bg = Image.new("RGB", img.size, (255, 255, 255))
+            if img.mode == "P":
+                img = img.convert("RGBA")
+            bg.paste(img, mask=img.split()[-1] if img.mode in ("RGBA", "LA") else None)
             img = bg
-        elif img.mode != 'RGB':
-            img = img.convert('RGB')
+        elif img.mode != "RGB":
+            img = img.convert("RGB")
         buf = io.BytesIO()
-        img.save(buf, format='JPEG', quality=quality, optimize=True)
+        img.save(buf, format="JPEG", quality=quality, optimize=True)
         return buf.getvalue(), "jpg"
     except Exception:
         return image_bytes, original_ext
@@ -166,22 +166,6 @@ class ImageProcessor(BaseProcessor):
         self._vision_model_checked_at: float = 0.0
         self.vision_model_cache_ttl = float(os.getenv("VISION_MODEL_CACHE_TTL_SECONDS", "300"))
 
-    def close(self) -> None:
-        """Cleanup resources - call when processor is no longer needed."""
-        if hasattr(self, "ocr_executor") and self.ocr_executor:
-            self.ocr_executor.shutdown(wait=True)
-            self.ocr_executor = None
-        if hasattr(self, "session") and self.session:
-            self.session.close()
-            self.session = None
-
-    def __del__(self):
-        """Destructor to ensure cleanup."""
-        try:
-            self.close()
-        except Exception:
-            pass
-
         # Check OCR availability
         if self.enable_ocr:
             try:
@@ -224,10 +208,24 @@ class ImageProcessor(BaseProcessor):
         else:
             self.vision_available = False
 
-        # Phase 5: Context extraction configuration
+        # Context extraction configuration
         self.context_service = ContextExtractionService()
         self.enable_context_extraction = os.getenv("ENABLE_CONTEXT_EXTRACTION", "true").lower() == "true"
         self.logger.info(f"Context extraction enabled: {self.enable_context_extraction}")
+
+    def close(self) -> None:
+        """Cleanup resources - call when processor is no longer needed."""
+        if hasattr(self, "ocr_executor") and self.ocr_executor:
+            self.ocr_executor.shutdown(wait=True)
+            self.ocr_executor = None
+        if hasattr(self, "session") and self.session:
+            self.session.close()
+            self.session = None
+
+    def __del__(self):
+        """Destructor to ensure cleanup."""
+        with contextlib.suppress(Exception):
+            self.close()
 
     def _create_session(self) -> requests.Session:
         session = requests.Session()
@@ -443,26 +441,27 @@ class ImageProcessor(BaseProcessor):
                     output_dir,
                     context=context,
                 )
-                
+
                 if raw_result.get("success"):
                     timer.stop(success=True)
                     return self.create_success_result(
-                        data=raw_result, 
+                        data=raw_result,
                         metadata={
                             "images_processed": raw_result.get("images_processed", 0),
-                            "total_extracted": raw_result.get("total_extracted", 0)
-                        }
+                            "total_extracted": raw_result.get("total_extracted", 0),
+                        },
                     )
-                else:
-                    error_msg = str(raw_result.get("error", "Unknown error"))
-                    timer.stop(success=False, error_label=error_msg)
-                    from backend.core.base_processor import ProcessingError
-                    error = ProcessingError(error_msg, self.name, "IMAGE_PROCESSING_FAILED")
-                    return self.create_error_result(error=error, metadata={})
-                    
+                error_msg = str(raw_result.get("error", "Unknown error"))
+                timer.stop(success=False, error_label=error_msg)
+                from backend.core.base_processor import ProcessingError
+
+                error = ProcessingError(error_msg, self.name, "IMAGE_PROCESSING_FAILED")
+                return self.create_error_result(error=error, metadata={})
+
             except Exception as exc:
                 timer.stop(success=False, error_label=str(exc))
                 from backend.core.base_processor import ProcessingError
+
                 error = ProcessingError(str(exc), self.name, "IMAGE_PROCESSING_EXCEPTION")
                 return self.create_error_result(error=error, metadata={})
 
@@ -745,11 +744,10 @@ class ImageProcessor(BaseProcessor):
             try:
                 text_dict = page.get_text("rawdict")
                 for block in text_dict.get("blocks", []):
-                    if block.get("type") == 1 and "xref" in block:  # Image block
-                        if block["xref"] == target_xref:
-                            bbox = block.get("bbox")
-                            if bbox and len(bbox) == 4:
-                                return tuple(bbox)
+                    if block.get("type") == 1 and "xref" in block and block["xref"] == target_xref:
+                        bbox = block.get("bbox")
+                        if bbox and len(bbox) == 4:
+                            return tuple(bbox)
             except Exception:
                 pass
 
@@ -1295,8 +1293,7 @@ class ImageProcessor(BaseProcessor):
 
                     json_match = re.search(r"\{.*\}", result_text, re.DOTALL)
                     if json_match:
-                        result = json.loads(json_match.group())
-                        return result
+                        return json.loads(json_match.group())
                     return {"found": False, "raw_response": result_text}
                 except json.JSONDecodeError:
                     return {"found": False, "raw_response": result_text}
@@ -1492,8 +1489,6 @@ class ImageProcessor(BaseProcessor):
 
 # Example usage
 if __name__ == "__main__":
-    from uuid import uuid4
-
     processor = ImageProcessor()
 
     # Test with a PDF
