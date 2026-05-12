@@ -6,7 +6,6 @@ use App\Filament\Resources\Documents\DocumentResource;
 use App\Models\Manufacturer;
 use App\Services\KraiEngineService;
 use Filament\Actions\Action;
-use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -16,6 +15,45 @@ use Filament\Resources\Pages\EditRecord;
 class EditDocument extends EditRecord
 {
     protected static string $resource = DocumentResource::class;
+
+    /**
+     * Render the body text shown in the "Status prüfen" notification, given the
+     * normalized response from KraiEngineService::getDocumentStatus().
+     *
+     * Extracted from the action closure so it can be unit-tested without
+     * spinning up Filament's full action lifecycle.
+     *
+     * @param  array<string, mixed>  $result
+     */
+    public static function buildStatusNotificationBody(array $result): string
+    {
+        $lines = ['Dokumentenstatus: '.($result['status'] ?? 'unknown')];
+
+        $currentStage = $result['current_stage'] ?? null;
+        $lines[] = 'Aktuelle Stage: '.($currentStage ?: 'keine');
+
+        $progress = (float) ($result['progress'] ?? 0);
+        $lines[] = 'Fortschritt: '.number_format($progress * 100, 1).'%';
+
+        $summary = $result['stage_summary'] ?? [];
+        if (is_array($summary) && ! empty($summary)) {
+            $lines[] = sprintf(
+                '✓ %d  ⏳ %d  ✗ %d  · pending %d',
+                $summary['completed'] ?? 0,
+                $summary['processing'] ?? 0,
+                $summary['failed'] ?? 0,
+                $summary['pending'] ?? 0,
+            );
+        }
+
+        $queuePos = (int) ($result['queue_position'] ?? 0);
+        $queueTotal = (int) ($result['total_queue_items'] ?? 0);
+        if ($queuePos > 0 && $queueTotal > 0) {
+            $lines[] = "Queue-Position: {$queuePos} von {$queueTotal}";
+        }
+
+        return implode("\n", $lines);
+    }
 
     protected function getHeaderActions(): array
     {
@@ -34,7 +72,7 @@ class EditDocument extends EditRecord
                         return $user->canManageContent();
                     }
 
-                    return true;
+                    return false;
                 })
                 ->modalHeading('Stage Verarbeitungsstatus')
                 ->modalContent(function () {
@@ -62,12 +100,10 @@ class EditDocument extends EditRecord
                         return view('filament.components.stage-status-empty');
                     }
 
-                    $stageStatus = $statusData['stage_status'];
-                    $stages = config('krai.stages');
-
                     return view('filament.components.stage-status-grid', [
-                        'stageStatus' => $stageStatus,
-                        'stages' => $stages,
+                        'stageStatus' => $statusData['stage_status'],
+                        'stageDetails' => $statusData['stage_details'] ?? [],
+                        'stages' => config('krai.stages'),
                     ]);
                 })
                 ->modalWidth('5xl')
@@ -87,7 +123,7 @@ class EditDocument extends EditRecord
                         return $user->canManageContent();
                     }
 
-                    return true;
+                    return false;
                 })
                 ->action(function (): void {
                     $record = $this->getRecord();
@@ -96,16 +132,9 @@ class EditDocument extends EditRecord
                     $result = $service->getDocumentStatus($record->id);
 
                     if ($result['success']) {
-                        $bodyLines = [];
-                        $bodyLines[] = 'Dokumentenstatus: '.$result['status'];
-
-                        if ($result['queue_position'] > 0 && $result['total_queue_items'] > 0) {
-                            $bodyLines[] = 'Queue-Position: '.$result['queue_position'].' von '.$result['total_queue_items'];
-                        }
-
                         Notification::make()
                             ->title('Dokumentenstatus')
-                            ->body(implode("\n", $bodyLines))
+                            ->body(self::buildStatusNotificationBody($result))
                             ->success()
                             ->send();
                     } else {
@@ -131,7 +160,7 @@ class EditDocument extends EditRecord
                         return $user->canManageContent();
                     }
 
-                    return true;
+                    return false;
                 })
                 ->form([
                     Select::make('stage')
@@ -175,7 +204,7 @@ class EditDocument extends EditRecord
                         return $user->canManageContent();
                     }
 
-                    return true;
+                    return false;
                 })
                 ->form([
                     CheckboxList::make('stages')
@@ -229,7 +258,7 @@ class EditDocument extends EditRecord
                         return $user->canManageContent();
                     }
 
-                    return true;
+                    return false;
                 })
                 ->form([
                     TextInput::make('video_url')
@@ -294,7 +323,7 @@ class EditDocument extends EditRecord
                         return $user->canManageContent();
                     }
 
-                    return true;
+                    return false;
                 })
                 ->form([
                     TextInput::make('page')
@@ -354,7 +383,7 @@ class EditDocument extends EditRecord
                         return $user->canManageContent();
                     }
 
-                    return true;
+                    return false;
                 })
                 ->action(function (): void {
                     $record = $this->getRecord();
@@ -368,6 +397,10 @@ class EditDocument extends EditRecord
                             ->body($result['message'] ?? 'Das Dokument wurde erneut zur Verarbeitung eingereiht.')
                             ->success()
                             ->send();
+
+                        // Refresh the form so the stage-status section reflects
+                        // the cleared/pending state immediately.
+                        $this->refreshFormData(['stage_status', 'processing_status']);
                     } else {
                         Notification::make()
                             ->title('Reprocessing fehlgeschlagen')
@@ -376,7 +409,48 @@ class EditDocument extends EditRecord
                             ->send();
                     }
                 }),
-            DeleteAction::make(),
+            Action::make('deleteDocument')
+                ->label('Dokument löschen')
+                ->icon('heroicon-o-trash')
+                ->color('danger')
+                ->requiresConfirmation()
+                ->visible(function (): bool {
+                    $user = auth()->user();
+
+                    if (! $user) {
+                        return false;
+                    }
+
+                    if (method_exists($user, 'canManageContent')) {
+                        return $user->canManageContent();
+                    }
+
+                    return false;
+                })
+                ->action(function (): void {
+                    $record = $this->getRecord();
+                    $service = app(KraiEngineService::class);
+
+                    $result = $service->deleteDocument($record->id);
+
+                    if ($result['success']) {
+                        Notification::make()
+                            ->title('Dokument gelöscht')
+                            ->body($result['message'] ?? 'Das Dokument wurde gelöscht.')
+                            ->success()
+                            ->send();
+
+                        $this->redirect(DocumentResource::getUrl());
+
+                        return;
+                    }
+
+                    Notification::make()
+                        ->title('Löschen fehlgeschlagen')
+                        ->body($result['error'] ?? 'Das Dokument konnte nicht gelöscht werden.')
+                        ->danger()
+                        ->send();
+                }),
         ];
     }
 }

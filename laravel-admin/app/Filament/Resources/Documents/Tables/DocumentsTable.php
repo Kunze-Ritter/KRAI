@@ -6,7 +6,6 @@ use App\Enums\DocumentProcessingStatus;
 use App\Services\KraiEngineService;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
@@ -21,6 +20,77 @@ use Illuminate\Support\Collection;
 
 class DocumentsTable
 {
+    /**
+     * Count stage_status entries by status. Tolerates both structured payloads
+     * ({"text_extraction": {"status": "completed", ...}}) and legacy flat strings
+     * ({"text_extraction": "completed"}) so the table never breaks during the
+     * structured-projection rollout.
+     *
+     * @param  array<string, mixed>  $stageStatus
+     * @return array{total: int, completed: int, failed: int, processing: int, pending: int, skipped: int}
+     */
+    private static function countStageStatuses(array $stageStatus): array
+    {
+        $buckets = [
+            'completed' => 0,
+            'failed' => 0,
+            'processing' => 0,
+            'pending' => 0,
+            'skipped' => 0,
+        ];
+
+        foreach ($stageStatus as $entry) {
+            $raw = is_array($entry) ? ($entry['status'] ?? '') : $entry;
+            $status = strtolower((string) $raw);
+            if ($status === 'running') {
+                $status = 'processing';
+            }
+            if (isset($buckets[$status])) {
+                $buckets[$status]++;
+            }
+        }
+
+        return $buckets + ['total' => count($stageStatus)];
+    }
+
+    /**
+     * Bulk-delete a collection of documents through KraiEngineService and surface
+     * a single notification. Extracted from the BulkAction closure so it can be
+     * tested without spinning up a full Livewire panel.
+     *
+     * @return array{success: int, failed: int}
+     */
+    public static function runBulkDelete(Collection $records, KraiEngineService $service): array
+    {
+        $success = 0;
+        $failed = 0;
+
+        foreach ($records as $record) {
+            $result = $service->deleteDocument($record->id);
+            if ($result['success'] ?? false) {
+                $success++;
+            } else {
+                $failed++;
+            }
+        }
+
+        $notification = Notification::make()
+            ->title('Löschen abgeschlossen')
+            ->body(sprintf('%d erfolgreich, %d fehlgeschlagen', $success, $failed));
+
+        if ($failed === 0) {
+            $notification->success();
+        } elseif ($success === 0) {
+            $notification->danger();
+        } else {
+            $notification->warning();
+        }
+
+        $notification->send();
+
+        return ['success' => $success, 'failed' => $failed];
+    }
+
     public static function configure(Table $table): Table
     {
         return $table
@@ -57,41 +127,23 @@ class DocumentsTable
                 TextColumn::make('stage_status')
                     ->label('Stage Status')
                     ->getStateUsing(function ($record) {
-                        $stageStatus = $record->stage_status ?? [];
-                        if (empty($stageStatus)) {
+                        $counts = self::countStageStatuses($record->stage_status ?? []);
+                        if ($counts['total'] === 0) {
                             return 'Keine Stages';
                         }
 
-                        $completed = collect($stageStatus)->filter(function ($status) {
-                            return $status === 'completed';
-                        })->count();
-                        $failed = collect($stageStatus)->filter(function ($status) {
-                            return $status === 'failed';
-                        })->count();
-                        $total = count($stageStatus);
-
-                        return sprintf('%d/%d ✓ | %d ✗', $completed, $total, $failed);
+                        return sprintf('%d/%d ✓ | %d ✗', $counts['completed'], $counts['total'], $counts['failed']);
                     })
                     ->badge()
                     ->color(function ($record) {
-                        $stageStatus = $record->stage_status ?? [];
-                        if (empty($stageStatus)) {
+                        $counts = self::countStageStatuses($record->stage_status ?? []);
+                        if ($counts['total'] === 0) {
                             return 'gray';
                         }
-
-                        $failed = collect($stageStatus)->filter(function ($status) {
-                            return $status === 'failed';
-                        })->count();
-                        if ($failed > 0) {
+                        if ($counts['failed'] > 0) {
                             return 'danger';
                         }
-
-                        $completed = collect($stageStatus)->filter(function ($status) {
-                            return $status === 'completed';
-                        })->count();
-                        $total = count($stageStatus);
-
-                        if ($completed === $total) {
+                        if (($counts['completed'] + $counts['skipped']) === $counts['total']) {
                             return 'success';
                         }
 
@@ -177,7 +229,14 @@ class DocumentsTable
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    BulkAction::make('deleteDocuments')
+                        ->label('Dokumente löschen')
+                        ->icon('heroicon-o-trash')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->authorize(fn () => auth()->user()?->canManageContent() ?? false)
+                        ->action(fn (Collection $records) => self::runBulkDelete($records, app(KraiEngineService::class)))
+                        ->deselectRecordsAfterCompletion(),
 
                     BulkAction::make('smartProcessBulk')
                         ->label('Smart verarbeiten')

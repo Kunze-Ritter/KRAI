@@ -4,6 +4,8 @@ KRAI Processing Pipeline API
 FastAPI app for monitoring, managing, and controlling the document processing pipeline.
 """
 
+# ruff: noqa: E402  # imports follow sys.path.insert below
+
 import asyncio
 import logging
 import os
@@ -205,7 +207,7 @@ async def request_validation_exception_handler(request: Request, exc: RequestVal
             if hasattr(exc, "body") and exc.body:
                 import json
 
-                body_data = json.loads(exc.body) if isinstance(exc.body, (str, bytes)) else exc.body
+                body_data = json.loads(exc.body) if isinstance(exc.body, str | bytes) else exc.body
                 # Navigate to the field using the location path
                 field_parts = [str(loc) for loc in error["loc"] if str(loc) not in ["body", "query", "path", "header"]]
                 current = body_data
@@ -670,7 +672,9 @@ async def health_check(request: Request, response: Response):
     try:
         import requests
 
-        response = requests.get(f"{os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')}/api/tags", timeout=5)
+        response = requests.get(  # noqa: ASYNC210
+            f"{os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')}/api/tags", timeout=5
+        )
         if response.status_code == 200:
             models = response.json().get("models", [])
             services["ollama"] = {"status": "healthy", "message": f"{len(models)} models available"}
@@ -700,7 +704,7 @@ async def health_check(request: Request, response: Response):
     # Batch operations health
     transaction_support = False
     try:
-        task_service = await get_batch_task_service()
+        await get_batch_task_service()
         await get_transaction_manager()
         transaction_support = True
         services["batch_operations"] = {
@@ -717,8 +721,8 @@ async def health_check(request: Request, response: Response):
 
     # Monitoring services health
     try:
-        metrics_svc = await get_metrics_service()
-        alert_svc = await get_alert_service()
+        await get_metrics_service()
+        await get_alert_service()
         ws_mgr = get_websocket_manager()
 
         services["monitoring"] = {
@@ -784,7 +788,7 @@ async def upload_document(
     temp_path = temp_dir / file.filename
 
     try:
-        with open(temp_path, "wb") as f:
+        with open(temp_path, "wb") as f:  # noqa: ASYNC230
             content = await file.read()
             f.write(content)
 
@@ -870,6 +874,7 @@ async def startup_events():
         database_adapter=db_adapter,
         force_continue_on_errors=True,
     )
+    await app.state.pipeline.initialize_services()
 
     try:
         async with pool.acquire() as conn:
@@ -893,13 +898,11 @@ async def startup_events():
     # Initialize monitoring services
     metrics_svc = await get_metrics_service()
     alert_svc = await get_alert_service()
-    ws_manager = get_websocket_manager()
+    get_websocket_manager()
 
-    # Start background tasks
-    import asyncio
-
-    asyncio.create_task(alert_svc.start_alert_monitoring())
-    asyncio.create_task(websocket_api.start_periodic_broadcast(metrics_svc))
+    # Start background tasks (refs kept on app.state so tasks aren't GC'd)
+    app.state.alert_monitor_task = asyncio.create_task(alert_svc.start_alert_monitoring())
+    app.state.metrics_broadcast_task = asyncio.create_task(websocket_api.start_periodic_broadcast(metrics_svc))
 
     logger.info("Monitoring services initialized (metrics, alerts, websocket)")
     logger.info(
@@ -959,11 +962,9 @@ async def upload_directory(
 
     batch_processor = BatchUploadProcessor(adapter, max_file_size_mb=500)
 
-    results = await batch_processor.process_directory(
+    return await batch_processor.process_directory(
         directory=directory, document_type=document_type, recursive=recursive, force_reprocess=force_reprocess
     )
-
-    return results
 
 
 # === PROCESSING STATUS ===
@@ -1071,7 +1072,7 @@ async def get_pipeline_status(
             )
             for t in task_types
         }
-        stats = {
+        return {
             "total_documents": len(doc_list),
             "in_queue": by_status.get("pending", 0) + len(queue_list),
             "processing": by_status.get("processing", 0),
@@ -1079,7 +1080,6 @@ async def get_pipeline_status(
             "failed": by_status.get("failed", 0),
             "by_task_type": by_task_type,
         }
-        return stats
     except HTTPException:
         raise
     except Exception as e:

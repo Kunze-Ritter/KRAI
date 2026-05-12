@@ -11,7 +11,6 @@ import logging
 
 import asyncpg
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
-from models.document import CANONICAL_STAGES
 
 from api.dependencies.database import get_database_pool
 from api.middleware.auth_middleware import require_permission
@@ -20,12 +19,12 @@ from api.routes.response_models import (
     StageListResponse,
     StageProcessingRequest,
     StageProcessingResponse,
-    StageStatusResponse,
     SuccessResponse,
     ThumbnailGenerationRequest,
     VideoProcessingRequest,
 )
 from core.types import ProcessingContext
+from models.document import CANONICAL_STAGES
 from processors.thumbnail_processor import ThumbnailProcessor
 from services.video_enrichment_service import VideoEnrichmentService
 
@@ -42,13 +41,47 @@ async def get_stage_names(
     return SuccessResponse(data=StageListResponse(stages=CANONICAL_STAGES, total=len(CANONICAL_STAGES)))
 
 
+def _entry_status_value(entry) -> str:
+    """Read a stage_status entry — structured dict or legacy flat string —
+    and return the plain status string (lowercased, with 'running' → 'processing')."""
+    if isinstance(entry, dict):
+        raw = entry.get("status", "")
+    else:
+        raw = str(entry or "")
+    raw = raw.lower()
+    return "processing" if raw == "running" else raw
+
+
+def _summarize_stage_status(stage_status: dict) -> dict:
+    """Count stages by status across the union of CANONICAL_STAGES + any extra
+    stages present in the JSONB (e.g. video_enrichment).
+    """
+    summary = {"completed": 0, "processing": 0, "failed": 0, "pending": 0, "skipped": 0}
+    seen = set()
+    for stage_name, entry in stage_status.items():
+        seen.add(stage_name)
+        bucket = _entry_status_value(entry)
+        if bucket in summary:
+            summary[bucket] += 1
+        else:
+            summary["pending"] += 1
+    # Account for canonical stages not yet present in the JSONB as 'pending'
+    for stage in CANONICAL_STAGES:
+        if stage not in seen:
+            summary["pending"] += 1
+            seen.add(stage)
+    summary["total"] = sum(v for k, v in summary.items() if k != "total")
+    return summary
+
+
 @router.get("/documents/{document_id}/status")
 async def get_document_status(
     document_id: str,
     pool: asyncpg.Pool = Depends(get_database_pool),
     _: dict = Depends(require_permission("documents:read")),
 ) -> SuccessResponse[DocumentProcessingStatusResponse]:
-    """Return document processing status. Derives current_stage/progress from stage_status JSONB."""
+    """Return document processing status. Derives current_stage/progress/summary
+    from stage_status JSONB and queue position from krai_system.processing_queue."""
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             "SELECT id, processing_status, stage_status FROM krai_core.documents WHERE id = $1",
@@ -66,21 +99,40 @@ async def get_document_status(
             logger.warning("Malformed stage_status JSONB for document %s — treating as empty", document_id)
             raw_stage_status = {}
 
-    # Derive current_stage: last stage that is not 'completed'
+    # Derive current_stage: first canonical stage that is not completed/skipped
     current_stage: str | None = None
     completed_count = 0
     for stage in CANONICAL_STAGES:
-        stage_val = raw_stage_status.get(stage, "")
-        if stage_val == "completed":
+        bucket = _entry_status_value(raw_stage_status.get(stage, ""))
+        if bucket in ("completed", "skipped"):
             completed_count += 1
-        elif stage_val in ("processing", "pending", "failed"):
+        else:
             current_stage = stage
             break
-        elif stage_val and stage_val not in ("", "skipped"):
-            logger.warning(
-                "Unknown stage status value '%s' for stage '%s' in document %s", stage_val, stage, document_id
-            )
     progress = round(completed_count / len(CANONICAL_STAGES), 4) if CANONICAL_STAGES else 0.0
+
+    stage_summary = _summarize_stage_status(raw_stage_status)
+
+    # Queue position: ahead of this document in the pending queue
+    async with pool.acquire() as conn:
+        queue_position = (
+            await conn.fetchval(
+                """
+            SELECT COUNT(*) FROM krai_system.processing_queue
+            WHERE status = 'pending'
+              AND created_at < COALESCE(
+                  (SELECT MIN(created_at) FROM krai_system.processing_queue
+                   WHERE document_id = $1::uuid AND status = 'pending'),
+                  NOW()
+              )
+            """,
+                document_id,
+            )
+            or 0
+        )
+        total_queue_items = (
+            await conn.fetchval("SELECT COUNT(*) FROM krai_system.processing_queue WHERE status = 'pending'") or 0
+        )
 
     return SuccessResponse(
         data=DocumentProcessingStatusResponse(
@@ -88,44 +140,9 @@ async def get_document_status(
             status=row["processing_status"] or "unknown",
             current_stage=current_stage,
             progress=progress,
-            queue_position=0,
-            total_queue_items=0,
-        )
-    )
-
-
-@router.get("/documents/{document_id}/stages")
-async def get_document_stages(
-    document_id: str,
-    pool: asyncpg.Pool = Depends(get_database_pool),
-    _: dict = Depends(require_permission("documents:read")),
-) -> SuccessResponse[StageStatusResponse]:
-    """Return per-stage status from stage_status JSONB. Returns found=false (not 404) when missing."""
-    async with pool.acquire() as conn:
-        row = await conn.fetchrow(
-            "SELECT id, stage_status FROM krai_core.documents WHERE id = $1",
-            document_id,
-        )
-    if row is None:
-        return SuccessResponse(
-            data=StageStatusResponse(
-                document_id=document_id,
-                stage_status={},
-                found=False,
-            )
-        )
-
-    raw = row["stage_status"]
-    try:
-        stage_status = (json.loads(raw) if isinstance(raw, str) else raw) or {}
-    except json.JSONDecodeError:
-        logger.warning("Malformed stage_status JSONB for document %s — treating as empty", document_id)
-        stage_status = {}
-    return SuccessResponse(
-        data=StageStatusResponse(
-            document_id=document_id,
-            stage_status=stage_status,
-            found=True,
+            queue_position=int(queue_position),
+            total_queue_items=int(total_queue_items),
+            stage_summary=stage_summary,
         )
     )
 
@@ -227,9 +244,12 @@ async def process_multiple_stages(
 
     raw_stage_results = raw_result.get("stage_results", [])
     stage_results = []
-    for item in raw_stage_results:
+    for index, item in enumerate(raw_stage_results):
         if isinstance(item, dict):
             normalized = dict(item)
+            if index < len(body.stages):
+                normalized.setdefault("stage", body.stages[index])
+            normalized.setdefault("success", False)
             normalized.setdefault("processing_time", 0.0)
             stage_results.append(normalized)
         else:

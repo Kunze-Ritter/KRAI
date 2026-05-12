@@ -97,7 +97,7 @@ class PostgreSQLAdapter(DatabaseAdapter):
             return query, []
 
         # Handle sequence parameters (assume positional order)
-        if isinstance(params, (list, tuple)):
+        if isinstance(params, list | tuple):
             values = list(params)
             # Convert psycopg %s placeholders to $1, $2, ...
             if "%s" in query:
@@ -216,7 +216,7 @@ class PostgreSQLAdapter(DatabaseAdapter):
             await self.connect()
 
         # Build function call with named parameters
-        param_names = list(params.keys()) if params else []
+        list(params.keys()) if params else []
         param_values = list(params.values()) if params else []
 
         # Create placeholders: $1, $2, $3, ...
@@ -282,7 +282,7 @@ class PostgreSQLAdapter(DatabaseAdapter):
                 raise RuntimeError("Database pool not connected")
 
             async with self.pg_pool.acquire() as conn:
-                result = await conn.fetchval("SELECT 1")
+                await conn.fetchval("SELECT 1")
                 self.logger.info("PostgreSQL connection test successful")
                 return True
         except Exception as e:
@@ -322,9 +322,14 @@ class PostgreSQLAdapter(DatabaseAdapter):
             # Normalize row for Pydantic DocumentModel
             row_dict = dict(row)
 
-            # Ensure id is a string (asyncpg may return UUID objects)
-            if "id" in row_dict and row_dict["id"] is not None and not isinstance(row_dict["id"], str):
-                row_dict["id"] = str(row_dict["id"])
+            # Ensure UUID fields are strings (asyncpg returns UUID objects)
+            for uuid_field in ("id", "manufacturer_id", "product_id", "series_id"):
+                if row_dict.get(uuid_field) is not None and not isinstance(row_dict[uuid_field], str):
+                    row_dict[uuid_field] = str(row_dict[uuid_field])
+
+            # Drop unknown columns so Pydantic doesn't raise validation errors
+            known_fields = DocumentModel.model_fields.keys()
+            row_dict = {k: v for k, v in row_dict.items() if k in known_fields}
 
             # Ensure models is always a list (database may store NULL)
             if "models" in row_dict and row_dict["models"] is None:
@@ -387,7 +392,11 @@ class PostgreSQLAdapter(DatabaseAdapter):
             return [dict(row) for row in rows]
 
     async def update_chunk(
-        self, chunk_id: str, content: str = None, metadata: dict[str, Any] = None, char_count: int = None
+        self,
+        chunk_id: str,
+        content: str | None = None,
+        metadata: dict[str, Any] | None = None,
+        char_count: int | None = None,
     ) -> bool:
         """Update chunk content and/or metadata."""
         if content is None and metadata is None:
@@ -445,15 +454,6 @@ class PostgreSQLAdapter(DatabaseAdapter):
             )
             self.logger.info(f"Created intelligence chunk {chunk_id}")
             return str(chunk_id)
-
-    async def get_images_by_document(self, document_id: str) -> list[dict[str, Any]]:
-        """Get all images for a document"""
-        pool = self._ensure_pool()
-        async with pool.acquire() as conn:
-            rows = await conn.fetch(
-                "SELECT * FROM krai_content.images WHERE document_id = $1 ORDER BY page_number", document_id
-            )
-            return [dict(row) for row in rows]
 
     async def create_manufacturer(self, manufacturer: ManufacturerModel) -> str:
         pool = self._ensure_pool()
@@ -1034,8 +1034,8 @@ class PostgreSQLAdapter(DatabaseAdapter):
         source_type: str,
         embedding: list[float],
         model_name: str,
-        embedding_context: str = None,
-        metadata: dict[str, Any] = None,
+        embedding_context: str | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> str:
         pool = self._ensure_pool()
 
@@ -1071,7 +1071,7 @@ class PostgreSQLAdapter(DatabaseAdapter):
         pool = self._ensure_pool()
 
         # Handle JSONB fields
-        if "table_data" in table_data and isinstance(table_data["table_data"], (list, dict)):
+        if "table_data" in table_data and isinstance(table_data["table_data"], list | dict):
             table_data["table_data"] = json.dumps(table_data["table_data"])
         if "metadata" in table_data and isinstance(table_data["metadata"], dict):
             table_data["metadata"] = json.dumps(table_data["metadata"])
@@ -1258,7 +1258,7 @@ class PostgreSQLAdapter(DatabaseAdapter):
             self.logger.info(f"Logged audit event {event.action} ({event_id})")
             return str(event_id)
 
-    async def get_embeddings_by_source(self, source_id: str, source_type: str = None) -> list[dict[str, Any]]:
+    async def get_embeddings_by_source(self, source_id: str, source_type: str | None = None) -> list[dict[str, Any]]:
         """Get embeddings from unified_embeddings by source_id and optional source_type"""
         pool = self._ensure_pool()
 
@@ -1407,7 +1407,7 @@ class PostgreSQLAdapter(DatabaseAdapter):
             return True
         n = len(updates)
         set_clause = ", ".join(f"{k} = ${i+1}" for i, k in enumerate(updates))
-        values = list(updates.values()) + [part_id]
+        values = [*list(updates.values()), part_id]
         async with pool.acquire() as conn:
             await conn.execute(
                 f"UPDATE {self._parts_schema}.parts_catalog SET {set_clause} WHERE id = ${n + 1}::uuid", *values
@@ -1535,7 +1535,7 @@ class PostgreSQLAdapter(DatabaseAdapter):
             return str(defect_id)
 
     async def execute_rpc_function(
-        self, function_name: str, params: dict[str, Any] = None, schema: str = None
+        self, function_name: str, params: dict[str, Any] | None = None, schema: str | None = None
     ) -> list[dict[str, Any]]:
         """
         Execute PostgreSQL function (RPC equivalent)
@@ -1573,7 +1573,7 @@ class PostgreSQLAdapter(DatabaseAdapter):
             self.logger.error(f"Failed to execute RPC function {function_name}: {e}")
             return []
 
-    async def execute_rpc(self, function_name: str, params: dict[str, Any] = None) -> Any:
+    async def execute_rpc(self, function_name: str, params: dict[str, Any] | None = None) -> Any:
         """Execute a PostgreSQL function for side effects (VOID-returning).
 
         Supports both fully-qualified names (e.g. "krai_core.start_stage") and
@@ -1633,7 +1633,7 @@ class PostgreSQLAdapter(DatabaseAdapter):
         for param_name in param_names:
             value = params[param_name]
             cast = arg_type_map.get(param_name) if arg_type_map else None
-            if cast in ("json", "jsonb") and isinstance(value, (dict, list, tuple)):
+            if cast in ("json", "jsonb") and isinstance(value, dict | list | tuple):
                 value = json.dumps(value, ensure_ascii=False)
             param_values.append(value)
 
@@ -1856,7 +1856,7 @@ class PostgreSQLAdapter(DatabaseAdapter):
 
     # ========== STAGE TRACKING METHODS ==========
 
-    async def start_stage(self, document_id: str, stage: str, metadata: dict[str, Any] = None) -> dict[str, Any]:
+    async def start_stage(self, document_id: str, stage: str, metadata: dict[str, Any] | None = None) -> dict[str, Any]:
         """Start processing stage for a document"""
         try:
             result = await self.rpc(
@@ -1872,7 +1872,7 @@ class PostgreSQLAdapter(DatabaseAdapter):
             return {"success": False, "error": str(e)}
 
     async def update_stage_progress(
-        self, document_id: str, stage: str, progress: int, metadata: dict[str, Any] = None
+        self, document_id: str, stage: str, progress: int, metadata: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """Update progress for a processing stage"""
         try:
@@ -1890,7 +1890,9 @@ class PostgreSQLAdapter(DatabaseAdapter):
             self.logger.error(f"Failed to update progress for stage {stage}: {e}")
             return {"success": False, "error": str(e)}
 
-    async def complete_stage(self, document_id: str, stage: str, metadata: dict[str, Any] = None) -> dict[str, Any]:
+    async def complete_stage(
+        self, document_id: str, stage: str, metadata: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Mark a processing stage as completed"""
         try:
             result = await self.rpc(
@@ -1903,7 +1905,7 @@ class PostgreSQLAdapter(DatabaseAdapter):
             return {"success": False, "error": str(e)}
 
     async def fail_stage(
-        self, document_id: str, stage: str, error: str, metadata: dict[str, Any] = None
+        self, document_id: str, stage: str, error: str, metadata: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """Mark a processing stage as failed"""
         try:
@@ -1917,7 +1919,7 @@ class PostgreSQLAdapter(DatabaseAdapter):
             return {"success": False, "error": str(e)}
 
     async def skip_stage(
-        self, document_id: str, stage: str, reason: str = None, metadata: dict[str, Any] = None
+        self, document_id: str, stage: str, reason: str | None = None, metadata: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """Skip a processing stage"""
         try:
@@ -1983,7 +1985,7 @@ class PostgreSQLAdapter(DatabaseAdapter):
             if stage_status is None:
                 return {}
             st = stage_status if isinstance(stage_status, dict) else {}
-            stage_data = st.get(stage)
+            stage_data = st.get(stage_name)
             return dict(stage_data) if isinstance(stage_data, dict) else {}
         except Exception as e:
             self.logger.error(f"Failed to get stage status: {e}")

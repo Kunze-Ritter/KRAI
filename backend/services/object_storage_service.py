@@ -50,10 +50,10 @@ class ObjectStorageService:
         public_url_images: str = "",
         use_ssl: bool = True,
         region: str = "auto",
-        bucket_documents: str = None,
-        bucket_images: str = None,
-        bucket_error: str = None,
-        bucket_parts: str = None,
+        bucket_documents: str | None = None,
+        bucket_images: str | None = None,
+        bucket_error: str | None = None,
+        bucket_parts: str | None = None,
     ):
         self.access_key_id = access_key_id
         self.secret_access_key = secret_access_key
@@ -398,7 +398,11 @@ class ObjectStorageService:
             raise
 
     async def upload_image(
-        self, content: bytes, filename: str, bucket_type: str = "document_images", metadata: dict[str, str] = None
+        self,
+        content: bytes,
+        filename: str,
+        bucket_type: str = "document_images",
+        metadata: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         """
         Upload image to object storage
@@ -520,7 +524,7 @@ class ObjectStorageService:
             if metadata:
                 # Convert all metadata values to strings
                 for key, value in metadata.items():
-                    if isinstance(value, (int, float, bool)):
+                    if isinstance(value, int | float | bool):
                         file_metadata[key] = str(value)
                     elif isinstance(value, str):
                         file_metadata[key] = value
@@ -596,7 +600,7 @@ class ObjectStorageService:
         content: bytes,
         filename: str,
         bucket_type: str = "documents",
-        metadata: dict[str, str] = None,
+        metadata: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         """Upload a generic file to object storage."""
         try:
@@ -666,7 +670,7 @@ class ObjectStorageService:
             }
             if metadata:
                 for key, value in metadata.items():
-                    if isinstance(value, (int, float, bool)):
+                    if isinstance(value, int | float | bool):
                         file_metadata[key] = str(value)
                     elif isinstance(value, str):
                         file_metadata[key] = value
@@ -743,6 +747,24 @@ class ObjectStorageService:
             self.logger.error(f"Failed to download image {bucket_type}/{key}: {e}")
             raise
 
+    async def download_file(self, bucket_type: str, key: str) -> bytes:
+        """Download an arbitrary file from object storage."""
+        try:
+            if bucket_type not in self.buckets:
+                raise ValueError(f"Invalid bucket type: {bucket_type}")
+
+            if self.client is None:
+                self.logger.warning("Object storage client not available. Cannot download in mock mode.")
+                raise RuntimeError("Object storage client not connected")
+
+            bucket_name = self.buckets[bucket_type]
+            response = self.client.get_object(Bucket=bucket_name, Key=key)
+            return response["Body"].read()
+
+        except Exception as e:
+            self.logger.error(f"Failed to download file {bucket_type}/{key}: {e}")
+            raise
+
     async def delete_image(self, bucket_type: str, key: str) -> bool:
         """
         Delete image from object storage
@@ -796,20 +818,18 @@ class ObjectStorageService:
 
             response = self.client.head_object(Bucket=bucket_name, Key=key)
 
-            metadata = {
+            return {
                 "size": response["ContentLength"],
                 "content_type": response["ContentType"],
                 "last_modified": response["LastModified"],
                 "metadata": response.get("Metadata", {}),
             }
 
-            return metadata
-
         except Exception as e:
             self.logger.error(f"Failed to get metadata for {bucket_type}/{key}: {e}")
             raise
 
-    async def list_images(self, bucket_type: str, prefix: str = None, limit: int = 100) -> list[dict[str, Any]]:
+    async def list_images(self, bucket_type: str, prefix: str | None = None, limit: int = 100) -> list[dict[str, Any]]:
         """
         List images in bucket
 
@@ -877,7 +897,7 @@ class ObjectStorageService:
             self.logger.error(f"Failed to list images from {bucket_type}: {e}")
             raise
 
-    async def check_duplicate(self, file_hash: str, bucket_type: str = None) -> dict[str, Any] | None:
+    async def check_duplicate(self, file_hash: str, bucket_type: str | None = None) -> dict[str, Any] | None:
         """
         Check for duplicate file by hash
 
@@ -966,7 +986,7 @@ class ObjectStorageService:
             for bucket_key in buckets_to_search:
                 try:
                     # Map bucket type to actual bucket name
-                    bucket_name = self.buckets[bucket_key] if bucket_key in self.buckets else bucket_key
+                    bucket_name = self.buckets.get(bucket_key, bucket_key)
 
                     # List all objects and check metadata for hash
                     response = self.client.list_objects_v2(Bucket=bucket_name)

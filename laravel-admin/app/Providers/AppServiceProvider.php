@@ -27,6 +27,8 @@ class AppServiceProvider extends ServiceProvider
             return new KraiEngineService(
                 config('krai.engine_url'),
                 config('krai.service_jwt'),
+                defaultTimeout: config('krai.default_timeout', 120),
+                queryTimeout: config('krai.query_timeout', 60),
                 uploadTimeout: config('krai.upload_timeout', 600),
             );
         });

@@ -217,6 +217,68 @@ async def test_get_document_status_returns_success_response():
 
 
 @pytest.mark.asyncio
+async def test_get_document_status_returns_stage_summary():
+    """Response must include a per-status count of stages from stage_status JSONB.
+    Handles both flat strings (legacy) and structured payloads (new)."""
+    app, mock_conn = _make_test_app()
+    mock_conn.fetchrow = AsyncMock(
+        return_value={
+            "id": "doc-123",
+            "processing_status": "processing",
+            "stage_status": json.dumps(
+                {
+                    "text_extraction": {"status": "completed"},
+                    "embedding": {"status": "processing"},
+                    "image_processing": "completed",  # legacy flat string
+                    "table_extraction": {"status": "failed", "message": "boom"},
+                    "storage": {"status": "skipped"},
+                }
+            ),
+        }
+    )
+    mock_conn.fetchval = AsyncMock(return_value=0)
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.get(
+            "/api/v1/documents/doc-123/status",
+            headers={"Authorization": "Bearer test-token"},
+        )
+    assert resp.status_code == 200
+    body = resp.json()
+    summary = body["data"]["stage_summary"]
+    assert summary["completed"] == 2  # text_extraction + image_processing
+    assert summary["processing"] == 1  # embedding
+    assert summary["failed"] == 1  # table_extraction
+    assert summary["skipped"] == 1  # storage
+    assert summary["total"] >= 5  # at least the explicitly tracked stages
+    assert summary["pending"] >= 0
+
+
+@pytest.mark.asyncio
+async def test_get_document_status_includes_real_queue_position():
+    """Queue position must be queried from krai_system.processing_queue,
+    not hardcoded to 0."""
+    app, mock_conn = _make_test_app()
+    mock_conn.fetchrow = AsyncMock(
+        return_value={
+            "id": "doc-123",
+            "processing_status": "processing",
+            "stage_status": json.dumps({"text_extraction": "completed"}),
+        }
+    )
+    # Mock processing_queue queries: queue_position = 2, total_queue_items = 5
+    mock_conn.fetchval = AsyncMock(side_effect=[2, 5])
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.get(
+            "/api/v1/documents/doc-123/status",
+            headers={"Authorization": "Bearer test-token"},
+        )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["data"]["queue_position"] == 2
+    assert body["data"]["total_queue_items"] == 5
+
+
+@pytest.mark.asyncio
 async def test_get_document_status_404_when_not_found():
     app, mock_conn = _make_test_app()
     mock_conn.fetchrow = AsyncMock(return_value=None)
@@ -226,44 +288,6 @@ async def test_get_document_status_404_when_not_found():
             headers={"Authorization": "Bearer test-token"},
         )
     assert resp.status_code == 404
-
-
-@pytest.mark.asyncio
-async def test_get_document_stages_returns_stage_status():
-    app, mock_conn = _make_test_app()
-    mock_conn.fetchrow = AsyncMock(
-        return_value={
-            "id": "doc-123",
-            "stage_status": json.dumps({"text_extraction": "completed", "embedding": "pending"}),
-        }
-    )
-    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
-        resp = await client.get(
-            "/api/v1/documents/doc-123/stages",
-            headers={"Authorization": "Bearer test-token"},
-        )
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["success"] is True
-    assert body["data"]["found"] is True
-    assert body["data"]["document_id"] == "doc-123"
-    assert isinstance(body["data"]["stage_status"], dict)
-
-
-@pytest.mark.asyncio
-async def test_get_document_stages_returns_found_false_when_missing():
-    app, mock_conn = _make_test_app()
-    mock_conn.fetchrow = AsyncMock(return_value=None)
-    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
-        resp = await client.get(
-            "/api/v1/documents/missing/stages",
-            headers={"Authorization": "Bearer test-token"},
-        )
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["success"] is True
-    assert body["data"]["found"] is False
-    assert body["data"]["stage_status"] == {}
 
 
 @pytest.mark.asyncio
@@ -401,6 +425,37 @@ async def test_process_multiple_stages_defaults_missing_processing_time_to_zero(
     body = resp.json()
     assert body["success"] is True
     assert body["data"]["failed"] == 1
+    assert body["data"]["stage_results"][0]["processing_time"] == 0.0
+
+
+@pytest.mark.asyncio
+async def test_process_multiple_stages_defaults_missing_stage_name_from_request_order():
+    app, mock_conn = _make_test_app()
+    mock_conn.fetchrow = AsyncMock(return_value={"id": "doc-123"})
+    mock_pipeline = MagicMock()
+    mock_pipeline.run_stages = AsyncMock(
+        return_value={
+            "success": False,
+            "total_stages": 1,
+            "successful": 0,
+            "failed": 1,
+            "success_rate": 0.0,
+            "stage_results": [
+                {"success": False, "error": "No processor for stage: text_extraction"},
+            ],
+        }
+    )
+    app.state.pipeline = mock_pipeline
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.post(
+            "/api/v1/documents/doc-123/process/stages",
+            json={"stages": ["text_extraction"], "stop_on_error": True},
+            headers={"Authorization": "Bearer test-token"},
+        )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["success"] is True
+    assert body["data"]["stage_results"][0]["stage"] == "text_extraction"
     assert body["data"]["stage_results"][0]["processing_time"] == 0.0
 
 

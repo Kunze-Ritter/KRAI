@@ -132,8 +132,12 @@ class MetadataProcessorAI(BaseProcessor):
             if hasattr(self.database_service, "get_document"):
                 doc = await self.database_service.get_document(document_id)
                 if doc:
-                    name = getattr(doc, "manufacturer", "AUTO") or "AUTO"
-                    mid = getattr(doc, "manufacturer_id", None)
+                    if isinstance(doc, dict):
+                        name = doc.get("manufacturer") or "AUTO"
+                        mid = doc.get("manufacturer_id")
+                    else:
+                        name = getattr(doc, "manufacturer", None) or "AUTO"
+                        mid = getattr(doc, "manufacturer_id", None)
                     return name, str(mid) if mid else None
             elif hasattr(self.database_service, "client"):
                 result = (

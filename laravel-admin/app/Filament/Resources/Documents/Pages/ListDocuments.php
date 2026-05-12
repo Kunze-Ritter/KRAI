@@ -42,7 +42,7 @@ class ListDocuments extends ListRecords
                         return $user->canManageContent();
                     }
 
-                    return true;
+                    return false;
                 })
                 ->form([
                     FileUpload::make('file')

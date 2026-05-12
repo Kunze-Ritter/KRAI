@@ -11,7 +11,13 @@ from math import ceil
 from typing import Any
 
 import asyncpg
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from pydantic import BaseModel
+
+from api.dependencies.database import get_database_pool
+from api.middleware.auth_middleware import require_permission
+from api.middleware.rate_limit_middleware import limiter, rate_limit_search, rate_limit_standard, rate_limit_upload
+from api.routes.response_models import ErrorResponse, SuccessResponse
 from models.document import (
     CANONICAL_STAGES,
     DocumentCreateRequest,
@@ -27,12 +33,6 @@ from models.document import (
     SortOrder,
     StageStatus,
 )
-from pydantic import BaseModel
-
-from api.dependencies.database import get_database_pool
-from api.middleware.auth_middleware import require_permission
-from api.middleware.rate_limit_middleware import limiter, rate_limit_search, rate_limit_standard, rate_limit_upload
-from api.routes.response_models import ErrorResponse, SuccessResponse
 
 LOGGER = logging.getLogger("krai.api.documents")
 
@@ -418,6 +418,9 @@ async def delete_document(
             )
 
         async with pool.acquire() as conn:
+            await conn.execute("DELETE FROM krai_system.processing_queue WHERE document_id = $1", document_id)
+            await conn.execute("DELETE FROM krai_system.link_scraping_jobs WHERE document_id = $1", document_id)
+            await conn.execute("DELETE FROM krai_content.videos WHERE document_id = $1", document_id)
             await conn.execute("DELETE FROM krai_core.documents WHERE id = $1", document_id)
         LOGGER.info("Deleted document %s", document_id)
 
@@ -512,11 +515,23 @@ async def get_document_stats(
 
 def _parse_stage_status(stage_status_jsonb: dict[str, Any] | None) -> dict[str, DocumentStageDetail]:
     """Parse stage_status JSONB into structured DocumentStageDetail objects."""
+    if isinstance(stage_status_jsonb, str):
+        try:
+            stage_status_jsonb = json.loads(stage_status_jsonb)
+        except json.JSONDecodeError:
+            stage_status_jsonb = {}
+
     stages = {}
 
     for stage_name in CANONICAL_STAGES:
         if stage_status_jsonb and stage_name in stage_status_jsonb:
-            stage_data = stage_status_jsonb[stage_name]
+            raw_stage_data = stage_status_jsonb[stage_name]
+            if isinstance(raw_stage_data, str):
+                stage_data = {"status": raw_stage_data}
+            elif isinstance(raw_stage_data, dict):
+                stage_data = raw_stage_data
+            else:
+                stage_data = {}
 
             # Parse status
             status_str = stage_data.get("status", "pending")
@@ -560,6 +575,7 @@ def _parse_stage_status(stage_status_jsonb: dict[str, Any] | None) -> dict[str, 
 @limiter.limit(rate_limit_standard)
 async def get_document_stages(
     request: Request,
+    response: Response,
     document_id: str,
     current_user: dict[str, Any] = Depends(require_permission("documents:read")),
     pool: asyncpg.Pool = Depends(get_database_pool),

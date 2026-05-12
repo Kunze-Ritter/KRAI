@@ -37,7 +37,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["api", "processors", "services", "core", "utils", "pipeline"]
+known-first-party = ["api", "config", "core", "models", "pipeline", "processors", "services", "utils"]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
@@ -50,7 +50,7 @@ convention = "google"
 [tool.isort]
 profile = "black"
 line_length = 120
-known_first_party = ["api", "processors", "services", "core", "utils", "pipeline"]
+known_first_party = ["api", "config", "core", "models", "pipeline", "processors", "services", "utils"]
 
 [tool.black]
 line-length = 120

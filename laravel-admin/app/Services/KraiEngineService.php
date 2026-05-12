@@ -45,7 +45,7 @@ class KraiEngineService
 
         if ($this->serviceToken) {
             $client = $client->withHeaders([
-                'Authorization' => 'Bearer ' . $this->serviceToken,
+                'Authorization' => 'Bearer '.$this->serviceToken,
             ]);
         }
 
@@ -320,6 +320,56 @@ class KraiEngineService
     }
 
     /**
+     * Normalize the per-stage payload from a backend stages response.
+     *
+     * Accepts three payload shapes:
+     *   1. Structured (current backend): payload['stages'][stage] = {status,error,...}
+     *   2. Flat (legacy v1):              payload['stage_status'][stage] = "completed"
+     *   3. Mixed legacy:                  payload['stages'][stage] = "completed"
+     *
+     * Always returns:
+     *   - stage_status:  [stage => status_string] for legacy callers / views
+     *   - stage_details: full structured payload per stage (status, error,
+     *                    duration_seconds, started_at, completed_at, progress, …)
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array{stage_status: array<string, string>, stage_details: array<string, array<string, mixed>>, found: bool}
+     */
+    private function normalizeStagePayload(array $payload): array
+    {
+        $stages = is_array($payload['stages'] ?? null) ? $payload['stages'] : null;
+        $legacyFlat = is_array($payload['stage_status'] ?? null) ? $payload['stage_status'] : null;
+
+        $stageStatus = [];
+        $stageDetails = [];
+
+        $source = $stages ?? $legacyFlat ?? [];
+
+        foreach ($source as $stageName => $entry) {
+            $stageName = (string) $stageName;
+            if (is_array($entry)) {
+                $status = (string) ($entry['status'] ?? 'pending');
+                $stageStatus[$stageName] = $status;
+                $stageDetails[$stageName] = $entry;
+            } else {
+                $status = (string) $entry;
+                $stageStatus[$stageName] = $status;
+                $stageDetails[$stageName] = ['status' => $status];
+            }
+        }
+
+        $found = array_key_exists('found', $payload)
+            ? (bool) $payload['found']
+            : ($stages !== null || $legacyFlat !== null);
+
+        return [
+            'stage_status' => $stageStatus,
+            'stage_details' => $stageDetails,
+            'found' => $found,
+        ];
+    }
+
+    /**
      * Get stage status for a document
      */
     public function getStageStatus(string $documentId): array
@@ -335,28 +385,15 @@ class KraiEngineService
 
             if ($response->successful()) {
                 $data = $response->json();
-                $payload = $data['data'] ?? [];
-                $stageStatus = $payload['stage_status'] ?? null;
-                $found = $payload['found'] ?? null;
-
-                if (! is_array($stageStatus) && is_array($payload['stages'] ?? null)) {
-                    $stageStatus = collect($payload['stages'])
-                        ->mapWithKeys(function (mixed $stageData, string $stageName): array {
-                            if (is_array($stageData)) {
-                                return [$stageName => $stageData['status'] ?? 'pending'];
-                            }
-
-                            return [$stageName => (string) $stageData];
-                        })
-                        ->all();
-                    $found = true;
-                }
+                $payload = is_array($data['data'] ?? null) ? $data['data'] : [];
+                $normalized = $this->normalizeStagePayload($payload);
 
                 return [
                     'success' => true,
                     'document_id' => (string) ($payload['document_id'] ?? $documentId),
-                    'stage_status' => is_array($stageStatus) ? $stageStatus : [],
-                    'found' => (bool) ($found ?? false),
+                    'stage_status' => $normalized['stage_status'],
+                    'stage_details' => $normalized['stage_details'],
+                    'found' => $normalized['found'],
                 ];
             } else {
                 $error = $this->normalizeApiError($response->json('detail', 'Unknown error'));
@@ -441,17 +478,20 @@ class KraiEngineService
 
             if ($response->successful()) {
                 $data = $response->json();
+                $payload = is_array($data['data'] ?? null) ? $data['data'] : [];
+                $stageSummary = is_array($payload['stage_summary'] ?? null) ? $payload['stage_summary'] : [];
 
                 return [
                     'success' => true,
-                    'status' => $data['data']['status'] ?? 'unknown',
-                    'current_stage' => $data['data']['current_stage'] ?? null,
-                    'progress' => (float) ($data['data']['progress'] ?? 0),
-                    'queue_position' => $data['data']['queue_position'] ?? 0,
-                    'total_queue_items' => $data['data']['total_queue_items'] ?? 0,
+                    'status' => $payload['status'] ?? 'unknown',
+                    'current_stage' => $payload['current_stage'] ?? null,
+                    'progress' => (float) ($payload['progress'] ?? 0),
+                    'queue_position' => $payload['queue_position'] ?? 0,
+                    'total_queue_items' => $payload['total_queue_items'] ?? 0,
+                    'stage_summary' => $stageSummary,
                 ];
             } else {
-                $error = $response->json('detail', 'Unknown error');
+                $error = $this->normalizeApiError($response->json('detail', 'Unknown error'));
                 $this->logApiCall('GET', $endpoint, $documentId, $response->status(), $error);
 
                 return [
@@ -487,7 +527,16 @@ class KraiEngineService
                 'model' => $context['model'] ?? null,
             ], static fn (mixed $value): bool => $value !== null && $value !== '');
 
-            $fileHandle = fopen($file->getRealPath(), 'rb');
+            $realPath = $file->getRealPath();
+            if ($realPath === false || ! is_readable($realPath)) {
+                throw new \RuntimeException('Upload-Datei nicht lesbar: '.$file->getClientOriginalName());
+            }
+
+            $fileHandle = @fopen($realPath, 'rb');
+            if ($fileHandle === false) {
+                throw new \RuntimeException('Upload-Datei konnte nicht geöffnet werden: '.$file->getClientOriginalName());
+            }
+
             try {
                 $response = $client->attach(
                     'file',
@@ -514,7 +563,7 @@ class KraiEngineService
                     'status' => $data['status'] ?? 'uploaded',
                 ];
             } else {
-                $error = $response->json('detail', 'Unknown error');
+                $error = $this->normalizeApiError($response->json('detail', 'Unknown error'));
                 $this->logApiCall('POST', $endpoint, 'upload', $response->status(), $error);
 
                 return [
@@ -557,7 +606,7 @@ class KraiEngineService
                     'status' => $data['data']['status'] ?? 'started',
                 ];
             } else {
-                $error = $response->json('detail', 'Unknown error');
+                $error = $this->normalizeApiError($response->json('detail', 'Unknown error'));
                 $this->logApiCall('POST', $endpoint, $documentId, $response->status(), $error);
 
                 return [
@@ -567,6 +616,47 @@ class KraiEngineService
             }
         } catch (\Exception $e) {
             $this->logApiCall('POST', $endpoint, $documentId, 500, $e->getMessage());
+
+            return [
+                'success' => false,
+                'error' => 'Connection error: '.$e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Delete a document and related backend artifacts.
+     */
+    public function deleteDocument(string $documentId, ?User $user = null): array
+    {
+        $endpoint = "/api/v1/documents/{$documentId}";
+
+        try {
+            $client = $this->createHttpClient();
+            $client = $this->addUserContext($client, $user);
+
+            $response = $client->delete($this->baseUrl.$endpoint);
+
+            $this->logApiCall('DELETE', $endpoint, $documentId, $response->status());
+
+            if ($response->successful()) {
+                $data = $response->json();
+
+                return [
+                    'success' => true,
+                    'message' => $data['data']['message'] ?? 'Document deleted successfully',
+                ];
+            }
+
+            $error = $this->normalizeApiError($response->json('detail', 'Unknown error'));
+            $this->logApiCall('DELETE', $endpoint, $documentId, $response->status(), $error);
+
+            return [
+                'success' => false,
+                'error' => $error,
+            ];
+        } catch (\Exception $e) {
+            $this->logApiCall('DELETE', $endpoint, $documentId, 500, $e->getMessage());
 
             return [
                 'success' => false,

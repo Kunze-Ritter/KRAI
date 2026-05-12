@@ -51,8 +51,13 @@ services:
     restart: unless-stopped
     environment:
       - KRAI_ROOT_ENV_PATH=/var/www/html/.env.root
+      - KRAI_ENGINE_URL=http://krai-engine:8000
+      - MONITORING_BASE_URL=http://krai-engine:8000
       - REDIS_CLIENT=phpredis
       - REDIS_HOST=krai-redis
+      - KRAI_SERVICE_JWT=${KRAI_SERVICE_JWT:-}
+      - KRAI_ENGINE_ADMIN_USERNAME=${KRAI_ENGINE_ADMIN_USERNAME:-}
+      - KRAI_ENGINE_ADMIN_PASSWORD=${KRAI_ENGINE_ADMIN_PASSWORD:-}
     volumes:
       - ./.env:/var/www/html/.env.root
       - ./laravel-admin/app:/var/www/html/app
@@ -63,9 +68,6 @@ services:
       - ./laravel-admin/resources:/var/www/html/resources
       - ./laravel-admin/routes:/var/www/html/routes
       - ./laravel-admin/storage:/var/www/html/storage
-      - KRAI_SERVICE_JWT=${KRAI_SERVICE_JWT:-}
-      - KRAI_ENGINE_ADMIN_USERNAME=${KRAI_ENGINE_ADMIN_USERNAME:-}
-      - KRAI_ENGINE_ADMIN_PASSWORD=${KRAI_ENGINE_ADMIN_PASSWORD:-}
       - ./laravel-admin/public:/var/www/html/public
       - ./laravel-admin/.env.example:/var/www/html/.env.example
       - laravel_vendor:/var/www/html/vendor
