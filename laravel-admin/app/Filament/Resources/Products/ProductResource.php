@@ -11,7 +11,6 @@ use App\Models\Product;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
@@ -52,7 +51,8 @@ class ProductResource extends Resource
     public static function getRelations(): array
     {
         return [
-            // Relations können später ergänzt werden
+            \App\Filament\Resources\Products\RelationManagers\AccessoriesRelationManager::class,
+            \App\Filament\Resources\Products\RelationManagers\DependenciesRelationManager::class,
         ];
     }
 
