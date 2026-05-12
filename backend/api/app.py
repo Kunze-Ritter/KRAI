@@ -51,6 +51,7 @@ from api.middleware.request_validation_middleware import RequestValidationMiddle
 from api.routes import documents, products
 from api.routes.api_keys import router as api_keys_router
 from api.routes.batch import router as batch_router
+from api.routes.configuration import router as configuration_router
 from api.routes.dashboard import router as dashboard_router
 from api.routes.document_processing import router as document_processing_router
 from api.routes.error_codes import router as error_codes_router
@@ -1180,6 +1181,7 @@ from api.routes import pipeline_errors, scraping
 # app.include_router(auth_router, prefix="/api/v1")
 app.include_router(documents.router, prefix="/api/v1")
 app.include_router(products.router, prefix="/api/v1")
+app.include_router(configuration_router, prefix="/api/v1")
 app.include_router(error_codes_router, prefix="/api/v1")
 app.include_router(videos_router, prefix="/api/v1")
 app.include_router(api_keys_router, prefix="/api/v1")
