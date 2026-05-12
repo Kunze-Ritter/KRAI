@@ -279,3 +279,7 @@ secrets/
 *.key
 *.pem
 *.crt
+
+# Generated files and tools
+.superpowers/
+docs/compliance/
