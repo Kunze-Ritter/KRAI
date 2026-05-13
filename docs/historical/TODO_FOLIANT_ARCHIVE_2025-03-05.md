@@ -1,6 +1,6 @@
 # TODO: FOLIANT COMPATIBILITY SYSTEM
 
-> **Note:** For consolidated project-wide TODOs, see `/MASTER-TODO.md` 
+> **Note:** For consolidated project-wide TODOs, see `/MASTER-TODO.md`
 > This file focuses on Foliant-specific implementation details.
 
 **Last Updated:** 2025-10-22 (16:35)

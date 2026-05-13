@@ -2,7 +2,7 @@
 
 > **Note:** This document was created before Laravel/Filament dashboard implementation. All UI features should be implemented in the existing Laravel/Filament dashboard at `laravel-admin/`.
 
-> **Note:** For consolidated project-wide TODOs, see `/MASTER-TODO.md` 
+> **Note:** For consolidated project-wide TODOs, see `/MASTER-TODO.md`
 > This file focuses on dashboard-specific implementation details.
 
 ## Current Status: Phase 1 & 2 Complete, Phase 3 Ready to Build! 🚀
@@ -54,13 +54,13 @@ Ein vollständiges Admin Dashboard zum:
   - Header with user info
   - Main content area
   - Responsive design (Desktop-first, mobile-friendly)
-  
+
 - [ ] **Dashboard Overview (Home)**
   - Statistics cards (Products, Documents, Videos, Chunks count)
   - Recent activity feed
   - System status indicators
   - Quick actions
-  
+
 - [ ] **Navigation Menu**
   - 📊 Overview (Dashboard home)
   - 📦 Products Management
@@ -101,18 +101,18 @@ Ein vollständiges Admin Dashboard zum:
   - Filter by product_type, manufacturer
   - Pagination (50 per page)
   - Sort by columns
-  
+
 - [ ] **Product Details View**
   - Show all product information
   - Show linked accessories
   - Show linked documents
   - Show linked videos
-  
+
 - [ ] **Create/Edit Product**
   - Form with all fields
   - Validation
   - Save to database
-  
+
 - [ ] **Delete Product**
   - Confirmation dialog
   - Cascade delete or prevent if linked
@@ -156,22 +156,22 @@ Ein vollständiges Admin Dashboard zum:
   - Filter by document_type, status
   - Status indicators: ✅ Done, ⏳ Processing, ❌ Error
   - Pagination
-  
+
 - [ ] **Upload Document**
   - Drag & drop or file picker
   - Progress indicator
   - Auto-start processing
-  
+
 - [ ] **Document Details View**
   - Show metadata
   - Show linked products
   - Show chunks count
   - Preview (if possible)
-  
+
 - [ ] **Delete Document**
   - Confirmation dialog
   - Delete document + chunks + embeddings
-  
+
 - [ ] **Reprocess Document**
   - Re-run processing pipeline
   - Update status
@@ -214,26 +214,26 @@ Ein vollständiges Admin Dashboard zum:
   - Filter by platform (YouTube, Vimeo, etc.), status
   - Status indicators: ✅ Linked, ⚠️ Needs Review, ❌ Error
   - Pagination
-  
+
 - [ ] **Add Video**
   - Form: video_url, platform, title (optional)
   - Auto-extract metadata from URL
   - Auto-enrich with AI
-  
+
 - [ ] **Video Details View**
   - Show metadata (title, description, duration, etc.)
   - Show linked products
   - Embedded video player
   - Transcript (if available)
-  
+
 - [ ] **Link Video to Product**
   - Search and select product
   - Save link
-  
+
 - [ ] **Delete Video**
   - Confirmation dialog
   - Remove from database
-  
+
 - [ ] **Re-enrich Video**
   - Re-run AI enrichment
   - Update metadata
@@ -279,20 +279,20 @@ Ein vollständiges Admin Dashboard zum:
   - Search by url or title
   - Filter by link_type (manual, support, video, etc.)
   - Pagination
-  
+
 - [ ] **Add Link**
   - Form: url, title, link_type, product_id (optional)
   - Auto-fetch title from URL (if possible)
   - Validate URL
-  
+
 - [ ] **Link Details View**
   - Show metadata
   - Show linked product
   - Preview (iframe or screenshot)
-  
+
 - [ ] **Edit Link**
   - Update url, title, type, product
-  
+
 - [ ] **Delete Link**
   - Confirmation dialog
 
@@ -332,17 +332,17 @@ Ein vollständiges Admin Dashboard zum:
 - [ ] **Product Selection**
   - Select base product (e.g., bizhub C558)
   - Show compatible accessories (from `product_accessories` table)
-  
+
 - [ ] **Accessory Selection**
   - Drag & drop accessories to configuration
   - Visual indicators: ✅ compatible, ⚠️ requires, ❌ conflicts
   - Real-time validation using `configuration_validator.py`
-  
+
 - [ ] **Validation Display**
   - Show errors: "❌ PK-524 requires FS-533 (missing)"
   - Show warnings: "ℹ️ FS-533 and FS-534 are alternatives"
   - Show recommendations: "💡 Consider adding RU-513 (required for FS-534)"
-  
+
 - [ ] **Configuration Summary**
   - List all selected accessories
   - Total price (if available)
@@ -378,19 +378,19 @@ Ein vollständiges Admin Dashboard zum:
   - Table view: Option → Depends On → Type → Notes
   - Filter by dependency_type (requires, excludes, alternative)
   - Search by product model number
-  
+
 - [ ] **Add Dependencies**
   - Select Option (e.g., PK-524)
   - Select Depends On (e.g., FS-533)
   - Select Type (requires/excludes/alternative)
   - Add notes
   - Save to `option_dependencies` table
-  
+
 - [ ] **Edit/Delete Dependencies**
   - Edit existing dependencies
   - Delete invalid dependencies
   - Bulk operations
-  
+
 - [ ] **Dependency Graph Visualization**
   - Visual graph showing product → accessory relationships
   - Color-coded: green (requires), red (excludes), blue (alternative)
@@ -429,12 +429,12 @@ Ein vollständiges Admin Dashboard zum:
   - Rows: Products (bizhub C558, C658, etc.)
   - Columns: Accessories (FS-533, PK-524, RU-513, etc.)
   - Cells: ✅ compatible, ⚠️ requires other, ❌ not compatible
-  
+
 - [ ] **Filtering**
   - Filter by manufacturer
   - Filter by product type
   - Filter by accessory type
-  
+
 - [ ] **Export**
   - Export as CSV
   - Export as PDF
@@ -462,12 +462,12 @@ Ein vollständiges Admin Dashboard zum:
 - [ ] **Product List**
   - Show all products with accessories count
   - Click to expand and see accessories
-  
+
 - [ ] **Accessory Details**
   - Show accessory type
   - Show compatibility notes
   - Show if standard or optional
-  
+
 - [ ] **Quick Actions**
   - Add new accessory link
   - Edit compatibility notes

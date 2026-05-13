@@ -95,20 +95,20 @@
 ```sql
 -- In Supabase SQL Editor
 -- Check all tables exist
-SELECT table_name 
-FROM information_schema.tables 
-WHERE table_schema = 'krai_content' 
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = 'krai_content'
 AND table_name IN ('videos', 'links', 'images', 'chunks');
 
 -- Check triggers exist
-SELECT trigger_name, event_object_table 
-FROM information_schema.triggers 
+SELECT trigger_name, event_object_table
+FROM information_schema.triggers
 WHERE trigger_schema = 'public'
 AND trigger_name LIKE '%video%';
 
 -- Check indexes exist
-SELECT indexname, tablename 
-FROM pg_indexes 
+SELECT indexname, tablename
+FROM pg_indexes
 WHERE schemaname = 'krai_content'
 AND indexname LIKE '%video%';
 ```
@@ -132,7 +132,7 @@ python scripts/enrich_video_metadata.py --limit 3
 ✅ Processing complete!
    Enriched: 3
    Errors: 0
-   
+
 Expected in DB:
 - videos table has 3 new records
 - youtube_id populated
@@ -144,7 +144,7 @@ Expected in DB:
 **Manual Verification:**
 ```sql
 -- Check YouTube videos
-SELECT 
+SELECT
     id,
     youtube_id,
     title,
@@ -194,7 +194,7 @@ python scripts/check_and_fix_links.py --check-only --limit 10
    Working: X
    Broken: Y
    Fixed: Z (auto-cleaned trailing punctuation)
-   
+
 Expected behavior:
 - URLs with trailing "." cleaned automatically
 - Marked as "fixed" with cleaned URL
@@ -355,7 +355,7 @@ Expected models:
 
 ### **Issue 4: Embeddings Not Working**
 **Error:** "Ollama connection failed"
-**Fix:** 
+**Fix:**
 ```bash
 # Check Ollama is running
 curl http://localhost:11434/api/version

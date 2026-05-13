@@ -1,7 +1,7 @@
 # 🧹 Refactoring & Cleaning Plan - Post V2.0.0
 
-**Date:** 2025-10-05  
-**Version:** V2.0.0 → V2.1.0 (Clean)  
+**Date:** 2025-10-05
+**Version:** V2.0.0 → V2.1.0 (Clean)
 **Status:** Planning
 
 ---

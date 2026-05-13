@@ -1,9 +1,9 @@
 # KRAI - KI gestützte Fehlercode-Datenbank
 ## Projektbericht für Management & Förderanträge
 
-**Projektzeitraum:** September 2025 - laufend  
-**Aktueller Stand:** Oktober 2025 (2 Monate Entwicklung)  
-**Projektleitung:** Kunze & Ritter GmbH  
+**Projektzeitraum:** September 2025 - laufend
+**Aktueller Stand:** Oktober 2025 (2 Monate Entwicklung)
+**Projektleitung:** Kunze & Ritter GmbH
 **Technologie-Stack:** Python, PostgreSQL, Ollama, Object Storage
 
 ---
@@ -26,7 +26,7 @@ KRAI digitalisiert und strukturiert technisches Wissen automatisch. Ein Technike
 **Messbarer Nutzen:**
 - ⏱️ **Zeitersparnis:** Fehlerdiagnose in 9 statt 30 Minuten (70% schneller)
 - 🚗 **Weniger Vor-Ort-Einsätze:** Viele Probleme können remote gelöst werden, da das Problem schneller und präziser identifiziert wird
-- 💰 **Kostenreduktion:** 
+- 💰 **Kostenreduktion:**
   - Weniger Rückfragen beim Hersteller
   - Weniger falsch bestellte Ersatzteile durch bessere Informationen
   - Geringere Fahrtkosten durch weniger unnötige Einsätze
@@ -100,24 +100,24 @@ Die Datenbank ist in logische Bereiche (Schemas) unterteilt:
   - Hersteller, Produkte, Dokumente
   - Produktserien und Typen
   - Basis-Metadaten
-  
+
 - **`krai_intelligence`** - KI-Verarbeitung
   - Dokument-Chunks (Text-Abschnitte)
   - Vector Embeddings (für semantische Suche)
   - Extrahierte Fehlercodes
   - Such-Analytics
-  
+
 - **`krai_agent`** - AI-Agent System
   - Chat-Verlauf (Konversationen)
   - Tool-Usage Analytics (welche Tools werden genutzt)
   - User Feedback (Bewertungen)
   - Session Context (Gesprächskontext)
-  
+
 - **`krai_parts`** - Ersatzteile
   - Teile-Katalog mit Nummern
   - Kompatibilitäten
   - Lagerbestände (geplant)
-  
+
 - **`krai_content`** - Medien
   - Bilder und Screenshots (aus Service Manuals)
   - Video-Links (Reparatur-Anleitungen: "Wie tausche ich die Trommel?", "Wie ersetze ich die Fuser Unit?")
@@ -192,20 +192,20 @@ Eine moderne Web-Oberfläche ermöglicht:
   - Natürlichsprachige Interaktion (Deutsch)
   - Kontext-bewusste Gespräche (merkt sich Gerät und Problem)
   - 5 spezialisierte Tools für verschiedene Aufgaben
-  
+
 - ✅ **Tool-System:**
   1. **Error Code Search** - Fehlercode-Datenbank
   2. **Parts Search** - Ersatzteil-Katalog
   3. **Product Info** - Geräteinformationen
   4. **Video Search** - Reparatur-Anleitungen ("Wie tausche ich die Trommel?", "Wie ersetze ich Teil X?")
   5. **Documentation Search** - Service Manual Suche
-  
+
 - ✅ **Analytics & Tracking:**
   - Tool-Usage Tracking (welche Tools werden wie oft genutzt)
   - User Feedback System (Bewertungen 1-5 Sterne)
   - Session Context (Gesprächskontext für Follow-up Fragen)
   - Performance Dashboards (Response Time, Success Rate)
-  
+
 - ✅ **Datenbank-Optimierung:**
   - Neue Schema-Struktur (`krai_agent`)
   - n8n-kompatible Memory-Views
@@ -223,17 +223,17 @@ Eine moderne Web-Oberfläche ermöglicht:
 ```
 Techniker: "Lexmark CX963 Fehlercode C-9402"
 Agent:     "🔴 Fehlercode C-9402 - Fuser Unit Fehler
-            
+
             Ursache: Fuser Unit defekt oder überhitzt
-            
+
             Lösung:
             1. Gerät ausschalten, 30 Min abkühlen
             2. Fuser Unit prüfen (Seite 245)
             3. Falls defekt: tauschen
-            
+
             Benötigte Teile:
             📦 40X8024 (Original Lexmark)
-            
+
             📄 Quelle: CX963 Service Manual, S.245"
 ```
 
@@ -346,7 +346,7 @@ Agent:     "🔴 Fehlercode C-9402 - Fuser Unit Fehler
   - Statistiken & Analytics
 - [ ] API-Dokumentation (Swagger/OpenAPI)
 
-**Zeitaufwand:** 2 Monate  
+**Zeitaufwand:** 2 Monate
 **Meilenstein:** Funktionsfähiger Prototyp
 
 ### Q1 2026 (Januar - März)
@@ -360,7 +360,7 @@ Agent:     "🔴 Fehlercode C-9402 - Fuser Unit Fehler
   - Bild-Suche (Foto vom Fehler)
   - Multi-Language (DE, EN, FR)
 
-**Zeitaufwand:** 3 Monate  
+**Zeitaufwand:** 3 Monate
 **Meilenstein:** MVP für Pilotkundentest
 
 ### Q2 2026 (April - Juni)
@@ -376,7 +376,7 @@ Agent:     "🔴 Fehlercode C-9402 - Fuser Unit Fehler
   - Neue PDFs automatisch verarbeiten
   - Change-Detection bei Updates
 
-**Zeitaufwand:** 3 Monate  
+**Zeitaufwand:** 3 Monate
 **Meilenstein:** KI-gestützte Assistenz-Features
 
 ### Q3 2026 (Juli - September)
@@ -393,7 +393,7 @@ Agent:     "🔴 Fehlercode C-9402 - Fuser Unit Fehler
   - SAP, Microsoft Dynamics
   - Ticket-Systeme (Jira, ServiceNow)
 
-**Zeitaufwand:** 3 Monate  
+**Zeitaufwand:** 3 Monate
 **Meilenstein:** Enterprise-Ready
 
 ### Q4 2026 (Oktober - Dezember)
@@ -409,7 +409,7 @@ Agent:     "🔴 Fehlercode C-9402 - Fuser Unit Fehler
   - Helpdesk
   - Knowledge Base
 
-**Zeitaufwand:** 3 Monate  
+**Zeitaufwand:** 3 Monate
 **Meilenstein:** Produktlaunch
 
 ---
@@ -436,33 +436,33 @@ Agent:     "🔴 Fehlercode C-9402 - Fuser Unit Fehler
 ### Relevante Programme (Deutschland)
 
 #### 1. ZIM - Zentrales Innovationsprogramm Mittelstand
-**Fördergeber:** BMWi  
-**Förderung:** Bis zu 550.000€  
-**Passt zu KRAI:** ✅ Ja (KI-Innovation, Digitalisierung)  
+**Fördergeber:** BMWi
+**Förderung:** Bis zu 550.000€
+**Passt zu KRAI:** ✅ Ja (KI-Innovation, Digitalisierung)
 **Antragsfrist:** Laufend
 
 #### 2. Digital Jetzt - Digitalisierung im Mittelstand
-**Fördergeber:** BMWi  
-**Förderung:** Bis zu 100.000€ (50% der Kosten)  
-**Passt zu KRAI:** ✅ Ja (Digitale Technologien, KI)  
+**Fördergeber:** BMWi
+**Förderung:** Bis zu 100.000€ (50% der Kosten)
+**Passt zu KRAI:** ✅ Ja (Digitale Technologien, KI)
 **Antragsfrist:** Laufend
 
 #### 3. EXIST - Existenzgründung aus der Wissenschaft
-**Fördergeber:** BMWi  
-**Förderung:** Bis zu 150.000€  
-**Passt zu KRAI:** ⚠️ Nur bei Ausgründung  
+**Fördergeber:** BMWi
+**Förderung:** Bis zu 150.000€
+**Passt zu KRAI:** ⚠️ Nur bei Ausgründung
 **Antragsfrist:** Laufend
 
 #### 4. Innovationsgutscheine (Länderprogramme)
-**Fördergeber:** Bundesländer  
-**Förderung:** 5.000 - 50.000€  
-**Passt zu KRAI:** ✅ Ja (Machbarkeitsstudien, Prototypen)  
+**Fördergeber:** Bundesländer
+**Förderung:** 5.000 - 50.000€
+**Passt zu KRAI:** ✅ Ja (Machbarkeitsstudien, Prototypen)
 **Antragsfrist:** Variiert nach Bundesland
 
 #### 5. Horizon Europe (EU)
-**Fördergeber:** EU  
-**Förderung:** 500.000 - 2.500.000€  
-**Passt zu KRAI:** ✅ Ja (KI, Green Deal - weniger Verschwendung)  
+**Fördergeber:** EU
+**Förderung:** 500.000 - 2.500.000€
+**Passt zu KRAI:** ✅ Ja (KI, Green Deal - weniger Verschwendung)
 **Antragsfrist:** Verschiedene Calls
 
 ### Argumentation für Förderanträge
@@ -524,13 +524,13 @@ Agent:     "🔴 Fehlercode C-9402 - Fuser Unit Fehler
 
 ## 📞 KONTAKT & WEITERE INFORMATIONEN
 
-**Projektverantwortlicher:** Tobias Haas  
-**Unternehmen:** Kunze-Ritter GmbH  
-**E-Mail:** t.haas@kunze-ritter.de  
+**Projektverantwortlicher:** Tobias Haas
+**Unternehmen:** Kunze-Ritter GmbH
+**E-Mail:** t.haas@kunze-ritter.de
 **Telefon:** +49 7721 6800566
 
-**GitHub Repository:** https://github.com/Kunze-Ritter/Manual2Vector  
-**Commits:** 146 (Stand: 08.10.2025)  
+**GitHub Repository:** https://github.com/Kunze-Ritter/Manual2Vector
+**Commits:** 146 (Stand: 08.10.2025)
 **Dokumentation:** Vollständig im Repository
 
 ---
@@ -544,11 +544,11 @@ KRAI ist eine innovative KI-Lösung, die technisches Wissen aus Dokumentationen 
 2. Pilotprojekt mit ersten Kunden (Q1 2026)
 3. Produktlaunch (Q4 2026)
 
-**Investitionsbedarf 2026:** ~200.000€  
-**Erwarteter Umsatz 2027:** ~500.000€  
+**Investitionsbedarf 2026:** ~200.000€
+**Erwarteter Umsatz 2027:** ~500.000€
 **Break-Even:** Q2 2027
 
 ---
 
-*Dieser Bericht wurde erstellt am 09. Oktober 2025*  
+*Dieser Bericht wurde erstellt am 09. Oktober 2025*
 *Version 1.1*

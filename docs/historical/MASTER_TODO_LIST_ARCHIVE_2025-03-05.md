@@ -19,10 +19,10 @@
   - Vimeo: 0% ❌
   - Brightcove: 100% ✅
   - YouTube: 0% ❌
-  
+
 - ❌ **YouTube ID:** Nur 6% haben youtube_id
   - Sollte: 100% bei YouTube Videos
-  
+
 **Fix:** Video Enrichment Script verbessern
 - Vimeo Description aus oEmbed holen
 - YouTube ID korrekt extrahieren und speichern
@@ -65,7 +65,7 @@ AND l.manufacturer_id IS NULL;
 
 **Ursache:** Product Extraction im Document Processor läuft nicht richtig
 
-**Fix:** 
+**Fix:**
 1. Prüfe `ProductExtractor` in `backend/processors/product_extractor.py`
 2. Prüfe ob Products gespeichert werden
 3. Prüfe ob Document-Product Links erstellt werden
@@ -90,7 +90,7 @@ python -m backend.pipeline.master_pipeline --file test.pdf
 - Parts haben `related_error_codes`: 0% ❌
 - Parts haben `related_products`: 0% ❌
 
-**Fix:** 
+**Fix:**
 - [x] Model updated (fields hinzugefügt)
 - [x] `parts_linker.py` Modul erstellt
 - [ ] Integration in Document Processor
@@ -108,7 +108,7 @@ python -m backend.pipeline.master_pipeline --file test.pdf
 - Nur ~10-20 Documents haben Products
 - Sollte: Alle Service Manuals haben Products
 
-**Ursache:** 
+**Ursache:**
 - Product Extraction funktioniert nicht richtig
 - Oder: Products werden extrahiert aber nicht verknüpft
 
