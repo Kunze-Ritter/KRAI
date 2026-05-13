@@ -8,7 +8,7 @@ import logging
 import os
 import re
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import requests
 
@@ -18,7 +18,7 @@ LOGGER = logging.getLogger(__name__)
 class BrightcoveClient:
     """Thin Brightcove API client with OAuth, retry, and simple rate limiting."""
 
-    VIDEO_ID_PATTERNS: List[re.Pattern[str]] = [
+    VIDEO_ID_PATTERNS: list[re.Pattern[str]] = [
         re.compile(r"[?&]videoId=(\d+)", re.IGNORECASE),
         re.compile(r"/index\.html\?videoId=(\d+)", re.IGNORECASE),
         re.compile(r"/(\d{8,})/?$"),
@@ -26,9 +26,9 @@ class BrightcoveClient:
 
     def __init__(
         self,
-        account_id: Optional[str] = None,
-        client_id: Optional[str] = None,
-        client_secret: Optional[str] = None,
+        account_id: str | None = None,
+        client_id: str | None = None,
+        client_secret: str | None = None,
         timeout_seconds: int = 15,
         max_retries: int = 3,
         rate_limit_per_second: float = 5.0,
@@ -47,7 +47,7 @@ class BrightcoveClient:
                 "Accept": "application/json",
             }
         )
-        self._token_value: Optional[str] = None
+        self._token_value: str | None = None
         self._token_expires_at: float = 0.0
         self._last_request_at: float = 0.0
 
@@ -55,7 +55,7 @@ class BrightcoveClient:
     def has_credentials(self) -> bool:
         return bool(self.account_id and self.client_id and self.client_secret)
 
-    def extract_video_id(self, video_url: str, metadata: Optional[Dict[str, Any]] = None) -> Optional[str]:
+    def extract_video_id(self, video_url: str, metadata: dict[str, Any] | None = None) -> str | None:
         """Extract Brightcove video id from metadata or URL."""
         if metadata:
             direct = metadata.get("brightcove_id") or metadata.get("video_id")
@@ -81,7 +81,7 @@ class BrightcoveClient:
         if not self.has_credentials:
             raise RuntimeError("Brightcove credentials are not configured")
 
-        auth = base64.b64encode(f"{self.client_id}:{self.client_secret}".encode("utf-8")).decode("ascii")
+        auth = base64.b64encode(f"{self.client_id}:{self.client_secret}".encode()).decode("ascii")
         headers = {
             "Authorization": f"Basic {auth}",
             "Content-Type": "application/x-www-form-urlencoded",
@@ -107,7 +107,7 @@ class BrightcoveClient:
         self._token_expires_at = time.monotonic() + max(expires_in - 30, 30)
         return self._token_value
 
-    async def fetch_video_metadata(self, video_id: str) -> Dict[str, Any]:
+    async def fetch_video_metadata(self, video_id: str) -> dict[str, Any]:
         """Fetch a single Brightcove video metadata record."""
         if not self.has_credentials:
             return {"success": False, "video_id": video_id, "error": "missing_credentials"}
@@ -136,7 +136,7 @@ class BrightcoveClient:
                 response.raise_for_status()
                 payload = response.json()
                 duration_ms = payload.get("duration")
-                duration_seconds = int(duration_ms / 1000) if isinstance(duration_ms, (int, float)) else None
+                duration_seconds = int(duration_ms / 1000) if isinstance(duration_ms, int | float) else None
                 return {
                     "success": True,
                     "video_id": str(payload.get("id") or video_id),
@@ -164,10 +164,10 @@ class BrightcoveClient:
 
         return {"success": False, "video_id": video_id, "error": last_error}
 
-    async def batch_fetch_video_metadata(self, video_ids: List[str]) -> Dict[str, Any]:
+    async def batch_fetch_video_metadata(self, video_ids: list[str]) -> dict[str, Any]:
         """Fetch metadata for multiple Brightcove videos."""
-        results: List[Dict[str, Any]] = []
-        errors: List[Dict[str, Any]] = []
+        results: list[dict[str, Any]] = []
+        errors: list[dict[str, Any]] = []
 
         for video_id in video_ids:
             response = await self.fetch_video_metadata(video_id)

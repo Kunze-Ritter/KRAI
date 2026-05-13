@@ -1,12 +1,15 @@
 """Batch operations API routes."""
+
 from __future__ import annotations
 
 import asyncio
 import json
 import logging
 import re
-from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple
+from collections.abc import Awaitable, Callable
+from typing import Any
 
+import asyncpg
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 
 from api.dependencies.database import get_database_pool
@@ -28,13 +31,12 @@ from models.batch import (
 )
 from services.batch_task_service import BatchTaskService
 from services.transaction_manager import TransactionManager
-import asyncpg
 
 LOGGER = logging.getLogger("krai.api.batch")
 
 router = APIRouter(prefix="/batch", tags=["batch_operations"])
 
-RESOURCE_TABLE_MAP: Dict[str, str] = {
+RESOURCE_TABLE_MAP: dict[str, str] = {
     "documents": "krai_core.documents",
     "products": "krai_core.products",
     "manufacturers": "krai_core.manufacturers",
@@ -45,7 +47,7 @@ RESOURCE_TABLE_MAP: Dict[str, str] = {
 
 _ALLOWED_TABLE_NAMES = frozenset(RESOURCE_TABLE_MAP.values())
 
-RESOURCE_PERMISSIONS: Dict[str, str] = {
+RESOURCE_PERMISSIONS: dict[str, str] = {
     "documents": "documents",
     "products": "products",
     "manufacturers": "products",  # Reuse existing product permissions for manufacturers
@@ -77,7 +79,7 @@ def _run_background(coro: Awaitable[Any]) -> None:
     asyncio.create_task(coro)
 
 
-def _split_schema_table(table_name: str) -> Tuple[Optional[str], str]:
+def _split_schema_table(table_name: str) -> tuple[str | None, str]:
     if "." in table_name:
         schema, tbl = table_name.split(".", 1)
         return schema, tbl
@@ -94,7 +96,7 @@ def _get_resource_permission(resource_type: str, action: str) -> str:
     return f"{RESOURCE_PERMISSIONS[resource_type]}:{action}"
 
 
-async def _get_services(pool: asyncpg.Pool) -> Dict[str, Any]:
+async def _get_services(pool: asyncpg.Pool) -> dict[str, Any]:
     from api.dependencies.database import get_batch_task_service, get_transaction_manager
 
     task_service = await get_batch_task_service()
@@ -112,7 +114,7 @@ async def _validate_resource_type(resource_type: str) -> None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=f"Unsupported resource_type: {resource_type}")
 
 
-def _ensure_user_permission(current_user: Dict[str, Any], permission: str) -> None:
+def _ensure_user_permission(current_user: dict[str, Any], permission: str) -> None:
     permissions = set(current_user.get("permissions", []))
     if permission not in permissions:
         raise HTTPException(
@@ -122,11 +124,11 @@ def _ensure_user_permission(current_user: Dict[str, Any], permission: str) -> No
 
 
 async def _fetch_record(
-    connection: Optional[Any],
+    connection: Any | None,
     pool: asyncpg.Pool,
     table_name: str,
     record_id: str,
-) -> Optional[Dict[str, Any]]:
+) -> dict[str, Any] | None:
     _assert_safe_table_name(table_name)
     if connection:
         query = f"SELECT * FROM {table_name} WHERE id = $1"
@@ -134,15 +136,12 @@ async def _fetch_record(
         return dict(row) if row else None
 
     async with pool.acquire() as conn:
-        row = await conn.fetchrow(
-            f"SELECT * FROM {table_name} WHERE id = $1 LIMIT 1",
-            record_id
-        )
+        row = await conn.fetchrow(f"SELECT * FROM {table_name} WHERE id = $1 LIMIT 1", record_id)
     return dict(row) if row else None
 
 
 async def _delete_record(
-    connection: Optional[Any],
+    connection: Any | None,
     pool: asyncpg.Pool,
     table_name: str,
     record_id: str,
@@ -154,30 +153,27 @@ async def _delete_record(
         return
 
     async with pool.acquire() as conn:
-        await conn.execute(
-            f"DELETE FROM {table_name} WHERE id = $1",
-            record_id
-        )
+        await conn.execute(f"DELETE FROM {table_name} WHERE id = $1", record_id)
 
 
 async def _update_record(
-    connection: Optional[Any],
+    connection: Any | None,
     pool: asyncpg.Pool,
     table_name: str,
     record_id: str,
-    update_data: Dict[str, Any],
+    update_data: dict[str, Any],
 ) -> None:
     _assert_safe_table_name(table_name)
-    set_clauses: List[str] = []
-    parameters: List[Any] = [record_id]
+    set_clauses: list[str] = []
+    parameters: list[Any] = [record_id]
     index = 2
-    
+
     for column, value in update_data.items():
         if not COLUMN_NAME_PATTERN.match(column):
             raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=f"Invalid update column: {column}")
 
         prepared_value = _prepare_update_value(value)
-        cast_suffix = "::jsonb" if isinstance(value, (dict, list)) else ""
+        cast_suffix = "::jsonb" if isinstance(value, dict | list) else ""
         set_clauses.append(f"{column} = ${index}{cast_suffix}")
         parameters.append(prepared_value)
         index += 1
@@ -186,7 +182,7 @@ async def _update_record(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="update_data must contain at least one field")
 
     query = f"UPDATE {table_name} SET {', '.join(set_clauses)} WHERE id = $1"
-    
+
     if connection:
         await connection.execute(query, *parameters)
     else:
@@ -195,9 +191,9 @@ async def _update_record(
 
 
 async def _insert_audit_log(
-    connection: Optional[Any],
+    connection: Any | None,
     pool: asyncpg.Pool,
-    payload: Dict[str, Any],
+    payload: dict[str, Any],
 ) -> None:
     query = """
         INSERT INTO krai_system.audit_log (
@@ -224,7 +220,7 @@ async def _insert_audit_log(
         payload.get("rollback_point_id"),
         payload.get("is_rollback", False),
     )
-    
+
     if connection:
         await connection.execute(query, *params)
     else:
@@ -234,17 +230,17 @@ async def _insert_audit_log(
 
 def _prepare_update_value(value: Any) -> Any:
     """Prepare a value for SQL query - handle JSON serialization for complex types."""
-    if isinstance(value, (dict, list)):
+    if isinstance(value, dict | list):
         return json.dumps(value)
     return value
 
 
 def _build_result(
     *,
-    identifier: Optional[str],
+    identifier: str | None,
     success: bool,
-    error: Optional[str] = None,
-    rollback_data: Optional[Dict[str, Any]] = None,
+    error: str | None = None,
+    rollback_data: dict[str, Any] | None = None,
 ) -> BatchOperationResult:
     return BatchOperationResult(
         id=identifier,
@@ -259,17 +255,17 @@ async def _execute_sync_delete(
     pool: asyncpg.Pool,
     transaction_manager: TransactionManager,
     resource_type: str,
-    ids: List[str],
+    ids: list[str],
     user_id: str,
-    progress_callback: Optional[ProgressCallback] = None,
+    progress_callback: ProgressCallback | None = None,
 ) -> BatchOperationResponse:
     table_name = RESOURCE_TABLE_MAP[resource_type]
-    
-    operations: List[Callable[[Optional[Any]], Awaitable[BatchOperationResult]]] = []
+
+    operations: list[Callable[[Any | None], Awaitable[BatchOperationResult]]] = []
 
     for record_id in ids:
 
-        async def _delete_operation(connection: Optional[Any], record_id: str = record_id) -> BatchOperationResult:
+        async def _delete_operation(connection: Any | None, record_id: str = record_id) -> BatchOperationResult:
             try:
                 existing_data = await _fetch_record(connection, pool, table_name, record_id)
                 if not existing_data:
@@ -318,13 +314,13 @@ async def _execute_sync_update(
     pool: asyncpg.Pool,
     transaction_manager: TransactionManager,
     resource_type: str,
-    updates: List[Dict[str, Any]],
+    updates: list[dict[str, Any]],
     user_id: str,
-    progress_callback: Optional[ProgressCallback] = None,
+    progress_callback: ProgressCallback | None = None,
 ) -> BatchOperationResponse:
     table_name = RESOURCE_TABLE_MAP[resource_type]
 
-    operations: List[Callable[[Optional[Any]], Awaitable[BatchOperationResult]]] = []
+    operations: list[Callable[[Any | None], Awaitable[BatchOperationResult]]] = []
     for payload in updates:
         record_id = payload.get("id")
         if not record_id:
@@ -336,7 +332,9 @@ async def _execute_sync_update(
             LOGGER.info("Skipping update %s - no data to update", record_id)
             continue
 
-        async def _update_operation(connection: Optional[Any], record_id: str = record_id, update_data: Dict[str, Any] = update_data) -> BatchOperationResult:
+        async def _update_operation(
+            connection: Any | None, record_id: str = record_id, update_data: dict[str, Any] = update_data
+        ) -> BatchOperationResult:
             try:
                 existing_data = await _fetch_record(connection, pool, table_name, record_id)
                 if not existing_data:
@@ -387,17 +385,18 @@ async def _execute_sync_status_change(
     pool: asyncpg.Pool,
     transaction_manager: TransactionManager,
     resource_type: str,
-    ids: List[str],
+    ids: list[str],
     new_status: str,
     user_id: str,
-    reason: Optional[str],
-    progress_callback: Optional[ProgressCallback] = None,
+    reason: str | None,
+    progress_callback: ProgressCallback | None = None,
 ) -> BatchOperationResponse:
     table_name = RESOURCE_TABLE_MAP[resource_type]
 
-    operations: List[Callable[[Optional[Any]], Awaitable[BatchOperationResult]]] = []
+    operations: list[Callable[[Any | None], Awaitable[BatchOperationResult]]] = []
     for record_id in ids:
-        async def _status_operation(connection: Optional[Any], record_id: str = record_id) -> BatchOperationResult:
+
+        async def _status_operation(connection: Any | None, record_id: str = record_id) -> BatchOperationResult:
             try:
                 existing_data = await _fetch_record(connection, pool, table_name, record_id)
                 if not existing_data:
@@ -448,17 +447,19 @@ def _build_task_executor(
     *,
     operation: str,
     resource_type: str,
-    payload: Dict[str, Any],
+    payload: dict[str, Any],
     pool: asyncpg.Pool,
     transaction_manager: TransactionManager,
     user_id: str,
-    progress_callback: Optional[ProgressCallback],
+    progress_callback: ProgressCallback | None,
 ) -> Callable[[], Awaitable[BatchOperationResponse]]:
     async def _executor() -> BatchOperationResponse:
         if operation == "delete":
             ids = payload.get("ids")
             if not isinstance(ids, list) or not ids:
-                raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="delete operation requires non-empty 'ids' list")
+                raise HTTPException(
+                    status.HTTP_400_BAD_REQUEST, detail="delete operation requires non-empty 'ids' list"
+                )
             return await _execute_sync_delete(
                 pool=pool,
                 transaction_manager=transaction_manager,
@@ -471,7 +472,9 @@ def _build_task_executor(
         if operation == "update":
             updates = payload.get("updates")
             if not isinstance(updates, list) or not updates:
-                raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="update operation requires non-empty 'updates' list")
+                raise HTTPException(
+                    status.HTTP_400_BAD_REQUEST, detail="update operation requires non-empty 'updates' list"
+                )
             return await _execute_sync_update(
                 pool=pool,
                 transaction_manager=transaction_manager,
@@ -485,7 +488,9 @@ def _build_task_executor(
             ids = payload.get("ids")
             new_status = payload.get("new_status")
             if not isinstance(ids, list) or not ids:
-                raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="status_change operation requires non-empty 'ids' list")
+                raise HTTPException(
+                    status.HTTP_400_BAD_REQUEST, detail="status_change operation requires non-empty 'ids' list"
+                )
             if not new_status:
                 raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="status_change operation requires 'new_status'")
             return await _execute_sync_status_change(
@@ -524,7 +529,9 @@ async def _schedule_async_operation(
     elif request.operation == "status_change":
         new_status = options.get("new_status")
         if not new_status:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="status_change operation requires new_status option")
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST, detail="status_change operation requires new_status option"
+            )
         payload = {
             "ids": [item.get("id") for item in request.items if item.get("id")],
             "new_status": new_status,
@@ -597,7 +604,7 @@ async def _schedule_async_operation(
 async def batch_delete(
     request: BatchDeleteRequest,
     background_tasks: BackgroundTasks,
-    current_user: Dict[str, Any] = Depends(require_permission("batch:delete")),
+    current_user: dict[str, Any] = Depends(require_permission("batch:delete")),
     pool: asyncpg.Pool = Depends(get_database_pool),
 ) -> SuccessResponse[BatchOperationResponse]:
     await _validate_resource_type(request.resource_type)
@@ -616,7 +623,7 @@ async def batch_delete(
             resource_type=request.resource_type,
             operation="delete",
             items=[{"id": identifier} for identifier in request.ids],
-            options={}
+            options={},
         )
         response = await _schedule_async_operation(
             background_tasks=background_tasks,
@@ -642,7 +649,7 @@ async def batch_delete(
 async def batch_update(
     request: BatchUpdateRequest,
     background_tasks: BackgroundTasks,
-    current_user: Dict[str, Any] = Depends(require_permission("batch:update")),
+    current_user: dict[str, Any] = Depends(require_permission("batch:update")),
     pool: asyncpg.Pool = Depends(get_database_pool),
 ) -> SuccessResponse[BatchOperationResponse]:
     await _validate_resource_type(request.resource_type)
@@ -658,10 +665,7 @@ async def batch_update(
 
     if should_run_async(item_count):
         batch_request = BatchOperationRequest(
-            resource_type=request.resource_type,
-            operation="update",
-            items=request.updates,
-            options={}
+            resource_type=request.resource_type, operation="update", items=request.updates, options={}
         )
         response = await _schedule_async_operation(
             background_tasks=background_tasks,
@@ -687,7 +691,7 @@ async def batch_update(
 async def batch_status_change(
     request: BatchStatusChangeRequest,
     background_tasks: BackgroundTasks,
-    current_user: Dict[str, Any] = Depends(require_permission("batch:update")),
+    current_user: dict[str, Any] = Depends(require_permission("batch:update")),
     pool: asyncpg.Pool = Depends(get_database_pool),
 ) -> SuccessResponse[BatchOperationResponse]:
     await _validate_resource_type(request.resource_type)
@@ -739,7 +743,7 @@ async def batch_status_change(
 @router.get("/tasks/{task_id}", response_model=SuccessResponse[BatchTaskResponse])
 async def get_batch_task_status(
     task_id: str,
-    current_user: Dict[str, Any] = Depends(require_permission("batch:read")),
+    current_user: dict[str, Any] = Depends(require_permission("batch:read")),
     pool: asyncpg.Pool = Depends(get_database_pool),
 ) -> SuccessResponse[BatchTaskResponse]:
     services = await _get_services(pool)
@@ -748,13 +752,13 @@ async def get_batch_task_status(
     return SuccessResponse(data=status_response)
 
 
-@router.get("/tasks", response_model=SuccessResponse[List[BatchTaskResponse]])
+@router.get("/tasks", response_model=SuccessResponse[list[BatchTaskResponse]])
 async def list_batch_tasks(
-    status_filter: Optional[BatchTaskStatus] = Query(None),
+    status_filter: BatchTaskStatus | None = Query(None),
     limit: int = Query(50, ge=1, le=200),
-    current_user: Dict[str, Any] = Depends(require_permission("batch:read")),
+    current_user: dict[str, Any] = Depends(require_permission("batch:read")),
     pool: asyncpg.Pool = Depends(get_database_pool),
-) -> SuccessResponse[List[BatchTaskResponse]]:
+) -> SuccessResponse[list[BatchTaskResponse]]:
     services = await _get_services(pool)
     task_service: BatchTaskService = services["task_service"]
     tasks = await task_service.list_tasks(
@@ -765,13 +769,13 @@ async def list_batch_tasks(
     return SuccessResponse(data=tasks)
 
 
-@router.post("/tasks/{task_id}/cancel", response_model=SuccessResponse[Dict[str, Any]])
+@router.post("/tasks/{task_id}/cancel", response_model=SuccessResponse[dict[str, Any]])
 async def cancel_batch_task(
     task_id: str,
     reason: str = Query(..., min_length=5, max_length=200),
-    current_user: Dict[str, Any] = Depends(require_permission("batch:delete")),
+    current_user: dict[str, Any] = Depends(require_permission("batch:delete")),
     pool: asyncpg.Pool = Depends(get_database_pool),
-) -> SuccessResponse[Dict[str, Any]]:
+) -> SuccessResponse[dict[str, Any]]:
     services = await _get_services(pool)
     task_service: BatchTaskService = services["task_service"]
     await task_service.cancel_task(task_id, reason)
@@ -781,7 +785,7 @@ async def cancel_batch_task(
 @router.post("/rollback", response_model=SuccessResponse[RollbackResponse])
 async def rollback_batch_operation(
     request: RollbackRequest,
-    current_user: Dict[str, Any] = Depends(require_permission("batch:rollback")),
+    current_user: dict[str, Any] = Depends(require_permission("batch:rollback")),
     pool: asyncpg.Pool = Depends(get_database_pool),
 ) -> SuccessResponse[RollbackResponse]:
     services = await _get_services(pool)

@@ -2,14 +2,12 @@
 Tests for automatic performance metrics collection in BaseProcessor.safe_process().
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from backend.core.base_processor import BaseProcessor
-from backend.core.types import (
-    ProcessingContext,
-    ProcessingResult,
-    ProcessingStatus,
-)
+from backend.core.types import ProcessingContext, ProcessingResult, ProcessingStatus
 
 
 class ConcreteProcessor(BaseProcessor):
@@ -101,9 +99,7 @@ async def test_safe_process_calls_collect_stage_metrics_on_success(processor, co
 async def test_safe_process_metrics_errors_do_not_break_processing(processor, context):
     """Test that metrics collection errors don't break processing."""
     mock_collector = MagicMock()
-    mock_collector.collect_stage_metrics = AsyncMock(
-        side_effect=Exception("Metrics backend unavailable")
-    )
+    mock_collector.collect_stage_metrics = AsyncMock(side_effect=Exception("Metrics backend unavailable"))
     mock_collector.store_stage_metric = AsyncMock()
     processor.set_performance_collector(mock_collector)
 
@@ -174,7 +170,7 @@ async def test_safe_process_sets_processing_time(processor, context):
                         result = await processor.safe_process(context)
 
     assert hasattr(result, "processing_time")
-    assert isinstance(result.processing_time, (int, float))
+    assert isinstance(result.processing_time, int | float)
     assert result.processing_time >= 0
 
 
@@ -204,7 +200,7 @@ async def test_safe_process_normalizes_dict_results(context):
     assert result.status == ProcessingStatus.COMPLETED
     assert result.data["images_processed"] == 3
     assert result.metadata["document_id"] == str(context.document_id)
-    assert isinstance(result.processing_time, (int, float))
+    assert isinstance(result.processing_time, int | float)
 
 
 @pytest.mark.asyncio
