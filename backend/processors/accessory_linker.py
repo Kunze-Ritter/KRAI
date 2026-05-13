@@ -2,11 +2,13 @@
 Accessory Linker - Automatically link accessories to products
 Links accessories mentioned in documents to the main products in those documents
 """
+
+import asyncio
 import logging
 import time
-import asyncio
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
-from typing import List, Dict, Optional, Set, Callable, Any
+from typing import Any
 from uuid import UUID
 
 from utils.accessory_detector import detect_konica_minolta_accessory
@@ -16,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 class AccessoryLinker:
     """Links accessories to products based on document co-occurrence"""
-    
+
     def __init__(self, database_service: Any):
         self.database_service = database_service
         self.logger = logging.getLogger(__name__)
@@ -34,11 +36,7 @@ class AccessoryLinker:
         return asyncio.run(coro)
 
     def _execute_with_retry(
-        self,
-        operation_name: str,
-        func: Callable[[], any],
-        max_attempts: int = 3,
-        base_delay: float = 0.5
+        self, operation_name: str, func: Callable[[], Any], max_attempts: int = 3, base_delay: float = 0.5
     ):
         """Execute DB call with retry for transient failures."""
         last_exception = None
@@ -55,7 +53,7 @@ class AccessoryLinker:
                         attempt,
                         max_attempts,
                         message,
-                        delay
+                        delay,
                     )
                     time.sleep(delay)
                     last_exception = exc
@@ -70,18 +68,18 @@ class AccessoryLinker:
             raise last_exception
 
         return None
-    
-    def link_accessories_for_document(self, document_id: UUID) -> Dict[str, int]:
+
+    def link_accessories_for_document(self, document_id: UUID) -> dict[str, int]:
         """
         Link all accessories to main products in a document
-        
+
         Strategy:
         - If accessory mentioned in document → link to document's main products
         - Main products = non-accessory products
-        
+
         Args:
             document_id: Document UUID
-            
+
         Returns:
             Dict with statistics: {
                 'main_products': int,
@@ -90,80 +88,73 @@ class AccessoryLinker:
                 'links_skipped': int
             }
         """
-        stats = {
-            'main_products': 0,
-            'accessories': 0,
-            'links_created': 0,
-            'links_skipped': 0,
-            'errors': 0
-        }
-        
+        stats = {"main_products": 0, "accessories": 0, "links_created": 0, "links_skipped": 0, "errors": 0}
+
         try:
             # Get all products from this document
             products = self._get_products_from_document(document_id)
-            
+
             if not products:
                 self.logger.info(f"No products found in document {document_id}")
                 return stats
-            
+
             # Separate main products from accessories
             main_products = []
             accessories = []
-            
+
             for product in products:
                 if self._is_accessory(product):
                     accessories.append(product)
                 else:
                     main_products.append(product)
-            
-            stats['main_products'] = len(main_products)
-            stats['accessories'] = len(accessories)
-            
+
+            stats["main_products"] = len(main_products)
+            stats["accessories"] = len(accessories)
+
             self.logger.info(
-                f"📦 Document {document_id}: "
-                f"{len(main_products)} main products, {len(accessories)} accessories"
+                f"📦 Document {document_id}: " f"{len(main_products)} main products, {len(accessories)} accessories"
             )
-            
+
             if not main_products:
                 self.logger.info("No main products to link accessories to")
                 return stats
-            
+
             if not accessories:
                 self.logger.info("No accessories to link")
                 return stats
-            
+
             # Link each accessory to all main products
             for accessory in accessories:
                 for main_product in main_products:
                     result = self._create_link(
-                        product_id=main_product['id'],
-                        accessory_id=accessory['id'],
+                        product_id=main_product["id"],
+                        accessory_id=accessory["id"],
                         is_standard=False,  # Default: optional accessory
-                        compatibility_notes=f"Found together in document"
+                        compatibility_notes="Found together in document",
                     )
-                    
-                    if result == 'created':
-                        stats['links_created'] += 1
-                    elif result == 'exists':
-                        stats['links_skipped'] += 1
-                    elif result == 'error':
-                        stats['errors'] += 1
-            
+
+                    if result == "created":
+                        stats["links_created"] += 1
+                    elif result == "exists":
+                        stats["links_skipped"] += 1
+                    elif result == "error":
+                        stats["errors"] += 1
+
             self.logger.info(
                 f"✅ Linked accessories: "
                 f"{stats['links_created']} created, "
                 f"{stats['links_skipped']} skipped, "
                 f"{stats['errors']} errors"
             )
-            
+
             return stats
-            
+
         except Exception as e:
             self.logger.error(f"Error linking accessories for document {document_id}: {e}")
-            stats['errors'] += 1
+            stats["errors"] += 1
             return stats
-    
-    def _get_products_from_document(self, document_id: UUID) -> List[Dict]:
+
+    def _get_products_from_document(self, document_id: UUID) -> list[dict[str, Any]]:
         """Get all products mentioned in a document"""
         try:
             rows = self._run_db(
@@ -176,7 +167,7 @@ class AccessoryLinker:
             if not rows:
                 return []
 
-            product_ids = [str(row['product_id']) for row in rows if row.get('product_id')]
+            product_ids = [str(row["product_id"]) for row in rows if row.get("product_id")]
             if not product_ids:
                 return []
 
@@ -192,61 +183,90 @@ class AccessoryLinker:
             )
 
             return products or []
-            
+
         except Exception as e:
             self.logger.error(f"Error getting products from document: {e}")
             return []
-    
-    def _is_accessory(self, product: Dict) -> bool:
+
+    def _is_accessory(self, product: dict[str, Any]) -> bool:
         """
         Determine if a product is an accessory
-        
+
         Uses:
         1. Product type (if it's an accessory/consumable type)
         2. Accessory detector (model number patterns)
         """
         # Check product_type first
-        product_type = product.get('product_type', '').lower()
-        
+        product_type = product.get("product_type", "").lower()
+
         # Accessory types from database
         accessory_types = {
-            'finisher', 'stapler_finisher', 'booklet_finisher', 'punch_finisher',
-            'folder', 'trimmer', 'stacker',
-            'feeder', 'paper_feeder', 'envelope_feeder', 'large_capacity_feeder',
-            'document_feeder',
-            'accessory', 'cabinet', 'work_table', 'caster_base', 'bridge_unit',
-            'interface_kit', 'memory_upgrade', 'hard_drive', 'controller',
-            'fax_kit', 'wireless_kit', 'keyboard', 'card_reader', 'coin_kit',
-            'option', 'duplex_unit', 'output_tray', 'mailbox', 'job_separator',
-            'consumable', 'toner_cartridge', 'ink_cartridge', 'drum_unit',
-            'developer_unit', 'fuser_unit', 'transfer_belt', 'waste_toner_box',
-            'maintenance_kit', 'staple_cartridge', 'punch_kit', 'print_head',
-            'ink_tank', 'paper'
+            "finisher",
+            "stapler_finisher",
+            "booklet_finisher",
+            "punch_finisher",
+            "folder",
+            "trimmer",
+            "stacker",
+            "feeder",
+            "paper_feeder",
+            "envelope_feeder",
+            "large_capacity_feeder",
+            "document_feeder",
+            "accessory",
+            "cabinet",
+            "work_table",
+            "caster_base",
+            "bridge_unit",
+            "interface_kit",
+            "memory_upgrade",
+            "hard_drive",
+            "controller",
+            "fax_kit",
+            "wireless_kit",
+            "keyboard",
+            "card_reader",
+            "coin_kit",
+            "option",
+            "duplex_unit",
+            "output_tray",
+            "mailbox",
+            "job_separator",
+            "consumable",
+            "toner_cartridge",
+            "ink_cartridge",
+            "drum_unit",
+            "developer_unit",
+            "fuser_unit",
+            "transfer_belt",
+            "waste_toner_box",
+            "maintenance_kit",
+            "staple_cartridge",
+            "punch_kit",
+            "print_head",
+            "ink_tank",
+            "paper",
         }
-        
+
         if product_type in accessory_types:
             return True
-        
+
         # Check model number with accessory detector
-        model_number = product.get('model_number', '')
+        model_number = product.get("model_number", "")
         if model_number:
             # Try Konica Minolta detector
             accessory_match = detect_konica_minolta_accessory(model_number)
             if accessory_match:
                 return True
-        
+
         return False
-    
+
     def _create_link(
-        self,
-        product_id: str,
-        accessory_id: str,
-        is_standard: bool = False,
-        compatibility_notes: Optional[str] = None
+        self, product_id: str, accessory_id: str, is_standard: bool = False, compatibility_notes: str | None = None
     ) -> str:
         """
         Create a link between product and accessory
-        
+
         Returns:
             'created' if new link created
             'exists' if link already exists
@@ -270,15 +290,15 @@ class AccessoryLinker:
             )
 
             if existing_rows:
-                return 'exists'
-            
+                return "exists"
+
             # Create new link
             link_data = {
-                'product_id': product_id,
-                'accessory_id': accessory_id,
-                'compatibility_type': 'compatible',  # Default: compatible (found together in document)
-                'is_standard': is_standard,
-                'compatibility_notes': compatibility_notes
+                "product_id": product_id,
+                "accessory_id": accessory_id,
+                "compatibility_type": "compatible",  # Default: compatible (found together in document)
+                "is_standard": is_standard,
+                "compatibility_notes": compatibility_notes,
             }
 
             self._execute_with_retry(
@@ -292,25 +312,23 @@ class AccessoryLinker:
                             ($1::uuid, $2::uuid, $3, $4, $5)
                         """.strip(),
                         [
-                            str(link_data['product_id']),
-                            str(link_data['accessory_id']),
-                            link_data['compatibility_type'],
-                            bool(link_data['is_standard']),
-                            link_data['compatibility_notes'],
+                            str(link_data["product_id"]),
+                            str(link_data["accessory_id"]),
+                            link_data["compatibility_type"],
+                            bool(link_data["is_standard"]),
+                            link_data["compatibility_notes"],
                         ],
                     )
                 ),
             )
-            
-            return 'created'
-            
+
+            return "created"
+
         except Exception as e:
-            self.logger.error(
-                f"Error creating link {product_id} -> {accessory_id}: {e}"
-            )
-            return 'error'
-    
-    def get_accessories_for_product(self, product_id: UUID) -> List[Dict]:
+            self.logger.error(f"Error creating link {product_id} -> {accessory_id}: {e}")
+            return "error"
+
+    def get_accessories_for_product(self, product_id: UUID) -> list[dict[str, Any]]:
         """Get all accessories linked to a product"""
         try:
             rows = self._run_db(
@@ -327,7 +345,7 @@ class AccessoryLinker:
             if not rows:
                 return []
 
-            accessory_ids = [str(row['accessory_id']) for row in rows if row.get('accessory_id')]
+            accessory_ids = [str(row["accessory_id"]) for row in rows if row.get("accessory_id")]
             if not accessory_ids:
                 return []
 
@@ -343,12 +361,12 @@ class AccessoryLinker:
             )
 
             return accessories or []
-            
+
         except Exception as e:
             self.logger.error(f"Error getting accessories for product: {e}")
             return []
-    
-    def get_products_for_accessory(self, accessory_id: UUID) -> List[Dict]:
+
+    def get_products_for_accessory(self, accessory_id: UUID) -> list[dict[str, Any]]:
         """Get all products that an accessory is compatible with"""
         try:
             rows = self._run_db(
@@ -365,7 +383,7 @@ class AccessoryLinker:
             if not rows:
                 return []
 
-            product_ids = [str(row['product_id']) for row in rows if row.get('product_id')]
+            product_ids = [str(row["product_id"]) for row in rows if row.get("product_id")]
             if not product_ids:
                 return []
 
@@ -381,7 +399,7 @@ class AccessoryLinker:
             )
 
             return products or []
-            
+
         except Exception as e:
             self.logger.error(f"Error getting products for accessory: {e}")
             return []
