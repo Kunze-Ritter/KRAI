@@ -9,3 +9,11 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+/* Fix header button overflow on larger screens */
+@media (min-width: 40rem) {
+    .fi-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
