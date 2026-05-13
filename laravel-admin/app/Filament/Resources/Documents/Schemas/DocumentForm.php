@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\Documents\Schemas;
 
 use App\Enums\DocumentProcessingStatus;
-use App\Models\Manufacturer;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -58,18 +57,9 @@ class DocumentForm
                     ->numeric()
                     ->disabled(),
 
-                Select::make('manufacturer_id')
+                TextInput::make('manufacturer')
                     ->label('Hersteller')
-                    ->relationship('manufacturer', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->createOptionForm([
-                        TextInput::make('name')
-                            ->label('Herstellername')
-                            ->required()
-                            ->unique(Manufacturer::class, 'name'),
-                    ])
-                    ->nullable(),
+                    ->maxLength(255),
 
                 TextInput::make('series')
                     ->label('Serie')
