@@ -10,7 +10,7 @@ Vollständige Pattern-Erkennung für alle Ricoh-Produktserien: Production, Offic
 
 #### Pro C Series (Production Color)
 - **Pattern**: `PRO C\d{3,4}[suffix]`
-- **Beispiele**: 
+- **Beispiele**:
   - Pro C5300s, Pro C5310s
   - Pro C7500, Pro C9500
   - Pro C901, Pro C7200sx
@@ -36,7 +36,7 @@ Vollständige Pattern-Erkennung für alle Ricoh-Produktserien: Production, Offic
 
 #### MP W Series (Wide Format)
 - **Pattern**: `(AFICIO )?MP W\d{4}`
-- **Beispiele**: 
+- **Beispiele**:
   - MP W6700
   - Aficio MP W3601
 - **Beschreibung**: Wide Format MFPs für CAD/Pläne
@@ -54,7 +54,7 @@ Vollständige Pattern-Erkennung für alle Ricoh-Produktserien: Production, Offic
 
 #### IM C Series (Color)
 - **Pattern**: `IM C\d{3,4}[suffix]`
-- **Beispiele**: 
+- **Beispiele**:
   - IM C400F, IM C401F
   - IM C4510, IM C4510(A)
 - **Beschreibung**: Smart Color MFPs (neueste Generation)
@@ -63,7 +63,7 @@ Vollständige Pattern-Erkennung für alle Ricoh-Produktserien: Production, Offic
 
 #### IM Series (Monochrome)
 - **Pattern**: `IM \d{4}[suffix]`
-- **Beispiele**: 
+- **Beispiele**:
   - IM 2500A, IM 3000A, IM 3500A
   - IM 2702
 - **Beschreibung**: Smart Monochrome MFPs
@@ -75,7 +75,7 @@ Vollständige Pattern-Erkennung für alle Ricoh-Produktserien: Production, Offic
 
 #### MP C Series (Color)
 - **Pattern**: `MP C\d{3,4}[suffix]`
-- **Beispiele**: 
+- **Beispiele**:
   - MP C2503SP, MP C501SP
 - **Beschreibung**: Color Office MFPs
 - **Product Type**: `laser_multifunction`
@@ -83,7 +83,7 @@ Vollständige Pattern-Erkennung für alle Ricoh-Produktserien: Production, Offic
 
 #### MP Series (Monochrome)
 - **Pattern**: `MP \d{4}[suffix]`
-- **Beispiele**: 
+- **Beispiele**:
   - MP 2014AD
   - MP 2555SP, MP 3055SP, MP 6055SP
 - **Beschreibung**: Monochrome Office MFPs
@@ -96,7 +96,7 @@ Vollständige Pattern-Erkennung für alle Ricoh-Produktserien: Production, Offic
 
 #### Aficio MP C Series (Color)
 - **Pattern**: `AFICIO MP C\d{3,4}`
-- **Beispiele**: 
+- **Beispiele**:
   - Aficio MP C2030
   - Aficio MP C2800, MP C3500
 - **Beschreibung**: Legacy Color MFPs
@@ -120,7 +120,7 @@ Vollständige Pattern-Erkennung für alle Ricoh-Produktserien: Production, Offic
 
 #### SP Series (Monochrome)
 - **Pattern**: `SP \d{3}[suffix]`
-- **Beispiele**: 
+- **Beispiele**:
   - SP 230DNw, SP 230SFNw
   - SP 311
 - **Beschreibung**: Monochrome Laser Printers
@@ -148,7 +148,7 @@ Vollständige Pattern-Erkennung für alle Ricoh-Produktserien: Production, Offic
 
 #### Aficio SG Series
 - **Pattern**: `(AFICIO )?SG \d{4}[suffix]`
-- **Beispiele**: 
+- **Beispiele**:
   - Aficio SG 2100N
   - SG 3110DN, SG 3100SNw
 - **Beschreibung**: GelJet Color Printers

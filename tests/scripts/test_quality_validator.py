@@ -1,7 +1,8 @@
-import pytest
-from unittest.mock import AsyncMock
 import sys
 from pathlib import Path
+from unittest.mock import AsyncMock
+
+import pytest
 
 from scripts.quality_validator import QualityValidator
 
@@ -40,9 +41,7 @@ def test_thresholds():
 @pytest.mark.asyncio
 async def test_check_correctness_with_valid_products(mock_db_adapter, test_thresholds):
     validator = QualityValidator(mock_db_adapter, test_thresholds)
-    mock_db_adapter.fetch_all = AsyncMock(
-        return_value=[{"model_number": "HP E877", "manufacturer": "HP Inc."}]
-    )
+    mock_db_adapter.fetch_all = AsyncMock(return_value=[{"model_number": "HP E877", "manufacturer": "HP Inc."}])
 
     result = await validator._check_correctness(["doc-1"])
 

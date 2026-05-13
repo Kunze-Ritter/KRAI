@@ -1,9 +1,8 @@
 """Auth-related dependency helpers."""
-from typing import Optional
 
 from services.auth_service import AuthService
 
-_auth_service: Optional[AuthService] = None
+_auth_service: AuthService | None = None
 
 
 def set_auth_service(service: AuthService) -> None:

@@ -1,7 +1,7 @@
 # 🦙 Ollama Vision Setup für Error Code Extraction
 
-**Version:** 1.0.0  
-**Model:** LLaVA (Large Language and Vision Assistant)  
+**Version:** 1.0.0
+**Model:** LLaVA (Large Language and Vision Assistant)
 **Vorteil:** Lokal, kostenlos, datenschutzfreundlich
 
 ---
@@ -104,16 +104,16 @@ Die Error Code Extraction verwendet automatisch Ollama wenn verfügbar:
 # backend/processors/metadata_processor_ai.py
 async def _extract_error_codes_from_images_ai(self, document_id: str, manufacturer: str):
     """Extract error codes from images using AI (Ollama LLaVA)"""
-    
+
     images = await self.database_service.get_images_by_document(document_id)
-    
+
     for image in images:
         # Automatically uses Ollama LLaVA if available!
         ai_result = await self.ai_service.extract_error_codes_from_image(
             image_url=image.get('storage_url'),
             manufacturer=manufacturer
         )
-        
+
         # Returns:
         # {
         #   "error_codes": [
@@ -138,16 +138,16 @@ from services.ai_service import AIService
 async def test_vision():
     ai_service = AIService("http://localhost:11434")
     await ai_service.connect()
-    
+
     # Test mit Bild
     with open("error_screen.jpg", "rb") as f:
         image_bytes = f.read()
-    
+
     result = await ai_service.extract_error_codes_from_image(
         image_bytes=image_bytes,
         manufacturer="HP"
     )
-    
+
     print(f"Found {len(result['error_codes'])} error codes:")
     for ec in result['error_codes']:
         print(f"  - {ec['code']}: {ec['description']}")
@@ -365,8 +365,8 @@ Performance:
 
 ---
 
-**Setup Time:** ~10 Minuten  
-**Hardware:** RTX 2060 oder besser empfohlen  
+**Setup Time:** ~10 Minuten
+**Hardware:** RTX 2060 oder besser empfohlen
 **Status:** ✅ Production Ready
 
 **Nächster Schritt:** `ollama pull llava:latest` und testen! 🚀

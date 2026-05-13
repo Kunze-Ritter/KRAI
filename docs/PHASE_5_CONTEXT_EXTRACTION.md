@@ -69,7 +69,7 @@ Enhanced data models support context extraction:
 ```python
 class ImageModel(BaseModel):
     # ... existing fields ...
-    
+
     # Phase 5: Context extraction fields
     context_caption: Optional[str] = None
     page_header: Optional[str] = None

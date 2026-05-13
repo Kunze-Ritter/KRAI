@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Run migration to create error_code_images junction table"""
 
-import os
-import sys
 import asyncio
+import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from processors.env_loader import load_all_env_files
@@ -20,7 +20,7 @@ print("=" * 80)
 
 # Read migration file
 migration_file = Path(__file__).parent.parent / "migrations" / "create_error_code_images_junction.sql"
-with open(migration_file, 'r') as f:
+with open(migration_file) as f:
     sql = f.read()
 
 print("\n📝 Migration SQL:")

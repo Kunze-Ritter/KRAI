@@ -47,9 +47,9 @@ class QueueStatusWidget extends BaseWidget
     private function getPendingStat(array $byStatus, float $avgWaitTime): Stat
     {
         $pending = $byStatus['pending'] ?? 0;
-        
+
         $description = sprintf('Avg wait time: %ds', round($avgWaitTime));
-        
+
         $color = 'success';
         if ($pending > 100) {
             $color = 'warning';
@@ -87,7 +87,7 @@ class QueueStatusWidget extends BaseWidget
     private function getFailedStat(array $byStatus, array $byTaskType): Stat
     {
         $failed = $byStatus['failed'] ?? 0;
-        
+
         $taskTypeBreakdown = '';
         if (!empty($byTaskType)) {
             $topFailures = array_slice($byTaskType, 0, 2);

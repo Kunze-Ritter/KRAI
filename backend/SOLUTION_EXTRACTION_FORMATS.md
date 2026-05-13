@@ -1,8 +1,8 @@
 # Solution Extraction - Supported Formats
 
-**Module:** `backend/processors/error_code_extractor.py`  
-**Function:** `_extract_solution()`  
-**Updated:** 2025-10-06  
+**Module:** `backend/processors/error_code_extractor.py`
+**Function:** `_extract_solution()`
+**Updated:** 2025-10-06
 
 ---
 
@@ -302,7 +302,7 @@ text = """
 def _extract_solution(self, context, full_text, code_end_pos):
     # Text window
     text_after = full_text[code_end_pos:code_end_pos + 2500]  # Configurable
-    
+
     # Pattern matching
     patterns = [
         recommended_action_pattern,  # Priority 1
@@ -393,6 +393,6 @@ keywords_ja = ["手順", "対処方法", "解決策"]
 
 ---
 
-**Last Updated:** 2025-10-06  
-**Version:** V2.1  
+**Last Updated:** 2025-10-06
+**Version:** V2.1
 **Status:** ✅ Production Ready

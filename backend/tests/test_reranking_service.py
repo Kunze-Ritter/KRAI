@@ -1,10 +1,10 @@
-import os
 import pytest
 
 
 @pytest.mark.slow
 def test_reranking_service_returns_top_n():
     from backend.services.reranking_service import RerankingService
+
     svc = RerankingService()
     texts = [
         "Replace the fuser unit by removing two screws.",
@@ -22,6 +22,7 @@ def test_reranking_service_returns_top_n():
 def test_reranking_service_noop_when_disabled(monkeypatch):
     monkeypatch.setenv("ENABLE_RERANKING", "false")
     from backend.services.reranking_service import RerankingService
+
     svc = RerankingService()
     texts = ["a", "b", "c", "d", "e"]
     result = svc.rerank("query", texts, top_n=3)
@@ -31,6 +32,7 @@ def test_reranking_service_noop_when_disabled(monkeypatch):
 @pytest.mark.slow
 def test_reranking_returns_strings_not_scores():
     from backend.services.reranking_service import RerankingService
+
     svc = RerankingService()
     texts = ["Fix the jam by opening cover A.", "Unrelated text about cooking."]
     result = svc.rerank("paper jam fix", texts, top_n=2)

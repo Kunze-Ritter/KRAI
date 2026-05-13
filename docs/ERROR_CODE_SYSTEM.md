@@ -24,7 +24,7 @@ The KRAI Error Code System provides intelligent extraction, storage, and retriev
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │  ┌──────────────┐     ┌──────────────┐    ┌──────────────┐  │
-│  │  Extraction  │ ──> │   Storage    │ ─> │    Search    │  │ 
+│  │  Extraction  │ ──> │   Storage    │ ─> │    Search    │  │
 │  │              │     │              │    │              │  │
 │  │ • Patterns   │     │ • Products   │    │ • Documents  │  │
 │  │ • Filters    │     │ • Videos     │    │ • Videos     │  │
@@ -287,12 +287,12 @@ CREATE TABLE krai_intelligence.error_codes (
     document_id UUID REFERENCES documents(id),
     video_id UUID REFERENCES videos(id),          -- NEW!
     chunk_id UUID REFERENCES chunks(id),
-    
+
     error_description TEXT,
     solution_text TEXT,
     page_number INTEGER,
     confidence_score DECIMAL(3,2),
-    
+
     -- Unique constraint per source
     UNIQUE(error_code, manufacturer_id, product_id, document_id, video_id)
 );
@@ -382,7 +382,7 @@ Contains patterns for 17 manufacturers.
 ### Migration 41: Product & Video Support
 
 ```sql
-ALTER TABLE error_codes 
+ALTER TABLE error_codes
 ADD COLUMN product_id UUID,
 ADD COLUMN video_id UUID;
 ```

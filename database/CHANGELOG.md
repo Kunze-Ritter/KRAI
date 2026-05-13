@@ -73,16 +73,16 @@ CREATE TABLE krai_system.alert_queue (
 ### Test Data Added
 ```sql
 INSERT INTO krai_system.alert_configurations (
-    rule_name, 
-    description, 
-    is_enabled, 
-    error_types, 
-    stages, 
-    severity_threshold, 
-    error_count_threshold, 
-    time_window_minutes, 
-    aggregation_window_minutes, 
-    email_recipients, 
+    rule_name,
+    description,
+    is_enabled,
+    error_types,
+    stages,
+    severity_threshold,
+    error_count_threshold,
+    time_window_minutes,
+    aggregation_window_minutes,
+    email_recipients,
     slack_webhooks
 ) VALUES (
     'default_error_alert',
@@ -108,8 +108,8 @@ INSERT INTO krai_system.alert_configurations (
 ### Verification
 ```sql
 -- Check tables exist
-SELECT table_name FROM information_schema.tables 
-WHERE table_schema = 'krai_system' 
+SELECT table_name FROM information_schema.tables
+WHERE table_schema = 'krai_system'
 AND table_name IN ('alert_configurations', 'alert_queue');
 
 -- Check test configuration

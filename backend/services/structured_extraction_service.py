@@ -12,12 +12,14 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from datetime import datetime, timezone
+from collections.abc import Sequence
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any
 
 from .config_service import ConfigService
 from .web_scraping_service import WebScrapingService
+
 
 class StructuredExtractionService:
     """Service coordinating schema-based structured extractions via Firecrawl."""
@@ -26,19 +28,17 @@ class StructuredExtractionService:
         self,
         web_scraping_service: WebScrapingService,
         database_service: Any,
-        config_service: Optional[ConfigService] = None,
-        schema_path: Optional[str] = None,
+        config_service: ConfigService | None = None,
+        schema_path: str | None = None,
     ) -> None:
         self._scraper = web_scraping_service
         self._database_service = database_service
         self._config_service = config_service
         self._logger = logging.getLogger("krai.services.structured_extraction")
-        self._schemas: Dict[str, Dict[str, Any]] = {}
+        self._schemas: dict[str, dict[str, Any]] = {}
 
         self._schema_path = (
-            Path(schema_path)
-            if schema_path
-            else Path(__file__).parent.parent / "schemas" / "extraction_schemas.json"
+            Path(schema_path) if schema_path else Path(__file__).parent.parent / "schemas" / "extraction_schemas.json"
         )
         self._load_schemas()
         self._config = self._load_config()
@@ -50,12 +50,12 @@ class StructuredExtractionService:
         self,
         url: str,
         *,
-        manufacturer_id: Optional[str] = None,
-        product_id: Optional[str] = None,
-        document_id: Optional[str] = None,
+        manufacturer_id: str | None = None,
+        product_id: str | None = None,
+        document_id: str | None = None,
         source_type: str = "link",
-        source_id: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        source_id: str | None = None,
+    ) -> dict[str, Any]:
         schema_info = self._get_schema("product_specs")
         result = await self._perform_extraction(
             url=url,
@@ -73,11 +73,11 @@ class StructuredExtractionService:
         self,
         url: str,
         *,
-        manufacturer_id: Optional[str] = None,
-        document_id: Optional[str] = None,
+        manufacturer_id: str | None = None,
+        document_id: str | None = None,
         source_type: str = "link",
-        source_id: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        source_id: str | None = None,
+    ) -> dict[str, Any]:
         schema_info = self._get_schema("error_codes")
         result = await self._perform_extraction(
             url=url,
@@ -94,11 +94,11 @@ class StructuredExtractionService:
         self,
         url: str,
         *,
-        manufacturer_id: Optional[str] = None,
-        document_id: Optional[str] = None,
+        manufacturer_id: str | None = None,
+        document_id: str | None = None,
         source_type: str = "link",
-        source_id: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        source_id: str | None = None,
+    ) -> dict[str, Any]:
         schema_info = self._get_schema("service_manual")
         result = await self._perform_extraction(
             url=url,
@@ -115,11 +115,11 @@ class StructuredExtractionService:
         self,
         url: str,
         *,
-        manufacturer_id: Optional[str] = None,
-        document_id: Optional[str] = None,
+        manufacturer_id: str | None = None,
+        document_id: str | None = None,
         source_type: str = "link",
-        source_id: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        source_id: str | None = None,
+    ) -> dict[str, Any]:
         schema_info = self._get_schema("parts_list")
         return await self._perform_extraction(
             url=url,
@@ -135,11 +135,11 @@ class StructuredExtractionService:
         self,
         url: str,
         *,
-        manufacturer_id: Optional[str] = None,
-        document_id: Optional[str] = None,
+        manufacturer_id: str | None = None,
+        document_id: str | None = None,
         source_type: str = "link",
-        source_id: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        source_id: str | None = None,
+    ) -> dict[str, Any]:
         schema_info = self._get_schema("troubleshooting")
         return await self._perform_extraction(
             url=url,
@@ -151,7 +151,7 @@ class StructuredExtractionService:
             source_id=source_id,
         )
 
-    async def extract_from_link(self, link_id: str) -> Dict[str, Any]:
+    async def extract_from_link(self, link_id: str) -> dict[str, Any]:
         """Run structured extraction against a stored link record."""
 
         client = self._get_db_client()
@@ -207,16 +207,14 @@ class StructuredExtractionService:
             await self._update_link_metadata(link, result)
         return result
 
-    async def extract_from_crawled_page(self, page_id: str) -> Dict[str, Any]:
+    async def extract_from_crawled_page(self, page_id: str) -> dict[str, Any]:
         client = self._get_db_client()
         if client is None:
             return {"success": False, "error": "database client unavailable"}
 
         response = (
             client.table("crawled_pages", schema="krai_system")
-            .select(
-                "id, url, page_type, manufacturer_id, crawl_job_id"
-            )
+            .select("id, url, page_type, manufacturer_id, crawl_job_id")
             .eq("id", str(page_id))
             .limit(1)
             .execute()
@@ -266,12 +264,12 @@ class StructuredExtractionService:
         *,
         source_type: str = "link",
         max_concurrent: int = 2,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         if not source_ids:
             return {"total": 0, "completed": 0, "failed": 0, "results": []}
 
         semaphore = asyncio.Semaphore(max(1, max_concurrent))
-        results: List[Dict[str, Any]] = []
+        results: list[dict[str, Any]] = []
 
         async def _run(source_id: str) -> None:
             async with semaphore:
@@ -292,7 +290,7 @@ class StructuredExtractionService:
             "results": results,
         }
 
-    def get_extraction_schemas(self) -> Dict[str, Dict[str, Any]]:
+    def get_extraction_schemas(self) -> dict[str, dict[str, Any]]:
         return self._schemas
 
     async def validate_extraction(
@@ -300,7 +298,7 @@ class StructuredExtractionService:
         extraction_id: str,
         *,
         status: str,
-        notes: Optional[str] = None,
+        notes: str | None = None,
     ) -> bool:
         if status not in {"pending", "validated", "rejected"}:
             raise ValueError("Invalid validation status")
@@ -314,7 +312,7 @@ class StructuredExtractionService:
                 {
                     "validation_status": status,
                     "validation_notes": notes,
-                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                    "updated_at": datetime.now(UTC).isoformat(),
                 }
             ).eq("id", str(extraction_id)).execute()
             return True
@@ -329,7 +327,7 @@ class StructuredExtractionService:
         if not self._schema_path.exists():
             raise FileNotFoundError(f"Extraction schema file missing: {self._schema_path}")
         try:
-            with open(self._schema_path, "r", encoding="utf-8") as handle:
+            with open(self._schema_path, encoding="utf-8") as handle:
                 payload = json.load(handle)
         except json.JSONDecodeError as exc:
             raise ValueError(f"Invalid JSON in extraction schema file: {exc}") from exc
@@ -341,7 +339,7 @@ class StructuredExtractionService:
             self._schemas[key] = value
         self._logger.info("Loaded %s structured extraction schemas", len(self._schemas))
 
-    def _load_config(self) -> Dict[str, Any]:
+    def _load_config(self) -> dict[str, Any]:
         if self._config_service:
             try:
                 config = self._config_service.get_scraping_config()
@@ -360,7 +358,7 @@ class StructuredExtractionService:
             "confidence_threshold": 0.5,
         }
 
-    def _get_schema(self, key: str) -> Dict[str, Any]:
+    def _get_schema(self, key: str) -> dict[str, Any]:
         schema_info = self._schemas.get(key)
         if schema_info is None:
             raise ValueError(f"Schema '{key}' not available")
@@ -371,14 +369,14 @@ class StructuredExtractionService:
         *,
         url: str,
         extraction_type: str,
-        schema_info: Dict[str, Any],
-        manufacturer_id: Optional[str],
-        product_id: Optional[str] = None,
-        document_id: Optional[str] = None,
+        schema_info: dict[str, Any],
+        manufacturer_id: str | None,
+        product_id: str | None = None,
+        document_id: str | None = None,
         source_type: str,
-        source_id: Optional[str],
-    ) -> Dict[str, Any]:
-        if not self._scraper.primary_backend.backend_name == "firecrawl":
+        source_id: str | None,
+    ) -> dict[str, Any]:
+        if self._scraper.primary_backend.backend_name != "firecrawl":
             return {"success": False, "error": "structured extraction requires firecrawl backend"}
 
         schema = schema_info.get("schema")
@@ -402,9 +400,7 @@ class StructuredExtractionService:
         backend = response.get("backend")
 
         if confidence < self._config.get("confidence_threshold", 0.5):
-            self._logger.debug(
-                "Skipping low-confidence extraction for %s (%.2f)", url, confidence
-            )
+            self._logger.debug("Skipping low-confidence extraction for %s (%.2f)", url, confidence)
             return {
                 "success": False,
                 "skipped": True,
@@ -442,16 +438,16 @@ class StructuredExtractionService:
         self,
         *,
         source_type: str,
-        source_id: Optional[str],
+        source_id: str | None,
         extraction_type: str,
         schema_version: str,
-        extracted_data: Dict[str, Any],
+        extracted_data: dict[str, Any],
         confidence: float,
-        manufacturer_id: Optional[str],
-        product_id: Optional[str],
-        document_id: Optional[str],
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        manufacturer_id: str | None,
+        product_id: str | None,
+        document_id: str | None,
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         client = self._get_db_client()
         if client is None:
             return {"success": False}
@@ -486,30 +482,26 @@ class StructuredExtractionService:
             self._logger.error("Failed to query structured_extractions: %s", exc)
             existing = None
 
-        now_iso = datetime.now(timezone.utc).isoformat()
+        now_iso = datetime.now(UTC).isoformat()
         payload["updated_at"] = now_iso
 
         try:
             if existing and existing.data:
                 record_id = existing.data[0]["id"]
-                client.table("structured_extractions", schema="krai_intelligence").update(
-                    payload
-                ).eq("id", record_id).execute()
+                client.table("structured_extractions", schema="krai_intelligence").update(payload).eq(
+                    "id", record_id
+                ).execute()
                 return {"success": True, "id": record_id}
 
             payload["created_at"] = now_iso
-            result = (
-                client.table("structured_extractions", schema="krai_intelligence")
-                .insert(payload)
-                .execute()
-            )
+            result = client.table("structured_extractions", schema="krai_intelligence").insert(payload).execute()
             record_id = result.data[0]["id"] if result.data else None
             return {"success": True, "id": record_id}
         except Exception as exc:  # pragma: no cover - defensive
             self._logger.error("Failed to persist structured extraction: %s", exc)
             return {"success": False}
 
-    async def _update_link_metadata(self, link: Dict[str, Any], result: Dict[str, Any]) -> None:
+    async def _update_link_metadata(self, link: dict[str, Any], result: dict[str, Any]) -> None:
         client = self._get_db_client()
         if client is None:
             return
@@ -520,11 +512,15 @@ class StructuredExtractionService:
             "record_id": result.get("record_id"),
             "extraction_type": result.get("extraction_type", "unknown"),
             "confidence": result.get("confidence"),
-            "extracted_at": datetime.now(timezone.utc).isoformat(),
+            "extracted_at": datetime.now(UTC).isoformat(),
         }
 
         if entry["record_id"]:
-            structured_entries = [existing_entry for existing_entry in structured_entries if existing_entry.get("record_id") != entry["record_id"]]
+            structured_entries = [
+                existing_entry
+                for existing_entry in structured_entries
+                if existing_entry.get("record_id") != entry["record_id"]
+            ]
         structured_entries.append(entry)
         metadata["structured_extractions"] = structured_entries
 
@@ -532,13 +528,13 @@ class StructuredExtractionService:
             client.table("links", schema="krai_content").update(
                 {
                     "scraped_metadata": metadata,
-                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                    "updated_at": datetime.now(UTC).isoformat(),
                 }
             ).eq("id", str(link.get("id"))).execute()
         except Exception as exc:  # pragma: no cover - defensive
             self._logger.debug("Failed to update link metadata: %s", exc)
 
-    async def _update_crawled_page(self, page_id: str, result: Dict[str, Any]) -> None:
+    async def _update_crawled_page(self, page_id: str, result: dict[str, Any]) -> None:
         client = self._get_db_client()
         if client is None:
             return
@@ -547,7 +543,7 @@ class StructuredExtractionService:
             client.table("crawled_pages", schema="krai_system").update(
                 {
                     "status": "processed",
-                    "processed_at": datetime.now(timezone.utc).isoformat(),
+                    "processed_at": datetime.now(UTC).isoformat(),
                 }
             ).eq("id", str(page_id)).execute()
         except Exception as exc:  # pragma: no cover - defensive
@@ -565,14 +561,14 @@ class StructuredExtractionService:
         self,
         *,
         url: str,
-        link_type: Optional[str],
-        link_category: Optional[str],
-    ) -> Optional[str]:
+        link_type: str | None,
+        link_category: str | None,
+    ) -> str | None:
         url_lower = url.lower()
-        candidates: List[Tuple[str, bool]] = [
+        candidates: list[Tuple[str, bool]] = [
             ("product_specs", any(keyword in url_lower for keyword in ["spec", "datasheet", "product"])),
             ("error_code", any(keyword in url_lower for keyword in ["error", "code", "troubleshoot"])),
-            ("service_manual", any(keyword in url_lower for keyword in ["manual", "download", "pdf"]))
+            ("service_manual", any(keyword in url_lower for keyword in ["manual", "download", "pdf"])),
         ]
         for extraction_type, matches in candidates:
             if matches:

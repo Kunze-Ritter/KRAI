@@ -5,8 +5,8 @@ from __future__ import annotations
 import asyncio
 import sys
 from pathlib import Path
-from typing import Any, Dict, List
 from types import ModuleType
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -54,12 +54,14 @@ research_alias_pkg.__path__ = [str(research_pkg_path)]  # mark as package for im
 research_alias_pkg.__package__ = "research"
 
 from backend.research import product_researcher as backend_product_researcher
+
 sys.modules.setdefault("research.product_researcher", backend_product_researcher)
 
 research_alias_pkg.ProductResearcher = backend_product_researcher.ProductResearcher
 ProductResearcher = backend_product_researcher.ProductResearcher
 
 from backend.research import research_integration as backend_research_integration
+
 sys.modules.setdefault("research.research_integration", backend_research_integration)
 
 research_alias_pkg.ResearchIntegration = backend_research_integration.ResearchIntegration
@@ -71,24 +73,24 @@ class StubScrapingService:
 
     def __init__(
         self,
-        scrape_responses: Dict[str, Dict[str, Any]] | None = None,
-        map_response: Dict[str, Any] | None = None,
+        scrape_responses: dict[str, dict[str, Any]] | None = None,
+        map_response: dict[str, Any] | None = None,
     ) -> None:
         self._scrape_responses = scrape_responses or {}
         self._map_response = map_response or {"success": True, "urls": []}
-        self.called_urls: List[str] = []
+        self.called_urls: list[str] = []
 
-    async def scrape_url(self, url: str) -> Dict[str, Any]:
+    async def scrape_url(self, url: str) -> dict[str, Any]:
         self.called_urls.append(url)
         result = self._scrape_responses.get(url)
         if isinstance(result, Exception):
             raise result
         return result or {"success": False, "backend": "firecrawl", "error": "missing"}
 
-    async def map_urls(self, manufacturer_url: str, options: Dict[str, Any] | None = None) -> Dict[str, Any]:
+    async def map_urls(self, manufacturer_url: str, options: dict[str, Any] | None = None) -> dict[str, Any]:
         return self._map_response
 
-    def get_backend_info(self) -> Dict[str, Any]:
+    def get_backend_info(self) -> dict[str, Any]:
         return {"backend": "firecrawl", "capabilities": ["markdown"], "mock": True}
 
 
@@ -122,9 +124,9 @@ def test_scrape_urls_prefers_async_service(monkeypatch: pytest.MonkeyPatch) -> N
     service = StubScrapingService(scrape_responses=responses)
     researcher = make_researcher(monkeypatch, service)
 
-    legacy_called: List[str] = []
+    legacy_called: list[str] = []
 
-    def legacy_stub(urls: List[str]) -> str:
+    def legacy_stub(urls: list[str]) -> str:
         legacy_called.extend(urls)
         return "legacy"
 

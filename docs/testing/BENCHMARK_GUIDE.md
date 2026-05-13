@@ -343,8 +343,8 @@ Verify baseline storage:
 ```bash
 # Check database
 psql -h staging-host -U krai_user -d krai_staging -c \
-  "SELECT stage_name, baseline_avg_seconds, measurement_date 
-   FROM krai_system.performance_baselines 
+  "SELECT stage_name, baseline_avg_seconds, measurement_date
+   FROM krai_system.performance_baselines
    ORDER BY measurement_date DESC LIMIT 5;"
 
 # Check JSON output
@@ -483,9 +483,9 @@ Verify current metrics storage:
 ```bash
 # Check database
 psql -h staging-host -U krai_user -d krai_staging -c \
-  "SELECT stage_name, baseline_avg_seconds, current_avg_seconds, improvement_percentage 
-   FROM krai_system.performance_baselines 
-   WHERE improvement_percentage IS NOT NULL 
+  "SELECT stage_name, baseline_avg_seconds, current_avg_seconds, improvement_percentage
+   FROM krai_system.performance_baselines
+   WHERE improvement_percentage IS NOT NULL
    ORDER BY measurement_date DESC LIMIT 5;"
 
 # Check JSON output
@@ -1062,7 +1062,7 @@ The dashboard uses color coding matching the benchmark script:
 View performance trends over time:
 
 ```sql
-SELECT 
+SELECT
   measurement_date,
   stage_name,
   baseline_avg_seconds,
@@ -1115,7 +1115,7 @@ LIMIT 10;
 
 ```sql
 -- Get latest baseline for full pipeline
-SELECT 
+SELECT
   stage_name,
   baseline_avg_seconds,
   current_avg_seconds,
@@ -1153,7 +1153,7 @@ LIMIT 1;
 
 ```sql
 -- Get all benchmark documents with metadata
-SELECT 
+SELECT
   bd.document_id,
   d.filename,
   d.manufacturer,
@@ -1174,7 +1174,7 @@ Benchmark documents reference the main documents table:
 
 ```sql
 -- Find benchmark documents with full metadata
-SELECT 
+SELECT
   d.id,
   d.filename,
   d.manufacturer,
@@ -1203,23 +1203,23 @@ sequenceDiagram
 
     User->>Staging: 1. Setup staging with production snapshot
     Note over Staging: docker-compose -f docker-compose.staging.yml up -d
-    
+
     User->>SelectScript: 2. Select benchmark documents
     Note over SelectScript: --snapshot-dir ./staging-snapshots/latest --count 10
     SelectScript->>Database: Store in benchmark_documents table
     SelectScript->>Database: Mark documents with is_benchmark flag
     SelectScript-->>User: benchmark_documents.json created
-    
+
     User->>BenchmarkScript: 3. Run baseline benchmark (--baseline)
     Note over BenchmarkScript: --count 10 --baseline --output baseline_results.json
     BenchmarkScript->>Database: Fetch benchmark documents
     BenchmarkScript->>BenchmarkScript: Process documents through pipeline
     BenchmarkScript->>Database: Store baseline metrics
     BenchmarkScript-->>User: Display baseline results (avg, P50, P95, P99)
-    
+
     User->>User: 4. Implement optimizations
     Note over User: Increase workers, add caching, optimize queries
-    
+
     User->>BenchmarkScript: 5. Run current benchmark (--compare)
     Note over BenchmarkScript: --count 10 --compare --output current_results.json
     BenchmarkScript->>Database: Fetch benchmark documents
@@ -1228,7 +1228,7 @@ sequenceDiagram
     BenchmarkScript->>BenchmarkScript: Calculate improvement percentage
     BenchmarkScript->>Database: Store current metrics
     BenchmarkScript-->>User: Display comparison results (🟢 30.0% improvement)
-    
+
     Dashboard->>Database: 6. Fetch performance metrics
     Note over Dashboard: GET /api/monitoring/performance
     Dashboard-->>User: Display improvement in widget
@@ -1313,7 +1313,7 @@ Benchmark run is successful when:
 
 - [ ] **Baseline metrics stored with valid timestamps**
   ```sql
-  SELECT measurement_date FROM krai_system.performance_baselines 
+  SELECT measurement_date FROM krai_system.performance_baselines
   WHERE measurement_date > NOW() - INTERVAL '1 hour';
   ```
 

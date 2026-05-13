@@ -79,7 +79,7 @@ def __init__(self, supabase_url: str, supabase_key: str, postgres_url: Optional[
 async def connect(self):
     # 1. Connect Supabase (PostgREST) - für Standard-Operations
     self.client = create_client(self.supabase_url, self.supabase_key)
-    
+
     # 2. Connect PostgreSQL (Direct) - für Cross-Schema
     if self.postgres_url and ASYNCPG_AVAILABLE:
         self.pg_pool = await asyncpg.create_pool(
@@ -142,7 +142,7 @@ async def check_embeddings_exist(self, document_id: str) -> bool:
             exists = await conn.fetchval(
                 """
                 SELECT EXISTS(
-                    SELECT 1 
+                    SELECT 1
                     FROM krai_intelligence.embeddings e
                     JOIN krai_intelligence.chunks c ON e.chunk_id = c.id
                     WHERE c.document_id = $1
@@ -210,7 +210,7 @@ Direct SQL:  Keine Migration! ✅
 ```
 RPC:          Client → PostgREST → PL/pgSQL Function → SQL
 Direct SQL:   Client → PostgreSQL → SQL
-              
+
 Schneller:    ~30-50% weniger Latenz ✅
 ```
 

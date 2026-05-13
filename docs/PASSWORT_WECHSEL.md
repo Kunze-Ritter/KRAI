@@ -1,6 +1,6 @@
 # Passwort-Wechsel Anleitung (ohne Datenverlust)
 
-> **Status:** Ausstehend — warten bis aktueller Processor-Lauf abgeschlossen ist  
+> **Status:** Ausstehend — warten bis aktueller Processor-Lauf abgeschlossen ist
 > **Hintergrund:** Die alten Passwörter (`Krai_Secure_Pass123!`, `Admin_Pass123!`, `minioadmin`) sind bekannt und sollten rotiert werden. Docker Volumes bleiben beim Wechsel vollständig erhalten.
 
 ---
@@ -28,13 +28,13 @@
 .\setup.ps1
 ```
 
-Das Script generiert kryptografisch sichere Passwörter und schreibt sie direkt in die `.env`.  
+Das Script generiert kryptografisch sichere Passwörter und schreibt sie direkt in die `.env`.
 **Wichtig:** Das Script überschreibt die `.env` — notiere die generierten Werte vorher!
 
 Alternativ manuell ein Passwort generieren:
 ```powershell
 # Ein einzelnes sicheres Passwort erzeugen
--join ((1..32) | ForEach-Object { [char](Get-Random -Min 48 -Max 122) }) 
+-join ((1..32) | ForEach-Object { [char](Get-Random -Min 48 -Max 122) })
 ```
 
 ---
@@ -83,7 +83,7 @@ docker exec krai-minio-prod mc admin user add local NEUER_USER NEUES_PASSWORT
 
 ### 5. Admin-Passwort wechseln
 
-Entweder über das Laravel Dashboard (http://localhost:80) unter Profil → Passwort ändern,  
+Entweder über das Laravel Dashboard (http://localhost:80) unter Profil → Passwort ändern,
 oder direkt via API:
 
 ```bash

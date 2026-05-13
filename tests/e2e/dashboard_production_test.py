@@ -5,7 +5,7 @@ import asyncio
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from playwright.async_api import Browser, Error, Page, async_playwright
 
@@ -14,9 +14,9 @@ class DashboardValidator:
     def __init__(
         self,
         base_url: str = "http://localhost:8080",
-        document_ids: Optional[List[str]] = None,
+        document_ids: list[str] | None = None,
         output_dir: str = "test_results",
-        credentials: Optional[Dict[str, str]] = None,
+        credentials: dict[str, str] | None = None,
     ):
         self.base_url = base_url.rstrip("/")
         self.document_ids = document_ids or []
@@ -28,15 +28,15 @@ class DashboardValidator:
         }
         self.navigation_timeout_ms = 30_000
         self.wait_timeout_ms = 10_000
-        self.document_match_counts: Dict[str, int] = {}
+        self.document_match_counts: dict[str, int] = {}
 
-    async def validate(self) -> Dict[str, Any]:
-        results: Dict[str, Any] = {
+    async def validate(self) -> dict[str, Any]:
+        results: dict[str, Any] = {
             "status": "PASS",
             "checks": [],
             "screenshots": [],
         }
-        browser: Optional[Browser] = None
+        browser: Browser | None = None
 
         try:
             async with async_playwright() as playwright:
@@ -65,7 +65,7 @@ class DashboardValidator:
 
         return results
 
-    async def _login(self, page: Page, results: Dict[str, Any]):
+    async def _login(self, page: Page, results: dict[str, Any]):
         check = {"name": "login", "status": "FAIL"}
         try:
             await page.goto(f"{self.base_url}/kradmin", wait_until="domcontentloaded")
@@ -81,10 +81,10 @@ class DashboardValidator:
                 results["screenshots"].append(screenshot)
         results["checks"].append(check)
 
-    async def _search_documents(self, page: Page, results: Dict[str, Any]):
+    async def _search_documents(self, page: Page, results: dict[str, Any]):
         check = {"name": "search_documents", "status": "FAIL"}
         try:
-            per_id_counts: Dict[str, int] = {}
+            per_id_counts: dict[str, int] = {}
             for document_id in self.document_ids:
                 match_count = await self._count_rows_for_document_id(page, document_id)
                 per_id_counts[document_id] = match_count
@@ -108,7 +108,7 @@ class DashboardValidator:
             check["message"] = f"Search failed: {error}"
         results["checks"].append(check)
 
-    async def _verify_document_count(self, page: Page, results: Dict[str, Any]):
+    async def _verify_document_count(self, page: Page, results: dict[str, Any]):
         expected_ids = len(self.document_ids)
         check = {
             "name": "verify_document_count",
@@ -137,7 +137,7 @@ class DashboardValidator:
             check["message"] = f"Document count verification failed: {error}"
         results["checks"].append(check)
 
-    async def _verify_document_details(self, page: Page, results: Dict[str, Any]):
+    async def _verify_document_details(self, page: Page, results: dict[str, Any]):
         for document_id in self.document_ids:
             check = {
                 "name": f"verify_document_{document_id}_details",
@@ -162,9 +162,7 @@ class DashboardValidator:
                 if has_document_id and has_chunks:
                     check.update({"status": "PASS", "message": "Document detail page loaded"})
                 else:
-                    check["message"] = (
-                        "Document detail page missing requested document ID or chunk data"
-                    )
+                    check["message"] = "Document detail page missing requested document ID or chunk data"
 
                 await page.go_back(wait_until="domcontentloaded")
                 await page.wait_for_selector(".filament-table-row", timeout=self.wait_timeout_ms)
@@ -172,7 +170,7 @@ class DashboardValidator:
                 check["message"] = f"Document detail verification failed: {error}"
             results["checks"].append(check)
 
-    async def _verify_images_load(self, page: Page, results: Dict[str, Any]):
+    async def _verify_images_load(self, page: Page, results: dict[str, Any]):
         for document_id in self.document_ids:
             check = {
                 "name": f"verify_images_load_{document_id}",
@@ -216,7 +214,7 @@ class DashboardValidator:
                 check["message"] = f"Image verification failed: {error}"
             results["checks"].append(check)
 
-    async def _verify_stage_status(self, page: Page, results: Dict[str, Any]):
+    async def _verify_stage_status(self, page: Page, results: dict[str, Any]):
         for document_id in self.document_ids:
             check = {
                 "name": f"verify_stage_status_{document_id}",
@@ -246,9 +244,7 @@ class DashboardValidator:
 
     async def _count_rows_for_document_id(self, page: Page, document_id: str) -> int:
         await page.goto(f"{self.base_url}/kradmin/documents", wait_until="domcontentloaded")
-        search_input = page.locator(
-            'input[type="search"], input[placeholder*="Search"], input[name*="search"]'
-        ).first
+        search_input = page.locator('input[type="search"], input[placeholder*="Search"], input[name*="search"]').first
         await search_input.wait_for(timeout=self.wait_timeout_ms)
         await search_input.fill(document_id)
         await search_input.press("Enter")
@@ -263,7 +259,7 @@ class DashboardValidator:
         row = page.locator(".filament-table-row", has_text=document_id).first
         await row.click()
 
-    async def _capture_screenshot(self, page: Page, filename: str) -> Optional[str]:
+    async def _capture_screenshot(self, page: Page, filename: str) -> str | None:
         try:
             path = self.output_dir / filename
             await page.screenshot(path=str(path), full_page=True)

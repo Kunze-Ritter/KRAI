@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Generate Environment Variables Reference Documentation
 
@@ -19,7 +19,7 @@ VARIABLES = {
             "example": "ENV=development",
             "description": "Runtime environment identifier (production, staging, development)",
             "used_by": "Application startup, logging configuration, feature flags",
-            "notes": "Affects default log levels and debug behavior"
+            "notes": "Affects default log levels and debug behavior",
         },
         {
             "name": "API_HOST",
@@ -28,7 +28,7 @@ VARIABLES = {
             "example": "API_HOST=0.0.0.0",
             "description": "Backend API host binding address (0.0.0.0 for Docker, 127.0.0.1 for local only)",
             "used_by": "FastAPI/Uvicorn server",
-            "notes": "Use 0.0.0.0 in Docker to allow external connections"
+            "notes": "Use 0.0.0.0 in Docker to allow external connections",
         },
         {
             "name": "API_PORT",
@@ -37,7 +37,7 @@ VARIABLES = {
             "example": "API_PORT=8000",
             "description": "Backend API port for FastAPI/Uvicorn",
             "used_by": "FastAPI/Uvicorn server, Docker Compose port mapping",
-            "notes": "Must match Docker Compose port configuration"
+            "notes": "Must match Docker Compose port configuration",
         },
         {
             "name": "LOG_LEVEL",
@@ -46,7 +46,7 @@ VARIABLES = {
             "example": "LOG_LEVEL=DEBUG",
             "description": "Global log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)",
             "used_by": "Python logging configuration across all modules",
-            "notes": "Use DEBUG for development, INFO for production"
+            "notes": "Use DEBUG for development, INFO for production",
         },
     ],
     "Database Configuration": [
@@ -57,7 +57,7 @@ VARIABLES = {
             "example": "DATABASE_TYPE=postgresql",
             "description": "Database backend type (postgresql or sqlite)",
             "used_by": "Database adapter factory",
-            "notes": "PostgreSQL recommended for production; sqlite for testing only"
+            "notes": "PostgreSQL recommended for production; sqlite for testing only",
         },
         {
             "name": "DATABASE_HOST",
@@ -66,7 +66,7 @@ VARIABLES = {
             "example": "DATABASE_HOST=krai-postgres",
             "description": "PostgreSQL server hostname (Docker service name or IP)",
             "used_by": "Database connection string builder",
-            "notes": "Use Docker service name for container networking"
+            "notes": "Use Docker service name for container networking",
         },
         {
             "name": "DATABASE_PORT",
@@ -75,7 +75,7 @@ VARIABLES = {
             "example": "DATABASE_PORT=5432",
             "description": "PostgreSQL service port",
             "used_by": "Database connection string builder",
-            "notes": "Standard PostgreSQL port is 5432"
+            "notes": "Standard PostgreSQL port is 5432",
         },
         {
             "name": "DATABASE_NAME",
@@ -84,7 +84,7 @@ VARIABLES = {
             "example": "DATABASE_NAME=krai",
             "description": "PostgreSQL database name",
             "used_by": "Database connection string builder",
-            "notes": "Must match database created during initialization"
+            "notes": "Must match database created during initialization",
         },
         {
             "name": "DATABASE_USER",
@@ -93,7 +93,7 @@ VARIABLES = {
             "example": "DATABASE_USER=krai_user",
             "description": "PostgreSQL username for application connections",
             "used_by": "Database connection string builder",
-            "notes": "Should have appropriate schema permissions"
+            "notes": "Should have appropriate schema permissions",
         },
         {
             "name": "DATABASE_PASSWORD",
@@ -102,7 +102,7 @@ VARIABLES = {
             "example": "DATABASE_PASSWORD=krai_secure_password",
             "description": "PostgreSQL password for application user",
             "used_by": "Database connection string builder",
-            "notes": "Change for production! Use strong passwords"
+            "notes": "Change for production! Use strong passwords",
         },
         {
             "name": "DATABASE_CONNECTION_URL",
@@ -111,7 +111,7 @@ VARIABLES = {
             "example": "DATABASE_CONNECTION_URL=postgresql://krai_user:password@krai-postgres:5432/krai",
             "description": "Complete PostgreSQL connection string",
             "used_by": "Database adapters, migration scripts",
-            "notes": "Overrides individual DATABASE_* variables if set"
+            "notes": "Overrides individual DATABASE_* variables if set",
         },
     ],
     "Object Storage Configuration": [
@@ -122,7 +122,7 @@ VARIABLES = {
             "example": "OBJECT_STORAGE_TYPE=s3",
             "description": "Object storage implementation (s3-compatible for MinIO and R2)",
             "used_by": "Storage adapter factory",
-            "notes": "Currently only s3 is supported"
+            "notes": "Currently only s3 is supported",
         },
         {
             "name": "OBJECT_STORAGE_ENDPOINT",
@@ -131,7 +131,7 @@ VARIABLES = {
             "example": "OBJECT_STORAGE_ENDPOINT=http://krai-minio:9000",
             "description": "S3-compatible endpoint URL (MinIO or R2)",
             "used_by": "Storage adapter, upload handlers",
-            "notes": "Use Docker service name for internal connections"
+            "notes": "Use Docker service name for internal connections",
         },
         {
             "name": "OBJECT_STORAGE_ACCESS_KEY",
@@ -140,7 +140,7 @@ VARIABLES = {
             "example": "OBJECT_STORAGE_ACCESS_KEY=minioadmin",
             "description": "S3 access key ID (MinIO or R2)",
             "used_by": "Storage adapter authentication",
-            "notes": "Change default for production!"
+            "notes": "Change default for production!",
         },
         {
             "name": "OBJECT_STORAGE_SECRET_KEY",
@@ -149,7 +149,7 @@ VARIABLES = {
             "example": "OBJECT_STORAGE_SECRET_KEY=minioadmin123",
             "description": "S3 secret access key (MinIO or R2)",
             "used_by": "Storage adapter authentication",
-            "notes": "Change default for production!"
+            "notes": "Change default for production!",
         },
         {
             "name": "OBJECT_STORAGE_REGION",
@@ -158,7 +158,7 @@ VARIABLES = {
             "example": "OBJECT_STORAGE_REGION=us-east-1",
             "description": "AWS region identifier (MinIO accepts any string)",
             "used_by": "S3 client configuration",
-            "notes": "Use 'auto' for S3-compatible storage"
+            "notes": "Use 'auto' for S3-compatible storage",
         },
         {
             "name": "OBJECT_STORAGE_USE_SSL",
@@ -167,7 +167,7 @@ VARIABLES = {
             "example": "OBJECT_STORAGE_USE_SSL=false",
             "description": "Enable HTTPS for storage endpoint",
             "used_by": "S3 client configuration",
-            "notes": "Set true for production with SSL certificates"
+            "notes": "Set true for production with SSL certificates",
         },
         {
             "name": "OBJECT_STORAGE_PUBLIC_URL",
@@ -176,7 +176,7 @@ VARIABLES = {
             "example": "OBJECT_STORAGE_PUBLIC_URL=http://localhost:9000",
             "description": "Public URL for frontend to access stored files",
             "used_by": "Frontend image loading, CDN configuration",
-            "notes": "Must be accessible from user browsers"
+            "notes": "Must be accessible from user browsers",
         },
     ],
 }
@@ -187,19 +187,19 @@ def format_variable(var: dict) -> str:
     lines = [
         f"### {var['name']}",
         f"- **Required:** {var['required']}",
-        f"- **Default:** `{var['default']}`" if var['default'] else f"- **Default:** None",
+        f"- **Default:** `{var['default']}`" if var["default"] else "- **Default:** None",
         f"- **Example:** `{var['example']}`",
         f"- **Description:** {var['description']}",
         f"- **Used by:** {var['used_by']}",
         f"- **Notes:** {var['notes']}",
-        ""
+        "",
     ]
     return "\n".join(lines)
 
 
 def generate_documentation():
     """Generate the complete documentation file."""
-    
+
     header = """# Environment Variables Reference
 
 ## Overview
@@ -242,14 +242,14 @@ Variables are organized by functional area matching the structure in `.env.examp
 ---
 
 """
-    
+
     sections = []
     for section_name, variables in VARIABLES.items():
         section = f"## {section_name}\n\n"
         for var in variables:
             section += format_variable(var)
         sections.append(section)
-    
+
     footer = """---
 
 ## Deprecated Variables
@@ -389,19 +389,18 @@ curl http://localhost:11434/api/tags
 
 ---
 
-**Last Updated:** 2024-11-19  
-**Configuration Approach:** Consolidated single `.env` file  
+**Last Updated:** 2024-11-19
+**Configuration Approach:** Consolidated single `.env` file
 **Deprecated:** Legacy modular `.env.*` files
 """
-    
+
     return header + "\n".join(sections) + footer
 
 
 if __name__ == "__main__":
     output_path = Path(__file__).parent.parent / "docs" / "ENVIRONMENT_VARIABLES_REFERENCE.md"
     content = generate_documentation()
-    
+
     output_path.write_text(content, encoding="utf-8")
     print(f"✅ Generated: {output_path}")
     print(f"📄 Total length: {len(content)} characters")
-

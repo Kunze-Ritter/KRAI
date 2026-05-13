@@ -19,15 +19,15 @@ class PipelineStatusWidget extends Widget
     public function getPipelineData(): array
     {
         $monitoringService = app(MonitoringService::class);
-        
+
         try {
             $result = $monitoringService->getPipelineStatus();
-            
+
             if (!$result['success']) {
                 // Parse error to provide actionable feedback
                 $error = $result['error'] ?? 'Unknown error';
                 $errorType = $this->classifyError($error);
-                
+
                 return [
                     'success' => false,
                     'error' => $error,
@@ -39,7 +39,7 @@ class PipelineStatusWidget extends Widget
                     'hardware_status' => [],
                 ];
             }
-            
+
             // Success path unchanged
             $data = $result['data'];
             return [
@@ -55,7 +55,7 @@ class PipelineStatusWidget extends Widget
                 'config_url' => config('krai.monitoring.base_url'),
                 'engine_url' => config('krai.engine_url'),
             ]);
-            
+
             return [
                 'success' => false,
                 'error' => $e->getMessage(),

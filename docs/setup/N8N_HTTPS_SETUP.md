@@ -98,7 +98,7 @@ Falls du keine Cloudflare-Domain hast, kannst du auch ngrok nutzen:
    ```powershell
    # Mit Chocolatey
    choco install ngrok
-   
+
    # Oder lade es von https://ngrok.com/download herunter
    ```
 

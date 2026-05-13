@@ -267,9 +267,9 @@ async def test_scrape_url_success(web_scraping_service, mock_scraper):
         'content': 'Test content',
         'metadata': {'status_code': 200}
     }
-    
+
     result = await web_scraping_service.scrape_url('http://example.com')
-    
+
     assert result['success'] is True
     assert 'content' in result
 ```
@@ -284,7 +284,7 @@ async def test_complete_enrichment_workflow(link_enrichment_service):
         link_id='test-link',
         url='http://example.com/test'
     )
-    
+
     assert result['success'] is True
     assert result['content_length'] > 0
 ```
@@ -297,7 +297,7 @@ async def test_firecrawl_fallback(web_scraping_service):
     """Test fallback from Firecrawl to BeautifulSoup."""
     # Firecrawl fails, BeautifulSoup succeeds
     result = await web_scraping_service.scrape_url('http://example.com')
-    
+
     assert result['success'] is True
     assert result['backend'] == 'beautifulsoup'
 ```
@@ -391,12 +391,12 @@ def test_complete_crawl_workflow_e2e(self):
 ```python
 class TestServiceName:
     """Test ServiceName functionality."""
-    
+
     @pytest.fixture
     def service_instance(self, mock_dependencies):
         """Create service instance for testing."""
         return ServiceName(dependencies=mock_dependencies)
-    
+
     @pytest.mark.asyncio
     async def test_method_success(self, service_instance):
         """Test successful method execution."""
@@ -441,7 +441,7 @@ with patch('module.ClassName') as mock_class:
    ```bash
    # Check test database is running
    docker-compose -f archive/docker/docker-compose.test.yml ps
-   
+
    # Reset test database
    docker-compose -f archive/docker/docker-compose.test.yml down -v
    docker-compose -f archive/docker/docker-compose.test.yml up -d
@@ -452,7 +452,7 @@ with patch('module.ClassName') as mock_class:
    ```bash
    # Check API key in .env.test
    grep FIRECRAWL_API_KEY .env.test
-   
+
    # Test API connectivity
    curl -H "Authorization: Bearer $FIRECRAWL_API_KEY" \
         <https://api.firecrawl.dev/v1/status>
@@ -463,7 +463,7 @@ with patch('module.ClassName') as mock_class:
    ```bash
    # Check Ollama service (test port)
    curl http://localhost:11435/api/tags
-   
+
    # Restart Ollama if needed
    docker restart ollama-test
    ```
@@ -473,7 +473,7 @@ with patch('module.ClassName') as mock_class:
    ```bash
    # Install test dependencies
    pip install -r requirements-test.txt
-   
+
    # Check Python path
    python -c "import sys; print(sys.path)"
    ```

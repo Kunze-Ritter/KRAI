@@ -9,13 +9,11 @@ from uuid import uuid4
 
 import pytest
 
-from backend.processors.upload_processor import UploadProcessor
-from backend.processors.table_processor import TableProcessor
-from backend.processors.svg_processor import SVGProcessor
-from backend.processors.image_processor import ImageProcessor
-from backend.processors.visual_embedding_processor import VisualEmbeddingProcessor
 from backend.core.base_processor import ProcessingContext
-
+from backend.processors.image_processor import ImageProcessor
+from backend.processors.svg_processor import SVGProcessor
+from backend.processors.table_processor import TableProcessor
+from backend.processors.visual_embedding_processor import VisualEmbeddingProcessor
 
 pytestmark = [pytest.mark.processor, pytest.mark.multimodal]
 

@@ -1,9 +1,12 @@
 """Metrics aggregation service for monitoring."""
+
 from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
+
+import asyncpg
 
 from models.monitoring import (
     DataQualityResponse,
@@ -21,7 +24,6 @@ from models.monitoring import (
     ValidationMetrics,
 )
 from processors.stage_tracker import StageTracker
-import asyncpg
 
 LOGGER = logging.getLogger(__name__)
 
@@ -35,11 +37,11 @@ class MetricsService:
         """Initialize metrics service."""
         self.pool = pool
         self.stage_tracker = stage_tracker
-        self._cache: Dict[str, Tuple[Any, datetime]] = {}
+        self._cache: dict[str, tuple[Any, datetime]] = {}
         self.logger = LOGGER
 
     @staticmethod
-    def safe_parse_datetime(value: Any, default: Optional[datetime] = None) -> Optional[datetime]:
+    def safe_parse_datetime(value: Any, default: datetime | None = None) -> datetime | None:
         """Safely parse datetime from various formats, returning default on failure."""
         if value is None:
             return default
@@ -50,16 +52,15 @@ class MetricsService:
         except (ValueError, AttributeError):
             return default
 
-    def _get_cached(self, key: str) -> Optional[Any]:
+    def _get_cached(self, key: str) -> Any | None:
         """Get cached value if not expired."""
         if key in self._cache:
             value, timestamp = self._cache[key]
             if datetime.utcnow() - timestamp < timedelta(seconds=self.CACHE_TTL_SECONDS):
                 self.logger.debug(f"Cache hit for key: {key}")
                 return value
-            else:
-                self.logger.debug(f"Cache expired for key: {key}")
-                del self._cache[key]
+            self.logger.debug(f"Cache expired for key: {key}")
+            del self._cache[key]
         return None
 
     def _set_cache(self, key: str, value: Any) -> None:
@@ -69,7 +70,7 @@ class MetricsService:
         cutoff = datetime.utcnow() - timedelta(minutes=1)
         self._cache = {k: v for k, v in self._cache.items() if v[1] > cutoff}
 
-    def invalidate_cache(self, key: Optional[str] = None) -> None:
+    def invalidate_cache(self, key: str | None = None) -> None:
         """Invalidate cache entry or entire cache."""
         if key:
             self._cache.pop(key, None)
@@ -89,12 +90,12 @@ class MetricsService:
             query = "SELECT * FROM public.vw_pipeline_metrics_aggregated LIMIT 1"
             async with self.pool.acquire() as conn:
                 response = await conn.fetch(query)
-            
+
             if not response or len(response) == 0:
                 raise RuntimeError("No aggregated metrics available")
-            
+
             data = response[0]
-            
+
             # Calculate throughput from recent count
             current_throughput = float(data.get("recent_24h_count", 0)) / 24.0
 
@@ -126,7 +127,7 @@ class MetricsService:
                 current_throughput_docs_per_hour=0.0,
             )
 
-    async def get_stage_metrics(self) -> List[StageMetrics]:
+    async def get_stage_metrics(self) -> list[StageMetrics]:
         """Get stage-specific metrics with caching (server-side aggregation)."""
         cached = self._get_cached("stage_metrics")
         if cached:
@@ -149,35 +150,35 @@ class MetricsService:
 
                 # Get last activity and current document from stage_status
                 activity_query = """
-                    SELECT 
+                    SELECT
                         MAX(updated_at) as last_activity,
                         COUNT(*) FILTER (WHERE status = 'processing') as processing_count,
-                        (SELECT document_id FROM krai_core.stage_status 
-                         WHERE stage_name = $1 AND status = 'processing' 
+                        (SELECT document_id FROM krai_core.stage_status
+                         WHERE stage_name = $1 AND status = 'processing'
                          LIMIT 1) as current_document_id
-                    FROM krai_core.stage_status 
+                    FROM krai_core.stage_status
                     WHERE stage_name = $1
                 """
                 async with self.pool.acquire() as conn:
                     activity_data = await conn.fetch(activity_query, stage_name)
                 activity = activity_data[0] if activity_data else {}
-                
+
                 last_activity = activity.get("last_activity")
                 processing_count = int(activity.get("processing_count", 0))
                 current_document_id = activity.get("current_document_id")
-                
+
                 # Calculate is_active: True if processing_count > 0 OR last_activity < 60s
                 is_active = processing_count > 0
                 if not is_active and last_activity:
                     last_activity_dt = self.safe_parse_datetime(last_activity)
                     if last_activity_dt:
                         is_active = (datetime.utcnow() - last_activity_dt.replace(tzinfo=None)) < timedelta(seconds=60)
-                
+
                 # Get error count in last hour
                 error_query = """
                     SELECT COUNT(*) as error_count
                     FROM krai_core.stage_status
-                    WHERE stage_name = $1 
+                    WHERE stage_name = $1
                       AND status = 'failed'
                       AND updated_at > NOW() - INTERVAL '1 hour'
                 """
@@ -220,18 +221,18 @@ class MetricsService:
             query = "SELECT * FROM public.vw_queue_metrics_aggregated LIMIT 1"
             async with self.pool.acquire() as conn:
                 response = await conn.fetch(query)
-            
+
             if not response or len(response) == 0:
                 raise RuntimeError("No aggregated queue metrics available")
-            
+
             data = response[0]
-            
+
             # Get task type breakdown
             type_query = "SELECT task_type FROM krai_system.processing_queue"
             async with self.pool.acquire() as conn:
                 type_response = await conn.fetch(type_query)
-            by_task_type: Dict[str, int] = {}
-            for item in (type_response or []):
+            by_task_type: dict[str, int] = {}
+            for item in type_response or []:
                 task_type = item.get("task_type", "unknown")
                 by_task_type[task_type] = by_task_type.get(task_type, 0) + 1
 
@@ -260,25 +261,25 @@ class MetricsService:
                 by_task_type={},
             )
 
-    async def get_queue_items(self, limit: int = 100, status_filter: Optional[str] = None) -> List[QueueItem]:
+    async def get_queue_items(self, limit: int = 100, status_filter: str | None = None) -> list[QueueItem]:
         """Get queue items with optional filtering."""
         try:
             # Build query dynamically
             conditions = []
             params = []
             param_count = 0
-            
+
             if status_filter:
                 param_count += 1
                 conditions.append(f"status = ${param_count}")
                 params.append(status_filter)
-            
+
             where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
-            
+
             query = f"""
-                SELECT * FROM krai_system.processing_queue 
+                SELECT * FROM krai_system.processing_queue
                 {where_clause}
-                ORDER BY priority DESC, scheduled_at 
+                ORDER BY priority DESC, scheduled_at
                 LIMIT ${param_count + 1}
             """
             params.append(limit)
@@ -328,11 +329,13 @@ class MetricsService:
 
             duplicate_documents = []
             for dup in hash_duplicates:
-                duplicate_documents.append({
-                    "file_hash": dup.get("file_hash"),
-                    "count": dup.get("count", 0),
-                    "filenames": dup.get("filenames", []),
-                })
+                duplicate_documents.append(
+                    {
+                        "file_hash": dup.get("file_hash"),
+                        "count": dup.get("count", 0),
+                        "filenames": dup.get("filenames", []),
+                    }
+                )
 
             metrics = DuplicateMetrics(
                 total_duplicates=len(hash_duplicates) + len(filename_duplicates),
@@ -366,7 +369,7 @@ class MetricsService:
                 documents = await conn.fetch(query)
             documents = documents or []
 
-            errors_by_stage: Dict[str, int] = {}
+            errors_by_stage: dict[str, int] = {}
             documents_with_errors = []
 
             for doc in documents:
@@ -375,11 +378,13 @@ class MetricsService:
                     for stage, data in stage_status.items():
                         if isinstance(data, dict) and data.get("status") == "failed":
                             errors_by_stage[stage] = errors_by_stage.get(stage, 0) + 1
-                            documents_with_errors.append({
-                                "document_id": str(doc.get("id", "")),
-                                "stage": stage,
-                                "error": data.get("error", "Unknown error"),
-                            })
+                            documents_with_errors.append(
+                                {
+                                    "document_id": str(doc.get("id", "")),
+                                    "stage": stage,
+                                    "error": data.get("error", "Unknown error"),
+                                }
+                            )
 
             metrics = ValidationMetrics(
                 total_validation_errors=sum(errors_by_stage.values()),
@@ -426,7 +431,7 @@ class MetricsService:
             avg_processing_time = sum(durations) / len(durations) if durations else 0.0
 
             # Aggregate by document type
-            processing_by_type: Dict[str, int] = {}
+            processing_by_type: dict[str, int] = {}
             for doc in documents:
                 doc_type = doc.get("document_type", "unknown")
                 processing_by_type[doc_type] = processing_by_type.get(doc_type, 0) + 1
@@ -488,11 +493,12 @@ class MetricsService:
 
             try:
                 import pynvml
+
                 pynvml.nvmlInit()
                 handle = pynvml.nvmlDeviceGetHandleByIndex(0)
                 gpu_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
                 gpu_util = pynvml.nvmlDeviceGetUtilizationRates(handle)
-                
+
                 gpu_available = True
                 gpu_percent = float(gpu_util.gpu)
                 gpu_memory_used_gb = gpu_info.used / (1024**3)
@@ -524,7 +530,7 @@ class MetricsService:
                 gpu_available=False,
             )
 
-    async def get_processor_health(self) -> List[ProcessorHealthStatus]:
+    async def get_processor_health(self) -> list[ProcessorHealthStatus]:
         """Get processor health status for all stages with caching."""
         cached = self._get_cached("processor_health")
         if cached:
@@ -554,12 +560,12 @@ class MetricsService:
             for stage_name, processor_name in stages:
                 # Query stage status for this stage
                 query = """
-                    SELECT 
+                    SELECT
                         COUNT(*) FILTER (WHERE status = 'processing') as documents_processing,
                         COUNT(*) FILTER (WHERE status = 'pending') as documents_in_queue,
                         MAX(updated_at) as last_activity,
-                        (SELECT document_id FROM krai_core.stage_status 
-                         WHERE stage_name = $1 AND status = 'processing' 
+                        (SELECT document_id FROM krai_core.stage_status
+                         WHERE stage_name = $1 AND status = 'processing'
                          LIMIT 1) as current_document_id,
                         COUNT(*) FILTER (WHERE status = 'failed' AND updated_at > NOW() - INTERVAL '1 hour') as failed_last_hour,
                         COUNT(*) FILTER (WHERE updated_at > NOW() - INTERVAL '1 hour') as total_last_hour,
@@ -636,7 +642,7 @@ class MetricsService:
         try:
             # Query stage_status for pending and processing items
             query = """
-                SELECT 
+                SELECT
                     id,
                     document_id,
                     stage_name,
@@ -645,7 +651,7 @@ class MetricsService:
                     updated_at,
                     metadata
                 FROM krai_core.stage_status
-                WHERE stage_name = $1 
+                WHERE stage_name = $1
                   AND status IN ('pending', 'processing')
                 ORDER BY created_at
                 LIMIT $2
@@ -666,7 +672,11 @@ class MetricsService:
                         priority=metadata.get("priority", 5) if isinstance(metadata, dict) else 5,
                         document_id=item.get("document_id"),
                         scheduled_at=self.safe_parse_datetime(item.get("created_at"), datetime.utcnow()),
-                        started_at=self.safe_parse_datetime(item.get("updated_at")) if item.get("status") == "processing" else None,
+                        started_at=(
+                            self.safe_parse_datetime(item.get("updated_at"))
+                            if item.get("status") == "processing"
+                            else None
+                        ),
                         retry_count=metadata.get("retry_count", 0) if isinstance(metadata, dict) else 0,
                         error_message=None,
                     )
@@ -714,7 +724,7 @@ class MetricsService:
         try:
             # Query failed stage_status entries
             query = """
-                SELECT 
+                SELECT
                     id,
                     document_id,
                     stage_name,
@@ -724,7 +734,7 @@ class MetricsService:
                     updated_at,
                     created_at
                 FROM krai_core.stage_status
-                WHERE stage_name = $1 
+                WHERE stage_name = $1
                   AND status = 'failed'
                 ORDER BY updated_at DESC
                 LIMIT $2
@@ -756,11 +766,11 @@ class MetricsService:
 
             # Calculate error rate for last 24 hours
             error_rate_query = """
-                SELECT 
+                SELECT
                     COUNT(*) FILTER (WHERE status = 'failed') as failed_count,
                     COUNT(*) as total_count
                 FROM krai_core.stage_status
-                WHERE stage_name = $1 
+                WHERE stage_name = $1
                   AND updated_at > NOW() - INTERVAL '1 day'
             """
             async with self.pool.acquire() as conn:
@@ -792,7 +802,7 @@ class MetricsService:
             # Update stage_status to reset to pending
             query = """
                 UPDATE krai_core.stage_status
-                SET 
+                SET
                     status = 'pending',
                     error = NULL,
                     metadata = jsonb_set(
@@ -801,23 +811,24 @@ class MetricsService:
                         (COALESCE((metadata->>'retry_count')::int, 0) + 1)::text::jsonb
                     ),
                     updated_at = NOW()
-                WHERE document_id = $1 
+                WHERE document_id = $1
                   AND stage_name = $2
                   AND status = 'failed'
                 RETURNING id
             """
             async with self.pool.acquire() as conn:
                 result = await conn.fetch(query, document_id, stage_name)
-            
+
             if result and len(result) > 0:
                 self.logger.info(f"Retry triggered for document {document_id}, stage {stage_name}")
                 # Invalidate relevant caches
                 self.invalidate_cache("processor_health")
                 self.invalidate_cache("stage_metrics")
-                
+
                 # Broadcast processor state change via WebSocket
                 try:
                     from api.websocket import broadcast_processor_state_change
+
                     # Map stage_name to processor_name
                     stage_to_processor = {
                         "upload": "UploadProcessor",
@@ -838,18 +849,14 @@ class MetricsService:
                     }
                     processor_name = stage_to_processor.get(stage_name, f"{stage_name}Processor")
                     await broadcast_processor_state_change(
-                        processor_name=processor_name,
-                        stage_name=stage_name,
-                        status="pending",
-                        document_id=document_id
+                        processor_name=processor_name, stage_name=stage_name, status="pending", document_id=document_id
                     )
                 except Exception as ws_error:
                     self.logger.warning(f"Failed to broadcast processor state change: {ws_error}")
-                
+
                 return True
-            else:
-                self.logger.warning(f"No failed stage found for document {document_id}, stage {stage_name}")
-                return False
+            self.logger.warning(f"No failed stage found for document {document_id}, stage {stage_name}")
+            return False
 
         except Exception as e:
             self.logger.error(f"Failed to retry stage {stage_name} for document {document_id}: {e}", exc_info=True)

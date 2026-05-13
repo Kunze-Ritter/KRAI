@@ -47,7 +47,7 @@ function Write-Info {
 
 function Set-ExitCode {
     param([string]$Severity)
-    
+
     if ($Severity -eq "critical" -and $script:ExitCode -lt 2) {
         $script:ExitCode = 2
     }
@@ -58,7 +58,7 @@ function Set-ExitCode {
 
 function Remove-TestData {
     Write-Info "Cleaning up test data..."
-    
+
     # Remove test document from PostgreSQL
     if ($script:TestDocumentId) {
         try {
@@ -69,7 +69,7 @@ function Remove-TestData {
             # Ignore cleanup errors
         }
     }
-    
+
     # Remove test image from MinIO via backend API
     if ($script:TestImageId -and $script:BackendToken) {
         try {
@@ -86,7 +86,7 @@ function Remove-TestData {
 # Backend → PostgreSQL Tests
 function Test-BackendPostgres {
     Write-Info "Testing Backend → PostgreSQL integration..."
-    
+
     # Query test - check backend health
     try {
         $health = Invoke-RestMethod -Uri "$($script:BackendUrl)/health" -Method Get -ErrorAction Stop
@@ -103,12 +103,12 @@ function Test-BackendPostgres {
         Set-ExitCode "critical"
         return
     }
-    
+
     # Read manufacturers test
     try {
         $mfrCount = docker exec krai-postgres-prod psql -U $script:PostgresUser -d $script:PostgresDb -t -c "SELECT COUNT(*) FROM krai_core.manufacturers" 2>$null
         $mfrCount = $mfrCount.Trim()
-        
+
         if ([int]$mfrCount -ge 14) {
             Write-Success "Manufacturers query successful: $mfrCount records"
         }
@@ -121,14 +121,14 @@ function Test-BackendPostgres {
         Write-Error "Manufacturers query failed: $_"
         Set-ExitCode "critical"
     }
-    
+
     # Write test - create test document (requires authentication)
     if (-not $script:BackendToken) {
         Write-Warning "Backend token not set - skipping write tests (set BACKEND_API_TOKEN env var)"
         Set-ExitCode "warning"
         return
     }
-    
+
     $script:TestDocumentId = "test_integration_$(Get-Date -Format 'yyyyMMddHHmmss')"
     $testDoc = @{
         document_id = $script:TestDocumentId
@@ -138,18 +138,18 @@ function Test-BackendPostgres {
         file_size = 1024
         mime_type = "application/pdf"
     } | ConvertTo-Json
-    
+
     try {
         $headers = @{
             "Content-Type" = "application/json"
             "Authorization" = "Bearer $($script:BackendToken)"
         }
         $response = Invoke-RestMethod -Uri "$($script:BackendUrl)/api/v1/documents" -Method Post -Body $testDoc -Headers $headers -ErrorAction Stop
-        
+
         # Verify document created in database
         $docExists = docker exec krai-postgres-prod psql -U $script:PostgresUser -d $script:PostgresDb -t -c "SELECT COUNT(*) FROM krai_core.documents WHERE document_id = '$($script:TestDocumentId)'" 2>$null
         $docExists = $docExists.Trim()
-        
+
         if ([int]$docExists -eq 1) {
             Write-Success "Test document created and persisted: $($script:TestDocumentId)"
         }
@@ -162,12 +162,12 @@ function Test-BackendPostgres {
         Write-Error "Document creation failed (check authentication)"
         Set-ExitCode "critical"
     }
-    
+
     # Transaction rollback test - attempt invalid document
     $invalidDoc = @{
         filename = "invalid.pdf"
     } | ConvertTo-Json
-    
+
     try {
         $headers = @{
             "Content-Type" = "application/json"
@@ -179,11 +179,11 @@ function Test-BackendPostgres {
     }
     catch {
         Write-Success "Transaction rollback test passed (invalid document rejected)"
-        
+
         # Verify no stray rows inserted
         $strayCount = docker exec krai-postgres-prod psql -U $script:PostgresUser -d $script:PostgresDb -t -c "SELECT COUNT(*) FROM krai_core.documents WHERE filename = 'invalid.pdf'" 2>$null
         $strayCount = $strayCount.Trim()
-        
+
         if ([int]$strayCount -eq 0) {
             Write-Success "No stray rows inserted after rollback"
         }
@@ -197,29 +197,29 @@ function Test-BackendPostgres {
 # Backend → MinIO Tests
 function Test-BackendMinio {
     Write-Info "Testing Backend → MinIO integration..."
-    
+
     if (-not $script:BackendToken) {
         Write-Warning "Backend token not set - skipping MinIO tests (set BACKEND_API_TOKEN env var)"
         Set-ExitCode "warning"
         return
     }
-    
+
     # Upload test - create temporary test file
     $testFile = "$env:TEMP\integration_test_$(Get-Date -Format 'yyyyMMddHHmmss').png"
     "test image content $(Get-Date -Format 'yyyyMMddHHmmss')" | Out-File -FilePath $testFile -Encoding UTF8
-    
+
     try {
         $headers = @{ "Authorization" = "Bearer $($script:BackendToken)" }
         $form = @{ file = Get-Item -Path $testFile }
         $response = Invoke-RestMethod -Uri "$($script:BackendUrl)/api/v1/images/upload" -Method Post -Headers $headers -Form $form -ErrorAction Stop
-        
+
         if ($response.image_id) {
             $script:TestImageId = $response.image_id
             $storagePath = $response.storage_path
             $publicUrl = $response.public_url
-            
+
             Write-Success "File upload successful: image_id=$($script:TestImageId), storage_path=$storagePath"
-            
+
             # Download test - verify file exists via public URL
             if ($publicUrl) {
                 try {
@@ -251,7 +251,7 @@ function Test-BackendMinio {
             Remove-Item $testFile -Force
         }
     }
-    
+
     # Delete test
     if ($script:TestImageId) {
         try {
@@ -270,7 +270,7 @@ function Test-BackendMinio {
 # Backend → Ollama Tests
 function Test-BackendOllama {
     Write-Info "Testing Backend → Ollama integration..."
-    
+
     # Check AI service health
     try {
         $health = Invoke-RestMethod -Uri "$($script:BackendUrl)/health" -Method Get -ErrorAction Stop
@@ -286,17 +286,17 @@ function Test-BackendOllama {
         Write-Warning "Backend AI health check failed"
         Set-ExitCode "warning"
     }
-    
+
     # Embedding generation test
     $embedBody = @{
         model = "nomic-embed-text"
         prompt = "integration test"
     } | ConvertTo-Json
-    
+
     try {
         $embedResult = Invoke-RestMethod -Uri "$($script:OllamaUrl)/api/embeddings" -Method Post -Body $embedBody -ContentType "application/json" -ErrorAction Stop
         $embedDim = $embedResult.embedding.Count
-        
+
         if ($embedDim -eq 768) {
             Write-Success "Embedding generation successful: $embedDim dimensions"
         }
@@ -309,12 +309,12 @@ function Test-BackendOllama {
         Write-Error "Embedding generation failed: $_"
         Set-ExitCode "critical"
     }
-    
+
     # Model availability check
     try {
         $models = Invoke-RestMethod -Uri "$($script:OllamaUrl)/api/tags" -Method Get -ErrorAction Stop
         $modelNames = $models.models | ForEach-Object { $_.name }
-        
+
         if ($modelNames -contains "nomic-embed-text") {
             Write-Success "Model 'nomic-embed-text' available"
         }
@@ -332,23 +332,23 @@ function Test-BackendOllama {
 # Laravel → Backend Tests
 function Test-LaravelBackend {
     Write-Info "Testing Laravel → Backend integration..."
-    
+
     # JWT authentication test - mint or retrieve token
     Write-Info "Attempting to retrieve JWT token from Laravel..."
-    
+
     # Try to get JWT token via artisan command (adjust command as needed)
     try {
         $jwtOutput = docker exec krai-laravel-admin php artisan tinker --execute="echo (new \App\Services\JwtService())->generateToken(['user_id' => 1, 'role' => 'admin']);" 2>$null
         $script:LaravelJwtToken = ($jwtOutput -split "`n")[-1].Trim().Trim('"').Trim("'")
-        
+
         if ($script:LaravelJwtToken -and $script:LaravelJwtToken -ne "null" -and $script:LaravelJwtToken.Length -gt 10) {
             Write-Success "JWT token retrieved from Laravel"
-            
+
             # Test valid JWT token
             try {
                 $headers = @{ "Authorization" = "Bearer $($script:LaravelJwtToken)" }
                 $response = Invoke-RestMethod -Uri "$($script:BackendUrl)/api/v1/pipeline/errors?page=1&page_size=10" -Headers $headers -ErrorAction Stop
-                
+
                 if ($response.errors -and $null -ne $response.total) {
                     Write-Success "JWT authentication test passed (valid token accepted)"
                 }
@@ -361,7 +361,7 @@ function Test-LaravelBackend {
                 Write-Error "Valid JWT token rejected"
                 Set-ExitCode "critical"
             }
-            
+
             # Test invalid JWT token
             try {
                 $headers = @{ "Authorization" = "Bearer invalid.jwt.token" }
@@ -382,14 +382,14 @@ function Test-LaravelBackend {
         Write-Warning "JWT service not available - testing without authentication"
         Set-ExitCode "warning"
     }
-    
+
     # REST API call test with valid token (if available)
     if ($script:LaravelJwtToken) {
         try {
             $headers = @{ "Authorization" = "Bearer $($script:LaravelJwtToken)" }
             $apiResponse = docker exec krai-laravel-admin curl -sf "$($script:BackendUrl)/api/v1/pipeline/errors?page=1&page_size=10" -H "Authorization: Bearer $($script:LaravelJwtToken)" 2>$null
             $parsed = $apiResponse | ConvertFrom-Json
-            
+
             if ($parsed.errors -and $null -ne $parsed.total) {
                 Write-Success "Laravel → Backend REST API call successful (with JWT)"
             }
@@ -408,7 +408,7 @@ function Test-LaravelBackend {
         try {
             $apiResponse = docker exec krai-laravel-admin curl -sf "$($script:BackendUrl)/api/v1/pipeline/errors?page=1&page_size=10" 2>$null
             $parsed = $apiResponse | ConvertFrom-Json
-            
+
             if ($parsed.errors -and $null -ne $parsed.total) {
                 Write-Success "Laravel → Backend API call successful (no auth)"
             }
@@ -427,12 +427,12 @@ function Test-LaravelBackend {
 # Laravel → PostgreSQL Tests
 function Test-LaravelPostgres {
     Write-Info "Testing Laravel → PostgreSQL integration..."
-    
+
     # Direct query test - Manufacturer count
     try {
         $output = docker exec krai-laravel-admin php artisan tinker --execute="echo App\Models\Manufacturer::count();" 2>$null
         $mfrCount = ($output -split "`n")[-1].Trim()
-        
+
         if ([int]$mfrCount -ge 14) {
             Write-Success "Laravel Eloquent query successful: $mfrCount manufacturers"
         }
@@ -445,7 +445,7 @@ function Test-LaravelPostgres {
         Write-Error "Laravel Eloquent query failed: $_"
         Set-ExitCode "critical"
     }
-    
+
     # Product model test
     try {
         docker exec krai-laravel-admin php artisan tinker --execute="echo App\Models\Product::count();" 2>$null | Out-Null
@@ -461,12 +461,12 @@ function Test-LaravelPostgres {
         Write-Warning "Product model test failed: $_"
         Set-ExitCode "warning"
     }
-    
+
     # User model test
     try {
         $output = docker exec krai-laravel-admin php artisan tinker --execute="echo App\Models\User::count();" 2>$null
         $userCount = ($output -split "`n")[-1].Trim()
-        
+
         if ([int]$userCount -ge 1) {
             Write-Success "User model test passed: $userCount users"
         }
@@ -479,7 +479,7 @@ function Test-LaravelPostgres {
         Write-Warning "User model test failed: $_"
         Set-ExitCode "warning"
     }
-    
+
     # PipelineError model test
     try {
         docker exec krai-laravel-admin php artisan tinker --execute="echo App\Models\PipelineError::count();" 2>$null | Out-Null
@@ -503,9 +503,9 @@ function Show-IntegrationReport {
     Write-Host "╔═══════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
     Write-Host "║  Integration Test Results                                 ║" -ForegroundColor Cyan
     Write-Host "╠═══════════════════════════════════════════════════════════╣" -ForegroundColor Cyan
-    
+
     $totalTests = $script:TestsPassed + $script:TestsFailed
-    
+
     if ($script:TestsFailed -eq 0) {
         Write-Host "║  " -NoNewline -ForegroundColor Cyan
         Write-Host "Total:                       ✅ $($script:TestsPassed)/$totalTests passed" -NoNewline -ForegroundColor Green
@@ -519,10 +519,10 @@ function Show-IntegrationReport {
         Write-Host "Failed:                      $($script:TestsFailed) tests" -NoNewline -ForegroundColor Red
         Write-Host "                        ║" -ForegroundColor Cyan
     }
-    
+
     Write-Host "╚═══════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
     Write-Host ""
-    
+
     if ($script:ExitCode -eq 0) {
         Write-Success "All integration tests passed successfully!"
     }
@@ -532,7 +532,7 @@ function Show-IntegrationReport {
     else {
         Write-Error "Critical integration test failures detected"
     }
-    
+
     Write-Host ""
     Write-Host "Exit code: $($script:ExitCode)"
 }
@@ -543,7 +543,7 @@ try {
     Write-Host "║  KRAI Docker Integration Tests                            ║" -ForegroundColor Green
     Write-Host "╚═══════════════════════════════════════════════════════════╝" -ForegroundColor Green
     Write-Host ""
-    
+
     Test-BackendPostgres
     Write-Host ""
     Test-BackendMinio
@@ -553,7 +553,7 @@ try {
     Test-LaravelBackend
     Write-Host ""
     Test-LaravelPostgres
-    
+
     Show-IntegrationReport
 }
 finally {

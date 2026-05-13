@@ -53,11 +53,11 @@ Alternativ: Einzelnes Dokument unter **Dokumente** → Dokument auswählen → B
 
 - **Symptom:** Meldungen wie „Backend service unavailable“ oder „Connection refused“ im Dashboard bzw. in Widgets.
 - **Prüfen:**
-  - Ist der Backend-Container (z. B. `krai-engine`) gestartet?  
+  - Ist der Backend-Container (z. B. `krai-engine`) gestartet?
     `docker ps | findstr krai-engine` (Windows) bzw. `docker ps | grep krai-engine` (Linux/macOS).
-  - Erreichbarkeit von Laravel aus:  
+  - Erreichbarkeit von Laravel aus:
     `curl -s -o NUL -w "%{http_code}" http://krai-engine:8000/health` aus dem Laravel-Container oder von einem Host, der denselben Docker-Netzwerk-Namen nutzt.
-- **Lösung:** Backend starten bzw. neu starten:  
+- **Lösung:** Backend starten bzw. neu starten:
   `docker start krai-engine-prod` bzw. `docker-compose -f docker-compose.simple.yml up -d krai-engine`.
 
 ### Authentifizierungsfehler (401/403)
@@ -69,7 +69,7 @@ Alternativ: Einzelnes Dokument unter **Dokumente** → Dokument auswählen → B
 - **Lösung:**
   - Gültigen JWT vom Backend holen (z. B. Login-Endpoint) und in `KRAI_SERVICE_JWT` eintragen.
   - Oder Admin-Zugangsdaten setzen; Laravel cached den JWT ca. 55 Minuten.
-  - Cache leeren, falls Token gewechselt wurde:  
+  - Cache leeren, falls Token gewechselt wurde:
     `php artisan cache:clear` oder Nutzung des Clear-Cache-Commands (falls vorhanden).
 
 ### Langsame Antwortzeiten / träge UI
@@ -91,7 +91,7 @@ Alternativ: Einzelnes Dokument unter **Dokumente** → Dokument auswählen → B
 - **Lösung:**
   - Seite hart neu laden (Ctrl+F5).
   - Cache leeren (Laravel + ggf. Browser).
-  - `config/krai.php`: polling_intervals und cache_ttl prüfen; ggf. Werte anpassen und Config cachen:  
+  - `config/krai.php`: polling_intervals und cache_ttl prüfen; ggf. Werte anpassen und Config cachen:
     `php artisan config:cache`.
 
 ---
@@ -134,15 +134,15 @@ Weitere Optionen (Cache-TTL, Polling) siehe `laravel-admin/config/krai.php`.
 
 ### Cache leeren
 
-- **Laravel-Cache:**  
+- **Laravel-Cache:**
   `cd laravel-admin && php artisan cache:clear`
-- **Nur Monitoring-Caches:** Falls ein Artisan-Command dafür existiert (z. B. `ClearAllCaches`), diesen ausführen.  
+- **Nur Monitoring-Caches:** Falls ein Artisan-Command dafür existiert (z. B. `ClearAllCaches`), diesen ausführen.
   Ansonsten leeren die Services beim nächsten Request die jeweiligen Cache-Keys (MonitoringService::clearCache()).
 
 ### JWT erneuern
 
 - JWT wird von Laravel bis zu 55 Minuten gecacht.
-- Nach manueller Änderung von `KRAI_SERVICE_JWT` in `.env`:  
+- Nach manueller Änderung von `KRAI_SERVICE_JWT` in `.env`:
   `php artisan cache:clear` (oder gezielt den JWT-Cache-Key leeren, falls bekannt).
 - Bei Nutzung von Auto-Login: Nach Ablauf wird automatisch ein neuer Token geholt, wenn Admin-Zugangsdaten gesetzt sind.
 

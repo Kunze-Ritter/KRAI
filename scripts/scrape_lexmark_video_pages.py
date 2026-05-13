@@ -39,11 +39,9 @@ import argparse
 import asyncio
 import json
 import logging
-import re
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Dict, List, Optional
 from urllib.parse import urljoin
 
 import aiohttp
@@ -68,8 +66,8 @@ logger = logging.getLogger("lexmark_scraper")
 # Constants
 # ---------------------------------------------------------------------------
 
-LEXMARK_ID   = "93974db7-e28e-4cd8-9ac9-5f2e1bdf7403"  # fallback, resolved at runtime
-BASE_URL     = "https://support.lexmark.com"
+LEXMARK_ID = "93974db7-e28e-4cd8-9ac9-5f2e1bdf7403"  # fallback, resolved at runtime
+BASE_URL = "https://support.lexmark.com"
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -84,7 +82,8 @@ HEADERS = {
 # HTML parsing
 # ---------------------------------------------------------------------------
 
-def parse_video_page(html: str, page_url: str) -> Dict:
+
+def parse_video_page(html: str, page_url: str) -> dict:
     """
     Extract video metadata from a Lexmark support video page.
 
@@ -93,7 +92,7 @@ def parse_video_page(html: str, page_url: str) -> Dict:
         tracks, scrape_status
     """
     soup = BeautifulSoup(html, "html.parser")
-    result: Dict = {
+    result: dict = {
         "title": None,
         "description": None,
         "direct_video_url": None,
@@ -133,17 +132,19 @@ def parse_video_page(html: str, page_url: str) -> Dict:
         # <track> elements (subtitles / captions)
         tracks = []
         for track in video_el.find_all("track"):
-            track_src  = track.get("src", "").strip()
+            track_src = track.get("src", "").strip()
             track_kind = track.get("kind", "subtitles")
-            srclang    = track.get("srclang", "").strip().lower()
-            label      = track.get("label", "").strip()
+            srclang = track.get("srclang", "").strip().lower()
+            label = track.get("label", "").strip()
             if track_src:
-                tracks.append({
-                    "src":     urljoin(BASE_URL, track_src),
-                    "kind":    track_kind,
-                    "srclang": srclang,
-                    "label":   label,
-                })
+                tracks.append(
+                    {
+                        "src": urljoin(BASE_URL, track_src),
+                        "kind": track_kind,
+                        "srclang": srclang,
+                        "label": label,
+                    }
+                )
         result["tracks"] = tracks
     else:
         result["scrape_status"] = "no_video_element"
@@ -155,7 +156,8 @@ def parse_video_page(html: str, page_url: str) -> Dict:
 # DB helpers
 # ---------------------------------------------------------------------------
 
-async def resolve_manufacturer_id(pool, name: str) -> Optional[str]:
+
+async def resolve_manufacturer_id(pool, name: str) -> str | None:
     """Look up manufacturer UUID by name (case-insensitive)."""
     async with pool.acquire() as conn:
         row = await conn.fetchval(
@@ -165,10 +167,10 @@ async def resolve_manufacturer_id(pool, name: str) -> Optional[str]:
     return str(row) if row else None
 
 
-async def load_videos(pool, schema: str, manufacturer_id: str, force: bool, limit: Optional[int]) -> List[Dict]:
+async def load_videos(pool, schema: str, manufacturer_id: str, force: bool, limit: int | None) -> list[dict]:
     """Fetch Lexmark videos that still need scraping."""
     where_enriched = "" if force else "AND (metadata->>'direct_video_url') IS NULL"
-    limit_clause   = f"LIMIT {limit}" if limit else ""
+    limit_clause = f"LIMIT {limit}" if limit else ""
     query = f"""
         SELECT id, video_url, title, thumbnail_url
         FROM {schema}.videos
@@ -182,16 +184,16 @@ async def load_videos(pool, schema: str, manufacturer_id: str, force: bool, limi
         return [dict(r) for r in rows]
 
 
-async def save_result(pool, schema: str, video_id: str, scraped: Dict, dry_run: bool) -> None:
+async def save_result(pool, schema: str, video_id: str, scraped: dict, dry_run: bool) -> None:
     """Merge scraped data into the videos row."""
     if dry_run:
         return
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     meta_patch = {
-        "scrape_status":    scraped["scrape_status"],
-        "scraped_at":       now.isoformat(),
+        "scrape_status": scraped["scrape_status"],
+        "scraped_at": now.isoformat(),
     }
     if scraped["direct_video_url"]:
         meta_patch["direct_video_url"] = scraped["direct_video_url"]
@@ -216,7 +218,7 @@ async def save_result(pool, schema: str, video_id: str, scraped: Dict, dry_run: 
             scraped["description"] or "",
             scraped["thumbnail_url"] or "",
             json.dumps(meta_patch),
-            scraped["scrape_status"] == "ok",          # only set enriched_at on success
+            scraped["scrape_status"] == "ok",  # only set enriched_at on success
             now,
         )
 
@@ -225,11 +227,12 @@ async def save_result(pool, schema: str, video_id: str, scraped: Dict, dry_run: 
 # Async scraping worker
 # ---------------------------------------------------------------------------
 
+
 async def scrape_one(
-    session:    aiohttp.ClientSession,
-    semaphore:  asyncio.Semaphore,
-    video:      Dict,
-) -> Dict:
+    session: aiohttp.ClientSession,
+    semaphore: asyncio.Semaphore,
+    video: dict,
+) -> dict:
     """Fetch and parse one video page. Returns merged result dict."""
     url = video.get("video_url", "")
     video_id = str(video["id"])
@@ -238,37 +241,56 @@ async def scrape_one(
         try:
             async with session.get(url, timeout=aiohttp.ClientTimeout(total=20)) as resp:
                 if resp.status != 200:
-                    return {**video, "scrape_status": f"http_{resp.status}",
-                            "title": None, "description": None,
-                            "direct_video_url": None, "thumbnail_url": None, "tracks": []}
+                    return {
+                        **video,
+                        "scrape_status": f"http_{resp.status}",
+                        "title": None,
+                        "description": None,
+                        "direct_video_url": None,
+                        "thumbnail_url": None,
+                        "tracks": [],
+                    }
                 html = await resp.text(encoding="utf-8", errors="replace")
 
             parsed = parse_video_page(html, url)
             return {**video, **parsed}
 
-        except asyncio.TimeoutError:
-            return {**video, "scrape_status": "timeout",
-                    "title": None, "description": None,
-                    "direct_video_url": None, "thumbnail_url": None, "tracks": []}
+        except TimeoutError:
+            return {
+                **video,
+                "scrape_status": "timeout",
+                "title": None,
+                "description": None,
+                "direct_video_url": None,
+                "thumbnail_url": None,
+                "tracks": [],
+            }
         except Exception as exc:
             logger.warning("Error scraping %s: %s", url, exc)
-            return {**video, "scrape_status": f"error:{exc}",
-                    "title": None, "description": None,
-                    "direct_video_url": None, "thumbnail_url": None, "tracks": []}
+            return {
+                **video,
+                "scrape_status": f"error:{exc}",
+                "title": None,
+                "description": None,
+                "direct_video_url": None,
+                "thumbnail_url": None,
+                "tracks": [],
+            }
 
 
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
-async def main(limit: Optional[int], concurrency: int, force: bool, dry_run: bool) -> None:
+
+async def main(limit: int | None, concurrency: int, force: bool, dry_run: bool) -> None:
     logger.info("=" * 60)
     logger.info("Lexmark Video Page Scraper")
     if dry_run:
         logger.info("DRY RUN – keine DB-Änderungen")
     logger.info("=" * 60)
 
-    db   = create_database_adapter()
+    db = create_database_adapter()
     await db.connect()
     pool = db._ensure_pool()
 
@@ -281,14 +303,12 @@ async def main(limit: Optional[int], concurrency: int, force: bool, dry_run: boo
         videos = await load_videos(pool, db._content_schema, lexmark_id, force, limit)
         logger.info("Videos zu scrapen: %d", len(videos))
 
-        stats = {"ok": 0, "js_dynamic": 0, "no_video_element": 0, "error": 0,
-                 "tracks_found": 0, "mp4_found": 0}
+        stats = {"ok": 0, "js_dynamic": 0, "no_video_element": 0, "error": 0, "tracks_found": 0, "mp4_found": 0}
 
         semaphore = asyncio.Semaphore(concurrency)
 
         connector = aiohttp.TCPConnector(limit=concurrency, ssl=False)
         async with aiohttp.ClientSession(headers=HEADERS, connector=connector) as session:
-
             # Process in chunks of 50 to give periodic progress updates
             chunk_size = 50
             for chunk_start in range(0, len(videos), chunk_size):
@@ -322,7 +342,11 @@ async def main(limit: Optional[int], concurrency: int, force: bool, dry_run: boo
                 done = min(chunk_start + chunk_size, len(videos))
                 logger.info(
                     "Fortschritt: %d / %d  (ok=%d, js_dynamic=%d, fehler=%d)",
-                    done, len(videos), stats["ok"], stats["js_dynamic"], stats["error"],
+                    done,
+                    len(videos),
+                    stats["ok"],
+                    stats["js_dynamic"],
+                    stats["error"],
                 )
 
                 # Small delay between chunks to be polite
@@ -342,26 +366,18 @@ async def main(limit: Optional[int], concurrency: int, force: bool, dry_run: boo
                 "  ℹ️  %d Seiten laden das Video per JavaScript.",
                 stats["js_dynamic"],
             )
-            logger.info(
-                "     Für diese wäre ein Playwright-basierter Scraper nötig."
-            )
+            logger.info("     Für diese wäre ein Playwright-basierter Scraper nötig.")
 
     finally:
         await db.disconnect()
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Scrape Lexmark support video pages for MP4 URLs and subtitles"
-    )
-    parser.add_argument("--limit",       type=int,   default=None,
-                        help="Maximale Anzahl Videos (Standard: alle)")
-    parser.add_argument("--concurrency", type=int,   default=10,
-                        help="Parallele HTTP-Requests (Standard: 10)")
-    parser.add_argument("--force",       action="store_true",
-                        help="Bereits angereicherte Videos neu scrapen")
-    parser.add_argument("--dry-run",     action="store_true",
-                        help="Nur scrapen, nichts in DB schreiben")
+    parser = argparse.ArgumentParser(description="Scrape Lexmark support video pages for MP4 URLs and subtitles")
+    parser.add_argument("--limit", type=int, default=None, help="Maximale Anzahl Videos (Standard: alle)")
+    parser.add_argument("--concurrency", type=int, default=10, help="Parallele HTTP-Requests (Standard: 10)")
+    parser.add_argument("--force", action="store_true", help="Bereits angereicherte Videos neu scrapen")
+    parser.add_argument("--dry-run", action="store_true", help="Nur scrapen, nichts in DB schreiben")
     args = parser.parse_args()
 
     asyncio.run(main(args.limit, args.concurrency, args.force, args.dry_run))

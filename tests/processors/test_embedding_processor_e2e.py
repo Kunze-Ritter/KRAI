@@ -6,7 +6,7 @@ Supabase. A small test subclass writes directly into the adapter.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any
 from uuid import uuid4
 
 import pytest
@@ -14,7 +14,6 @@ import pytest
 from backend.core.base_processor import ProcessingContext
 from backend.processors.embedding_processor import EmbeddingProcessor
 from backend.processors.stage_tracker import StageTracker
-
 
 pytestmark = [pytest.mark.processor, pytest.mark.embedding]
 
@@ -46,8 +45,8 @@ class E2EEmbeddingProcessor(EmbeddingProcessor):
         self,
         chunk_id: str,
         document_id,
-        embedding: List[float],
-        chunk_data: Dict[str, Any],
+        embedding: list[float],
+        chunk_data: dict[str, Any],
     ) -> bool:
         """Synchronously persist embedding into mock adapter stores.
 
@@ -112,7 +111,7 @@ class TestEmbeddingProcessorE2E:
         document_id = sample_chunks_with_content[0]["document_id"]
 
         # Adapt generic chunk fixtures into EmbeddingProcessor input format
-        processor_chunks: List[Dict[str, Any]] = []
+        processor_chunks: list[dict[str, Any]] = []
         for chunk in sample_chunks_with_content[:10]:  # keep test small
             processor_chunks.append(
                 {
@@ -194,8 +193,8 @@ class TestEmbeddingProcessorE2E:
         def failing_store(
             chunk_id: str,
             document_id,
-            embedding: List[float],
-            chunk_data: Dict[str, Any],
+            embedding: list[float],
+            chunk_data: dict[str, Any],
         ) -> bool:
             if chunk_id == "chunk-fail":
                 return False
@@ -217,4 +216,3 @@ class TestEmbeddingProcessorE2E:
         assert result["embeddings_created"] == 1
         assert result["failed_count"] == 1
         assert len(result["failed_chunks"]) == 1
-

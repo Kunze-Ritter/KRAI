@@ -12,14 +12,14 @@ result.data (pages_processed, chunks_created, chunks_saved, total_characters,
 page_texts_attached, metadata).
 """
 
-import pytest
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any
 from uuid import uuid4
 
-from backend.processors.text_processor_optimized import OptimizedTextProcessor
-from backend.core.base_processor import ProcessingContext
+import pytest
 
+from backend.core.base_processor import ProcessingContext
+from backend.processors.text_processor_optimized import OptimizedTextProcessor
 
 pytestmark = pytest.mark.processor
 
@@ -33,7 +33,7 @@ class DummyConfigService:
             "chunk_overlap": chunk_overlap,
         }
 
-    def get_chunk_settings(self) -> Dict[str, Any]:
+    def get_chunk_settings(self) -> dict[str, Any]:
         return dict(self._settings)
 
 

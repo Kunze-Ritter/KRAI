@@ -7,15 +7,13 @@ These tests focus on how the master pipeline reacts to failures:
 - `process_single_document_full_pipeline` when a later stage crashes
 """
 
-from types import SimpleNamespace
 from pathlib import Path
-from typing import Any, Dict
+from types import SimpleNamespace
 
 import pytest
 
-from backend.pipeline.master_pipeline import KRMasterPipeline
 from backend.core.base_processor import Stage
-
+from backend.pipeline.master_pipeline import KRMasterPipeline
 
 pytestmark = [pytest.mark.master_pipeline, pytest.mark.error_recovery]
 

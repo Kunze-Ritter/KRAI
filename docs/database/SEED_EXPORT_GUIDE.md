@@ -8,7 +8,7 @@ This guide explains how to export schema and seed data from Supabase for local d
    ```powershell
    # Windows
    winget install PostgreSQL.PostgreSQL
-   
+
    # Or download from: https://www.postgresql.org/download/windows/
    ```
 
@@ -138,7 +138,7 @@ For more complex filtering, use SQL directly:
 ```sql
 -- Export only HP and Canon manufacturers
 COPY (
-  SELECT * FROM krai_core.manufacturers 
+  SELECT * FROM krai_core.manufacturers
   WHERE name IN ('HP', 'Canon')
 ) TO STDOUT WITH CSV HEADER;
 ```
@@ -198,7 +198,7 @@ SELECT COUNT(*) FROM krai_core.products;
 
 **Problem:** Can't connect to Supabase.
 
-**Solution:** 
+**Solution:**
 1. Check firewall/VPN
 2. Verify connection string
 3. Test with `psql`:
@@ -216,7 +216,7 @@ SELECT COUNT(*) FROM krai_core.products;
 
 **Problem:** Seed file > 10 MB
 
-**Solution:** 
+**Solution:**
 1. Reduce sample data (fewer products)
 2. Exclude large tables
 3. Split into multiple files
@@ -240,15 +240,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Install PostgreSQL client
         run: sudo apt-get install -y postgresql-client
-      
+
       - name: Export seeds
         env:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: python scripts/export_supabase_schema.py
-      
+
       - name: Create PR
         uses: peter-evans/create-pull-request@v5
         with:

@@ -1,17 +1,16 @@
 from pathlib import Path
+from typing import Any
 from uuid import uuid4
-from typing import Any, Dict, List
 
 import pytest
 
 from backend.core.base_processor import ProcessingContext
 from backend.processors.link_extraction_processor_ai import LinkExtractionProcessorAI
 
-
 pytestmark = [pytest.mark.e2e, pytest.mark.asyncio, pytest.mark.link]
 
 
-def _make_context(document_id: str, pdf_path: Path, page_texts: Dict[int, str] | None = None) -> ProcessingContext:
+def _make_context(document_id: str, pdf_path: Path, page_texts: dict[int, str] | None = None) -> ProcessingContext:
     ctx = ProcessingContext(
         document_id=document_id,
         file_path=str(pdf_path),
@@ -95,12 +94,12 @@ class TestLinkExtractionSuccessPaths:
         }
         ctx = _make_context(document_id, pdf_info["path"], page_texts)
 
-        captured_links: List[Dict[str, Any]] = []
+        captured_links: list[dict[str, Any]] = []
 
         # Wrap link_extractor to capture links without touching DB helpers
         real_extract = processor.link_extractor.extract_from_document
 
-        def capturing_extract_from_document(*args: Any, **kwargs: Any) -> Dict[str, Any]:
+        def capturing_extract_from_document(*args: Any, **kwargs: Any) -> dict[str, Any]:
             result = real_extract(*args, **kwargs)
             captured_links.extend(result.get("links", []))
             return result
@@ -174,11 +173,11 @@ class TestContextExtractionIntegration:
         ]
 
         class FakeResult:
-            def __init__(self, data: List[Dict[str, Any]]):
+            def __init__(self, data: list[dict[str, Any]]):
                 self.data = data
 
         class FakeQuery:
-            def __init__(self, rows: List[Dict[str, Any]]):
+            def __init__(self, rows: list[dict[str, Any]]):
                 self._rows = rows
 
             def select(self, *_args: Any, **_kwargs: Any) -> "FakeQuery":
@@ -194,7 +193,7 @@ class TestContextExtractionIntegration:
                 return FakeResult(self._rows)
 
         class FakeClient:
-            def __init__(self, rows: List[Dict[str, Any]]):
+            def __init__(self, rows: list[dict[str, Any]]):
                 self._rows = rows
 
             def table(self, name: str) -> FakeQuery:
@@ -202,7 +201,7 @@ class TestContextExtractionIntegration:
                 return FakeQuery(self._rows)
 
         class FakeDatabaseService:
-            def __init__(self, rows: List[Dict[str, Any]]):
+            def __init__(self, rows: list[dict[str, Any]]):
                 self.client = FakeClient(rows)
 
         fake_db = FakeDatabaseService(chunk_rows)
@@ -282,7 +281,7 @@ class TestErrorHandling:
 
         processor = LinkExtractionProcessorAI(database_service=None)
 
-        async def fake_load_page_texts(context: Any, file_path: Path, adapter: Any) -> Dict[int, str]:
+        async def fake_load_page_texts(context: Any, file_path: Path, adapter: Any) -> dict[int, str]:
             return {}
 
         monkeypatch.setattr(processor, "_load_page_texts", fake_load_page_texts)
@@ -306,17 +305,17 @@ class TestDatabasePersistenceHelpers:
         mock_database_adapter,
     ) -> None:
         # Build a minimal database-like client
-        inserted: List[Dict[str, Any]] = []
+        inserted: list[dict[str, Any]] = []
 
         class DummyResult:
-            def __init__(self, data: List[Dict[str, Any]] | None = None):
+            def __init__(self, data: list[dict[str, Any]] | None = None):
                 self.data = data or []
 
         class LinksTable:
             def __init__(self) -> None:
-                self._existing: Dict[str, Dict[str, Any]] = {}
+                self._existing: dict[str, dict[str, Any]] = {}
                 self._op: str | None = None
-                self._payload: Dict[str, Any] | None = None
+                self._payload: dict[str, Any] | None = None
 
             def select(self, *_args: Any) -> "LinksTable":
                 self._op = "select"
@@ -337,12 +336,12 @@ class TestDatabasePersistenceHelpers:
                     return DummyResult([row])
                 return DummyResult([])
 
-            def insert(self, payload: Dict[str, Any]) -> "LinksTable":
+            def insert(self, payload: dict[str, Any]) -> "LinksTable":
                 self._op = "insert"
                 self._payload = payload
                 return self
 
-            def update(self, payload: Dict[str, Any]) -> "LinksTable":  # pragma: no cover - not used here
+            def update(self, payload: dict[str, Any]) -> "LinksTable":  # pragma: no cover - not used here
                 self._op = "update"
                 self._payload = payload
                 return self

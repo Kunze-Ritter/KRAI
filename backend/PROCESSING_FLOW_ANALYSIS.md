@@ -65,7 +65,7 @@
 def _ensure_manufacturer_exists(self, manufacturer_name: str) -> Optional[UUID]:
     """
     Ensure manufacturer exists in DB, create if needed
-    
+
     Returns:
         manufacturer_id or None if failed
     """
@@ -126,7 +126,7 @@ else:
 
 💡 QUICK FIX:
    If UTAX uses Kyocera patterns, add to error_code_patterns.json:
-   
+
    "utax": {
      "manufacturer_name": "UTAX",
      "description": "UTAX error code patterns (Kyocera-based)",
@@ -236,7 +236,7 @@ if not series_id:
 
    Processing stopped at stage: Error Code Extraction
    Document saved with ID: 550e8400-e29b-41d4-a716-446655440000
-   
+
    ℹ️  You can resume processing after adding patterns by running:
    python scripts/reprocess_document.py --document-id 550e8400-e29b-41d4-a716-446655440000
 ```

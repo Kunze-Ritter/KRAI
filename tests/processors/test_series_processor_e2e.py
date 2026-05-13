@@ -1,9 +1,9 @@
 import sys
 import types
 from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 import pytest
-from unittest.mock import AsyncMock
 
 import backend.core.base_processor as backend_base_processor
 import backend.utils.series_detector as backend_series_detector
@@ -19,8 +19,8 @@ utils_pkg.series_detector = backend_series_detector
 sys.modules.setdefault("utils", utils_pkg)
 sys.modules.setdefault("utils.series_detector", backend_series_detector)
 
-from backend.utils.series_detector import detect_series  # noqa: E402
 from backend.processors.series_processor import SeriesProcessor  # noqa: E402
+from backend.utils.series_detector import detect_series  # noqa: E402
 
 
 @pytest.mark.series
@@ -51,7 +51,9 @@ class TestSeriesProcessorE2E:
 
         processor = SeriesProcessor(database_adapter=mock_database_adapter)
 
-        mock_database_adapter.get_manufacturer = AsyncMock(return_value=mock_database_adapter.manufacturers[manufacturer_id])
+        mock_database_adapter.get_manufacturer = AsyncMock(
+            return_value=mock_database_adapter.manufacturers[manufacturer_id]
+        )
         mock_database_adapter.get_product = AsyncMock(return_value=mock_database_adapter.products[product_id])
         mock_database_adapter.update_product = AsyncMock(return_value=True)
 
@@ -72,7 +74,9 @@ class TestSeriesProcessorE2E:
             mock_database_adapter.product_series[series_id] = stored
             return stored
 
-        mock_database_adapter.get_product_series_by_name_and_pattern = AsyncMock(side_effect=fake_get_series_by_name_and_pattern)
+        mock_database_adapter.get_product_series_by_name_and_pattern = AsyncMock(
+            side_effect=fake_get_series_by_name_and_pattern
+        )
         mock_database_adapter.create_product_series = AsyncMock(side_effect=fake_create_series)
 
         return processor, product_id, manufacturer_id
@@ -114,7 +118,9 @@ class TestSeriesProcessorE2E:
         async def fake_get_series_by_name_and_pattern(manufacturer_id: str, series_name: str, model_pattern: str):
             return mock_database_adapter.product_series[existing_id]
 
-        processor.adapter.get_product_series_by_name_and_pattern = AsyncMock(side_effect=fake_get_series_by_name_and_pattern)
+        processor.adapter.get_product_series_by_name_and_pattern = AsyncMock(
+            side_effect=fake_get_series_by_name_and_pattern
+        )
         processor.adapter.create_product_series = AsyncMock()
 
         result = await processor.process_product(product_id)
@@ -165,7 +171,9 @@ class TestSeriesProcessorE2E:
 
         mock_database_adapter.get_products_without_series = AsyncMock(side_effect=fake_get_products_without_series)
         mock_database_adapter.get_manufacturer = AsyncMock(side_effect=fake_get_manufacturer)
-        mock_database_adapter.get_product_series_by_name_and_pattern = AsyncMock(side_effect=fake_get_series_by_name_and_pattern)
+        mock_database_adapter.get_product_series_by_name_and_pattern = AsyncMock(
+            side_effect=fake_get_series_by_name_and_pattern
+        )
         mock_database_adapter.create_product_series = AsyncMock(side_effect=fake_create_series)
         mock_database_adapter.update_product = AsyncMock(return_value=True)
 
@@ -229,7 +237,9 @@ class TestSeriesProcessorE2E:
         async def fake_get_series_by_manufacturer(manufacturer_id: str):
             return list(mock_database_adapter.product_series.values())
 
-        mock_database_adapter.get_product_series_by_manufacturer = AsyncMock(side_effect=fake_get_series_by_manufacturer)
+        mock_database_adapter.get_product_series_by_manufacturer = AsyncMock(
+            side_effect=fake_get_series_by_manufacturer
+        )
 
         series_products = await processor.get_series_products(series_id)
         assert len(series_products) == 2

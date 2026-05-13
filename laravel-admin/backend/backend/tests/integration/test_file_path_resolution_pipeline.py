@@ -6,14 +6,14 @@ the resolved file_path from MinIO storage when processing documents.
 """
 
 from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-import os
 
 from backend.core.base_processor import ProcessingStatus, Stage
 from backend.core.types import ProcessingContext
-from backend.processors.svg_processor import SVGProcessor
 from backend.processors.image_processor import ImageProcessor
 from backend.processors.link_extraction_processor_ai import LinkExtractionProcessorAI
+from backend.processors.svg_processor import SVGProcessor
 
 
 def _create_context_with_file_path(document_id: str, file_path: str) -> ProcessingContext:
@@ -45,10 +45,7 @@ class TestFilePathResolutionIntegration:
         # This is the critical fix: stages must receive file_path
         resolved_path = "/tmp/resolved_document_from_minio.pdf"
 
-        context = _create_context_with_file_path(
-            document_id="test-doc-integration",
-            file_path=resolved_path
-        )
+        context = _create_context_with_file_path(document_id="test-doc-integration", file_path=resolved_path)
 
         # Verify the context has the required file paths
         assert context.file_path == resolved_path
@@ -58,17 +55,10 @@ class TestFilePathResolutionIntegration:
     def test_svg_processor_integration_with_context(self):
         """SVGProcessor must use file_path from context during integration."""
         processor = SVGProcessor(
-            database_service=MagicMock(),
-            storage_service=MagicMock(),
-            ai_service=None,
-            dpi=300,
-            max_dimension=2048
+            database_service=MagicMock(), storage_service=MagicMock(), ai_service=None, dpi=300, max_dimension=2048
         )
 
-        context = _create_context_with_file_path(
-            document_id="test-svg-integration",
-            file_path="/tmp/test.pdf"
-        )
+        context = _create_context_with_file_path(document_id="test-svg-integration", file_path="/tmp/test.pdf")
 
         # Verify processor has the stage identifier
         assert processor.get_stage() == Stage.SVG_PROCESSING
@@ -79,16 +69,9 @@ class TestFilePathResolutionIntegration:
 
     def test_image_processor_integration_with_context(self):
         """ImageProcessor must use file_path from context during integration."""
-        processor = ImageProcessor(
-            database_service=MagicMock(),
-            storage_service=MagicMock(),
-            ai_service=None
-        )
+        processor = ImageProcessor(database_service=MagicMock(), storage_service=MagicMock(), ai_service=None)
 
-        context = _create_context_with_file_path(
-            document_id="test-image-integration",
-            file_path="/tmp/test.pdf"
-        )
+        context = _create_context_with_file_path(document_id="test-image-integration", file_path="/tmp/test.pdf")
 
         # Verify processor stage
         assert processor.stage == Stage.IMAGE_PROCESSING
@@ -104,13 +87,10 @@ class TestFilePathResolutionIntegration:
             ai_service=None,
             youtube_api_key="test-key",
             link_enrichment_service=None,
-            config_service=None
+            config_service=None,
         )
 
-        context = _create_context_with_file_path(
-            document_id="test-link-integration",
-            file_path="/tmp/test.pdf"
-        )
+        context = _create_context_with_file_path(document_id="test-link-integration", file_path="/tmp/test.pdf")
 
         # Verify processor stage
         assert processor.stage == Stage.LINK_EXTRACTION
@@ -125,30 +105,19 @@ class TestFilePathResolutionIntegration:
         resolved_path = "/tmp/resolved_from_minio.pdf"
 
         # Simulate the master_pipeline flow: resolve file_path once, pass to all stages
-        context = _create_context_with_file_path(
-            document_id=document_id,
-            file_path=resolved_path
-        )
+        context = _create_context_with_file_path(document_id=document_id, file_path=resolved_path)
 
         # Create all processors
         svg_processor = SVGProcessor(
-            database_service=MagicMock(),
-            storage_service=MagicMock(),
-            ai_service=None,
-            dpi=300,
-            max_dimension=2048
+            database_service=MagicMock(), storage_service=MagicMock(), ai_service=None, dpi=300, max_dimension=2048
         )
-        image_processor = ImageProcessor(
-            database_service=MagicMock(),
-            storage_service=MagicMock(),
-            ai_service=None
-        )
+        image_processor = ImageProcessor(database_service=MagicMock(), storage_service=MagicMock(), ai_service=None)
         link_processor = LinkExtractionProcessorAI(
             database_service=MagicMock(),
             ai_service=None,
             youtube_api_key="test-key",
             link_enrichment_service=None,
-            config_service=None
+            config_service=None,
         )
 
         # All processors should be available for processing
@@ -165,10 +134,7 @@ class TestFilePathResolutionIntegration:
         resolved_path = "/tmp/document_resolved.pdf"
 
         # Create a context that simulates master_pipeline behavior
-        context = _create_context_with_file_path(
-            document_id="test-doc-consistency",
-            file_path=resolved_path
-        )
+        context = _create_context_with_file_path(document_id="test-doc-consistency", file_path=resolved_path)
 
         # Simulate different processors accessing the context
         # SVG stage accesses file_path
@@ -187,19 +153,13 @@ class TestFilePathResolutionIntegration:
 
     def test_missing_file_path_handling(self):
         """Stages must handle gracefully when file_path is missing."""
-        context = _create_context_without_file_path(
-            document_id="test-doc-no-path"
-        )
+        context = _create_context_without_file_path(document_id="test-doc-no-path")
 
         # Context should have None for file_path
         assert context.file_path is None
 
         # Processors should still be instantiable, they handle missing paths internally
-        processor = ImageProcessor(
-            database_service=MagicMock(),
-            storage_service=MagicMock(),
-            ai_service=None
-        )
+        processor = ImageProcessor(database_service=MagicMock(), storage_service=MagicMock(), ai_service=None)
         assert processor is not None
 
     @pytest.mark.asyncio
@@ -207,50 +167,37 @@ class TestFilePathResolutionIntegration:
         """All stages must collect statistics when given resolved file_path."""
         resolved_path = "/tmp/test_with_content.pdf"
 
-        context = _create_context_with_file_path(
-            document_id="test-doc-stats",
-            file_path=resolved_path
-        )
+        context = _create_context_with_file_path(document_id="test-doc-stats", file_path=resolved_path)
 
         # Mock processors to return statistics
         svg_processor = SVGProcessor(
-            database_service=MagicMock(),
-            storage_service=MagicMock(),
-            ai_service=None,
-            dpi=300,
-            max_dimension=2048
+            database_service=MagicMock(), storage_service=MagicMock(), ai_service=None, dpi=300, max_dimension=2048
         )
 
-        image_processor = ImageProcessor(
-            database_service=MagicMock(),
-            storage_service=MagicMock(),
-            ai_service=None
-        )
+        image_processor = ImageProcessor(database_service=MagicMock(), storage_service=MagicMock(), ai_service=None)
 
         link_processor = LinkExtractionProcessorAI(
             database_service=MagicMock(),
             ai_service=None,
             youtube_api_key="test-key",
             link_enrichment_service=None,
-            config_service=None
+            config_service=None,
         )
 
         # Mock the process methods to return statistics
         with patch.object(svg_processor, "process", new_callable=AsyncMock) as mock_svg:
             with patch.object(image_processor, "process", new_callable=AsyncMock) as mock_image:
                 with patch.object(link_processor, "process", new_callable=AsyncMock) as mock_link:
-
                     mock_svg.return_value = MagicMock(
-                        status=ProcessingStatus.COMPLETED,
-                        metadata={"svg_count": 8, "images_queued": 8}
+                        status=ProcessingStatus.COMPLETED, metadata={"svg_count": 8, "images_queued": 8}
                     )
                     mock_image.return_value = MagicMock(
                         status=ProcessingStatus.COMPLETED,
-                        metadata={"images_extracted": 12, "images_queued": 12, "skipped": 1}
+                        metadata={"images_extracted": 12, "images_queued": 12, "skipped": 1},
                     )
                     mock_link.return_value = MagicMock(
                         status=ProcessingStatus.COMPLETED,
-                        metadata={"links_extracted": 45, "videos_extracted": 3, "enriched_links": 40}
+                        metadata={"links_extracted": 45, "videos_extracted": 3, "enriched_links": 40},
                     )
 
                     # Process all stages
@@ -278,10 +225,7 @@ class TestFilePathResolutionIntegration:
         resolved_path = f"/tmp/{storage_path}_resolved.pdf"
 
         # 3. Build context with resolved path
-        context = _create_context_with_file_path(
-            document_id="test-order",
-            file_path=resolved_path
-        )
+        context = _create_context_with_file_path(document_id="test-order", file_path=resolved_path)
 
         # 4. All stages receive the context with resolved path
         assert context.file_path == resolved_path

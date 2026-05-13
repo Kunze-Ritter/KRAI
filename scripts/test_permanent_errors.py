@@ -10,10 +10,10 @@ Usage:
     python scripts/test_permanent_errors.py --simulate  # Print simulation steps only
 """
 
-import os
-import sys
-import subprocess
 import argparse
+import os
+import subprocess
+import sys
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(SCRIPT_DIR)
@@ -41,7 +41,8 @@ def run_pytest(verbose: bool = True) -> int:
 
 def print_simulation_steps():
     """Print documented steps to verify permanent error handling."""
-    print("""
+    print(
+        """
 === Permanent Error Simulation Steps ===
 
 1. Validation error: Trigger processor with invalid input (e.g. corrupted PDF)
@@ -63,7 +64,8 @@ def print_simulation_steps():
 
 6. Correlation ID: Permanent error has single correlation_id
    - Format: req_<id>.stage_<name>.retry_0 (no retry_1, retry_2)
-""")
+"""
+    )
 
 
 def main():

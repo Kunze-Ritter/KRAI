@@ -11,7 +11,7 @@ Statt einer generischen `.env` Datei verwenden wir **spezifische Environment-Dat
 ```
 KRAI-minimal/
 ├── env.database          ← 🗄️ Database Configuration
-├── env.storage           ← ☁️ Storage Configuration  
+├── env.storage           ← ☁️ Storage Configuration
 ├── env.ai               ← 🤖 AI Configuration
 ├── env.system           ← ⚙️ System Configuration
 ├── .env                 ← 🔄 Legacy Fallback
@@ -317,7 +317,7 @@ LOG_LEVEL=...
 SUPABASE_URL=...
 DATABASE_PASSWORD=...
 
-# env.storage  
+# env.storage
 OBJECT_STORAGE_ACCESS_KEY=...
 OBJECT_STORAGE_SECRET_KEY=...
 
@@ -342,6 +342,5 @@ MAX_WORKERS=...
 
 ---
 
-**Bei Fragen:** Siehe KRAI Development Team Lead  
+**Bei Fragen:** Siehe KRAI Development Team Lead
 **Version:** 1.0 Specific Environment (Oktober 2025)
-

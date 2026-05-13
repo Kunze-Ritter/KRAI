@@ -1,4 +1,4 @@
-﻿"""
+"""
 KR-AI-Engine Main Application
 FastAPI application with all endpoints and services
 """
@@ -6,17 +6,13 @@ FastAPI application with all endpoints and services
 import logging
 import os
 import sys
-from pathlib import Path
 from contextlib import asynccontextmanager
-from typing import Dict, Any
+from pathlib import Path
 
 # Configure logger
 logger = logging.getLogger("krai.api")
 if not logging.getLogger().handlers:
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    )
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
 # Ensure project root is on sys.path when executed directly
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -27,6 +23,7 @@ if str(PROJECT_ROOT) not in sys.path:
 # Priority: Later files override earlier ones
 try:
     from pathlib import Path
+
     from processors.env_loader import load_all_env_files
 
     # Determine project root (parent of backend/)
@@ -44,30 +41,31 @@ try:
 except ImportError:
     logger.warning("Environment loader not available, using system environment variables only")
 
+from datetime import datetime
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from datetime import datetime
 
-# Import services
-from services.object_storage_service import ObjectStorageService
-from services.database_factory import create_database_adapter
-from services.storage_factory import create_storage_service
-from services.ai_service import AIService
-from services.config_service import ConfigService
-from services.features_service import FeaturesService
-from services.video_enrichment_service import VideoEnrichmentService
-from services.link_checker_service import LinkCheckerService
-from services.performance_service import PerformanceCollector
+from api.content_management_api import ContentManagementAPI
+from api.defect_detection_api import DefectDetectionAPI
 
 # Import APIs
 from api.document_api import DocumentAPI
-from api.search_api import SearchAPI
-from api.defect_detection_api import DefectDetectionAPI
 from api.features_api import FeaturesAPI
-from api.content_management_api import ContentManagementAPI
 from api.openai_compatible_api import OpenAICompatibleAPI
+from api.search_api import SearchAPI
 from config.security_config import get_security_config, is_production
+from services.ai_service import AIService
+from services.config_service import ConfigService
+from services.database_factory import create_database_adapter
+from services.features_service import FeaturesService
+from services.link_checker_service import LinkCheckerService
+
+# Import services
+from services.performance_service import PerformanceCollector
+from services.storage_factory import create_storage_service
+from services.video_enrichment_service import VideoEnrichmentService
 
 # Global services
 database_service = None
@@ -87,22 +85,23 @@ features_api = None
 content_management_api = None
 openai_api = None
 
+
 def validate_no_r2_variables():
     """Fail startup if deprecated R2 variables are detected."""
     r2_vars = [
-        'R2_ACCESS_KEY_ID',
-        'R2_SECRET_ACCESS_KEY',
-        'R2_ENDPOINT_URL',
-        'R2_BUCKET_NAME_DOCUMENTS',
-        'R2_BUCKET_NAME_ERROR',
-        'R2_BUCKET_NAME_PARTS',
-        'R2_PUBLIC_URL_DOCUMENTS',
-        'R2_PUBLIC_URL_ERROR',
-        'R2_PUBLIC_URL_PARTS',
-        'UPLOAD_IMAGES_TO_R2',
-        'UPLOAD_DOCUMENTS_TO_R2',
-        'R2_USE_SSL',
-        'R2_REGION'
+        "R2_ACCESS_KEY_ID",
+        "R2_SECRET_ACCESS_KEY",
+        "R2_ENDPOINT_URL",
+        "R2_BUCKET_NAME_DOCUMENTS",
+        "R2_BUCKET_NAME_ERROR",
+        "R2_BUCKET_NAME_PARTS",
+        "R2_PUBLIC_URL_DOCUMENTS",
+        "R2_PUBLIC_URL_ERROR",
+        "R2_PUBLIC_URL_PARTS",
+        "UPLOAD_IMAGES_TO_R2",
+        "UPLOAD_DOCUMENTS_TO_R2",
+        "R2_USE_SSL",
+        "R2_REGION",
     ]
 
     found_r2_vars = [var for var in r2_vars if os.getenv(var)]
@@ -114,70 +113,70 @@ def validate_no_r2_variables():
             f"See .env.example and docs/MIGRATION_R2_TO_MINIO.md for migration guide."
         )
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup event handler"""
     global database_service, storage_service, ai_service, config_service, features_service
     global video_enrichment_service, link_checker_service, performance_service
     global document_api, search_api, defect_detection_api, features_api, content_management_api, openai_api
-    
+
     # Startup
     logger.info("🚀 Starting KR-AI-Engine…")
 
     # Validate no R2 variables are present
     validate_no_r2_variables()
-    
+
     try:
         # Initialize configuration service
         config_service = ConfigService()
         logger.info("✅ Configuration service initialized")
-        
+
         # Initialize database service
         database_service = create_database_adapter()
         # Factory automatically selects adapter based on DATABASE_TYPE environment variable
         await database_service.connect()
-        database_type = os.getenv('DATABASE_TYPE', 'postgresql')
+        database_type = os.getenv("DATABASE_TYPE", "postgresql")
         logger.info(f"✅ Database service connected ({database_type})")
         if database_service.pg_pool:
             logger.info("✅ PostgreSQL connection pool initialized")
-        
+
         # Initialize object storage service
         storage_service = create_storage_service()
         # Factory supports MinIO and S3-compatible storage
         await storage_service.connect()
-        storage_type = os.getenv('OBJECT_STORAGE_TYPE', 's3')
+        storage_type = os.getenv("OBJECT_STORAGE_TYPE", "s3")
         logger.info(f"✅ Object storage service connected ({storage_type})")
-        
+
         # Initialize AI service
-        ai_service = AIService(
-            ollama_url=os.getenv("OLLAMA_URL", "http://localhost:11434")
-        )
+        ai_service = AIService(ollama_url=os.getenv("OLLAMA_URL", "http://localhost:11434"))
         try:
             await ai_service.connect()
             logger.info("✅ AI service connected")
         except Exception as e:
             logger.warning(f"⚠️  AI service connection failed: {e}")
-            logger.warning("Application will continue without AI service. AI features may not work until Ollama is available.")
-        
+            logger.warning(
+                "Application will continue without AI service. AI features may not work until Ollama is available."
+            )
+
         # Initialize features service
         features_service = FeaturesService(ai_service, database_service)
         logger.info("✅ Features service initialized")
-        
+
         # Initialize video enrichment service
         video_enrichment_service = VideoEnrichmentService()
         logger.info("✅ Video enrichment service initialized")
-        
+
         # Initialize link checker service
         link_checker_service = LinkCheckerService()
         logger.info("✅ Link checker service initialized")
-        
+
         # Initialize performance collector
         performance_service = PerformanceCollector(
-            db_adapter=database_service,
-            logger=logging.getLogger("krai.performance")
+            db_adapter=database_service, logger=logging.getLogger("krai.performance")
         )
         logger.info("✅ Performance service initialized")
-        
+
         # NOW initialize APIs with services
         document_api = DocumentAPI(database_service, storage_service, ai_service)
         search_api = SearchAPI(database_service, ai_service)
@@ -186,10 +185,10 @@ async def lifespan(app: FastAPI):
         content_management_api = ContentManagementAPI(
             database_service=database_service,
             video_enrichment_service=video_enrichment_service,
-            link_checker_service=link_checker_service
+            link_checker_service=link_checker_service,
         )
         openai_api = OpenAICompatibleAPI(database_service, ai_service)
-        
+
         # Include routers
         app.include_router(document_api.router)
         app.include_router(search_api.router)
@@ -200,14 +199,14 @@ async def lifespan(app: FastAPI):
         logger.info("✅ API routers registered (including OpenAI-compatible)")
 
         logger.info("🎯 KR-AI-Engine ready!")
-        
-    except Exception as e:
+
+    except Exception:
         logger.exception("❌ Startup failed")
         raise
-    
+
     # Yield control to the application
     yield
-    
+
     # Shutdown
     logger.info("🛑 Shutting down KR-AI-Engine…")
     if database_service:
@@ -220,12 +219,13 @@ async def lifespan(app: FastAPI):
         logger.info("✅ Performance service disconnected")
     logger.info("👋 KR-AI-Engine stopped")
 
+
 # Create FastAPI application with lifespan
 app = FastAPI(
     title="KR-AI-Engine",
     description="AI-powered document processing system for technical documentation",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # Add CORS middleware
@@ -236,6 +236,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # Root endpoint
 @app.get("/")
@@ -253,66 +254,57 @@ async def root():
             "features": "/features",
             "content_management": "/content",
             "openai_compatible": "/v1/chat/completions",
-            "health": "/health"
-        }
+            "health": "/health",
+        },
     }
+
 
 # Health check endpoint
 @app.get("/health")
 async def health_check():
     """System health check"""
     try:
-        health_status = {
-            "status": "healthy",
-            "timestamp": datetime.utcnow().isoformat(),
-            "services": {}
-        }
-        
+        health_status = {"status": "healthy", "timestamp": datetime.utcnow().isoformat(), "services": {}}
+
         # Check database service
         if database_service:
             db_health = await database_service.health_check()
             health_status["services"]["database"] = db_health
         else:
             health_status["services"]["database"] = {"status": "not_initialized"}
-        
+
         # Check storage service
         if storage_service:
             storage_health = await storage_service.health_check()
             health_status["services"]["storage"] = storage_health
         else:
             health_status["services"]["storage"] = {"status": "not_initialized"}
-        
+
         # Check AI service
         if ai_service:
             ai_health = await ai_service.health_check()
             health_status["services"]["ai"] = ai_health
         else:
             health_status["services"]["ai"] = {"status": "not_initialized"}
-        
+
         # Check config service
         if config_service:
             config_health = config_service.health_check()
             health_status["services"]["config"] = config_health
         else:
             health_status["services"]["config"] = {"status": "not_initialized"}
-        
+
         # Determine overall status
-        all_healthy = all(
-            service.get("status") == "healthy" 
-            for service in health_status["services"].values()
-        )
-        
+        all_healthy = all(service.get("status") == "healthy" for service in health_status["services"].values())
+
         if not all_healthy:
             health_status["status"] = "degraded"
-        
+
         return health_status
-        
+
     except Exception as e:
-        return {
-            "status": "unhealthy",
-            "error": str(e),
-            "timestamp": datetime.utcnow().isoformat()
-        }
+        return {"status": "unhealthy", "error": str(e), "timestamp": datetime.utcnow().isoformat()}
+
 
 # System info endpoint
 @app.get("/info")
@@ -328,7 +320,7 @@ async def system_info():
                 "ollama_url": os.getenv("OLLAMA_URL", "http://localhost:11434"),
                 "database_url": os.getenv("DATABASE_URL", "Not configured"),
                 "storage_provider": os.getenv("OBJECT_STORAGE_TYPE", "s3"),
-                "database_type": os.getenv("DATABASE_TYPE", "postgresql")
+                "database_type": os.getenv("DATABASE_TYPE", "postgresql"),
             },
             "features": {
                 "document_processing": True,
@@ -338,32 +330,31 @@ async def system_info():
                 "vector_search": True,
                 "ai_classification": True,
                 "video_enrichment": True,
-                "link_checking": True
+                "link_checking": True,
             },
             "processing_pipeline": [
                 "Upload Processor",
-                "Text Processor", 
+                "Text Processor",
                 "Image Processor",
                 "Classification Processor",
                 "Metadata Processor",
                 "Storage Processor",
                 "Embedding Processor",
-                "Search Processor"
+                "Search Processor",
             ],
             "content_management": {
                 "video_enrichment": {
                     "platforms": ["YouTube", "Vimeo", "Brightcove"],
-                    "features": ["metadata", "thumbnails", "duration", "deduplication"]
+                    "features": ["metadata", "thumbnails", "duration", "deduplication"],
                 },
-                "link_checking": {
-                    "features": ["validation", "redirect_following", "auto_fixing", "url_cleaning"]
-                }
+                "link_checking": {"features": ["validation", "redirect_following", "auto_fixing", "url_cleaning"]},
             },
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
         }
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 # Error handlers
 @app.exception_handler(404)
@@ -374,14 +365,16 @@ async def not_found_handler(request, exc):
         content={
             "error": "Not Found",
             "message": "The requested resource was not found",
-            "timestamp": datetime.utcnow().isoformat()
-        }
+            "timestamp": datetime.utcnow().isoformat(),
+        },
     )
+
 
 @app.exception_handler(500)
 async def internal_error_handler(request, exc):
     """500 error handler"""
     import traceback
+
     logger.error(f"🔥 Internal Server Error on {request.url.path}: {exc}")
     traceback.print_exc()
     return JSONResponse(
@@ -389,17 +382,15 @@ async def internal_error_handler(request, exc):
         content={
             "error": "Internal Server Error",
             "message": "An internal server error occurred",
-            "timestamp": datetime.utcnow().isoformat()
-        }
+            "timestamp": datetime.utcnow().isoformat(),
+        },
     )
+
 
 if __name__ == "__main__":
     import uvicorn
 
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    )
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
     security_config = get_security_config()
     keepalive_timeout = security_config.KEEPALIVE_TIMEOUT_SECONDS
@@ -444,5 +435,3 @@ if __name__ == "__main__":
         uvicorn_kwargs.update(ssl_keyfile=ssl_keyfile, ssl_certfile=ssl_certfile)
 
     uvicorn.run(**uvicorn_kwargs)
-
-

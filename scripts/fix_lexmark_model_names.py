@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """One-time fix: strip 'Lexmark ' prefix from model_name in krai_core.products."""
+
 import asyncio
 import sys
 from pathlib import Path

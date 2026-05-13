@@ -341,18 +341,10 @@ def test_model_match_score_prefers_exact_model():
 def test_semantic_fast_path_only_for_retrieval_like_queries():
     compat_module = _load_openai_compat_module()
 
-    assert compat_module._should_use_semantic_fast_path(
-        "Was bedeutet HP Fehler 13.A2 auf E877?"
-    )
-    assert compat_module._should_use_semantic_fast_path(
-        "Zeige mir relevante Dokumente zum Tray 4 jam auf E877"
-    )
-    assert not compat_module._should_use_semantic_fast_path(
-        "Antworte nur mit dem Wort BEREIT."
-    )
-    assert not compat_module._should_use_semantic_fast_path(
-        "Sag einfach hallo."
-    )
+    assert compat_module._should_use_semantic_fast_path("Was bedeutet HP Fehler 13.A2 auf E877?")
+    assert compat_module._should_use_semantic_fast_path("Zeige mir relevante Dokumente zum Tray 4 jam auf E877")
+    assert not compat_module._should_use_semantic_fast_path("Antworte nur mit dem Wort BEREIT.")
+    assert not compat_module._should_use_semantic_fast_path("Sag einfach hallo.")
 
 
 def test_build_video_search_plan_prefers_domain_term_over_generic_action():
@@ -399,9 +391,7 @@ async def test_chat_completions_routes_freeform_prompt_to_agent():
     payload = {
         "model": "krai",
         "user": "tech-session-agent",
-        "messages": [
-            {"role": "user", "content": "Antworte nur mit dem Wort BEREIT."}
-        ],
+        "messages": [{"role": "user", "content": "Antworte nur mit dem Wort BEREIT."}],
     }
 
     async with httpx.AsyncClient(app=app, base_url="http://test") as client:
@@ -435,9 +425,7 @@ async def test_chat_completions_prefers_real_lexmark_fuser_video():
     payload = {
         "model": "krai",
         "user": "tech-session-lexmark-video",
-        "messages": [
-            {"role": "user", "content": "Lexmark fuser tauschen video"}
-        ],
+        "messages": [{"role": "user", "content": "Lexmark fuser tauschen video"}],
     }
 
     async with httpx.AsyncClient(app=app, base_url="http://test") as client:
@@ -470,9 +458,7 @@ async def test_chat_completions_uses_scoped_fast_path_and_returns_related_video(
     payload = {
         "model": "krai",
         "user": "tech-session-123",
-        "messages": [
-            {"role": "user", "content": "Was bedeutet HP Fehler 10.00.33?"}
-        ],
+        "messages": [{"role": "user", "content": "Was bedeutet HP Fehler 10.00.33?"}],
         "metadata": {
             "scope": {
                 "manufacturer": "HP",
@@ -563,7 +549,9 @@ async def test_chat_completions_error_code_query_retries_without_model_linkage()
     assert agent.chat_called is False
 
     error_queries = [(query, params) for query, params in connection.fetch_calls if "error_codes ec" in query]
-    semantic_queries = [query for query, _params in connection.fetch_calls if "FROM   krai_intelligence.chunks c" in query]
+    semantic_queries = [
+        query for query, _params in connection.fetch_calls if "FROM   krai_intelligence.chunks c" in query
+    ]
 
     assert len(error_queries) >= 2
     assert any("E877" in " ".join(str(param) for param in params[:-1]) for _query, params in error_queries)
@@ -585,9 +573,7 @@ async def test_chat_completions_prefers_video_route_for_model_like_terms():
     payload = {
         "model": "krai",
         "user": "tech-session-video",
-        "messages": [
-            {"role": "user", "content": "Gibt es ein Video zu HP E877 Tray 4 Jam?"}
-        ],
+        "messages": [{"role": "user", "content": "Gibt es ein Video zu HP E877 Tray 4 Jam?"}],
     }
 
     async with httpx.AsyncClient(app=app, base_url="http://test") as client:

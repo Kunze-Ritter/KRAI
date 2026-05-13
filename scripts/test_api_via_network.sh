@@ -34,23 +34,23 @@ ERROR_ID=$(echo "$ERRORS_RESPONSE" | grep -o '"error_id":"[^"]*"' | head -1 | se
 if [ -n "$ERROR_ID" ]; then
   echo "   First error ID: $ERROR_ID"
   echo ""
-  
+
   # Test Get Error Details
   echo "3. GET /api/v1/pipeline/errors/$ERROR_ID"
   DETAIL_RESPONSE=$(curl -s -X GET http://krai-engine-prod:8000/api/v1/pipeline/errors/$ERROR_ID \
     -H "Authorization: Bearer $TOKEN")
-  
+
   ERROR_TYPE=$(echo "$DETAIL_RESPONSE" | grep -o '"error_type":"[^"]*"' | sed 's/"error_type":"//;s/"//')
   echo "   Success! Error type: $ERROR_TYPE"
   echo ""
-  
+
   # Test Mark Resolved
   echo "4. POST /api/v1/pipeline/mark-error-resolved"
   RESOLVE_RESPONSE=$(curl -s -X POST http://krai-engine-prod:8000/api/v1/pipeline/mark-error-resolved \
     -H "Authorization: Bearer $TOKEN" \
     -H "Content-Type: application/json" \
     -d "{\"error_id\":\"$ERROR_ID\",\"notes\":\"Test from API script\"}")
-  
+
   RESOLVED_BY=$(echo "$RESOLVE_RESPONSE" | grep -o '"resolved_by":"[^"]*"' | sed 's/"resolved_by":"//;s/"//')
   echo "   Success! Resolved by: $RESOLVED_BY"
   echo ""

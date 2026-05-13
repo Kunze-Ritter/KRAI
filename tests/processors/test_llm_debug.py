@@ -2,8 +2,8 @@
 Full LLM extraction debug test
 """
 
-import sys
 import json
+import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -34,11 +34,7 @@ print("   ✓ Initialized\n")
 
 # Call extraction
 print("2. Calling extract_from_specification_section...")
-products = llm.extract_from_specification_section(
-    text,
-    manufacturer="KONICA MINOLTA",
-    page_number=1
-)
+products = llm.extract_from_specification_section(text, manufacturer="KONICA MINOLTA", page_number=1)
 
 print(f"3. Got {len(products)} products back\n")
 
@@ -54,16 +50,17 @@ if products:
 else:
     print("❌ NO PRODUCTS EXTRACTED!")
     print("\nDebugging: Let me call Ollama directly...")
-    
+
     # Direct Ollama call
     import requests
+
     prompt = llm._build_extraction_prompt(text, "KONICA MINOLTA")
-    
+
     print(f"\nPrompt length: {len(prompt)}")
     print("\n=== PROMPT ===")
     print(prompt[:500])
     print("...")
-    
+
     response = requests.post(
         "http://localhost:11434/api/generate",
         json={
@@ -71,17 +68,17 @@ else:
             "prompt": prompt,
             "stream": False,
             "format": "json",
-            "options": {"temperature": 0.1, "num_predict": 2000}
+            "options": {"temperature": 0.1, "num_predict": 2000},
         },
-        timeout=60
+        timeout=60,
     )
-    
+
     result = response.json()
     llm_response = result.get("response", "")
-    
+
     print("\n=== OLLAMA RAW RESPONSE ===")
     print(llm_response)
-    
+
     # Try to parse
     try:
         data = json.loads(llm_response)

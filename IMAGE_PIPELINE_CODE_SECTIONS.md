@@ -21,45 +21,45 @@ def extract_image_context(
         'related_products': [],
         'surrounding_paragraphs': []
     }
-    
+
     try:
         # Extract surrounding text
         context_data['context_caption'] = self._extract_surrounding_text(
             page_text, image_bbox, self.context_window_size, page_path, page_number
         )
-        
+
         # Extract figure reference
         context_data['figure_reference'] = self._extract_figure_reference(page_text)
-        
+
         # Extract page header
         context_data['page_header'] = self._extract_page_header(
             page_text, page_path, page_number
         )
-        
+
         # Extract error codes -- THIS EXTRACTS FROM ENTIRE PAGE TEXT
         if self.enable_error_code_extraction:
             context_data['related_error_codes'] = self._extract_error_codes(page_text)
-        
+
         # Extract products
         if self.enable_product_extraction:
             context_data['related_products'] = self._extract_products(page_text)
-        
+
         # Extract surrounding paragraphs
         context_data['surrounding_paragraphs'] = self._extract_surrounding_paragraphs(page_text)
-        
+
         self.logger.debug(
             "Extracted context for image on page %d: %d error codes, %d products",
             page_number,
             len(context_data['related_error_codes']),
             len(context_data['related_products'])
         )
-        
+
     except Exception as e:
         self.logger.error(
             "Error extracting context for image on page %d: %s",
             page_number, str(e)
         )
-    
+
     return context_data
 ```
 
@@ -78,16 +78,16 @@ def _compile_regex_patterns(self):
 def _extract_error_codes(self, text: str) -> List[str]:
     """
     Extract error codes from text.
-    
+
     Args:
         text: Text to search for error codes
-        
+
     Returns:
         List of unique error codes found (e.g., ['01.02.03', '44.55.66'])
     """
     if not text:
         return []
-    
+
     # Find all matches of XX.XX.XX pattern
     matches = self.error_code_pattern.findall(text)
     return list(set(matches))  # Remove duplicates
@@ -110,30 +110,30 @@ async def _extract_image_contexts(
 ) -> list[dict]:
     """
     Extract context for all images using ContextExtractionService.
-    
+
     Args:
         images: List of image dictionaries
         page_texts: Dict mapping page_number to page_text
         adapter: Logger adapter
         pdf_path: Optional PDF path for bbox-aware extraction
         document_id: Optional document ID for related chunks extraction
-        
+
     Returns:
         List of images with context metadata added
     """
     images_with_context: list[dict] = []
     related_chunks_cache: dict[int, list[str]] = {}
-    
+
     for image in images:
         page_number = image.get("page_number")
         if not page_number or page_number not in page_texts:
             adapter.warning("No page text available for image on page %d", page_number)
             images_with_context.append(image)
             continue
-        
+
         page_text = page_texts[page_number]
         image_bbox = image.get("bbox")  # Optional bounding box
-        
+
         try:
             # Extract context using ContextExtractionService
             # THIS CALL EXTRACTS related_error_codes FROM PAGE TEXT
@@ -143,7 +143,7 @@ async def _extract_image_contexts(
                 image_bbox=image_bbox,
                 page_path=str(pdf_path),
             )
-            
+
             # Merge context data into image dict
             # related_error_codes is now in the image dict
             image.update(
@@ -157,19 +157,19 @@ async def _extract_image_contexts(
                     "related_chunks": related_chunks_cache.get(page_number, []),
                 }
             )
-            
+
             if page_number not in related_chunks_cache:
                 related_chunks_cache[page_number] = await self._get_related_chunks(
                     page_number, document_id, adapter
                 )
                 image["related_chunks"] = related_chunks_cache.get(page_number, [])
-            
+
             images_with_context.append(image)
-            
+
         except Exception as e:
             adapter.error("Failed to extract context for image on page %d: %s", page_number, e)
             images_with_context.append(image)
-    
+
     adapter.info("Extracted context for %d images", len(images_with_context))
     return images_with_context
 ```
@@ -189,9 +189,9 @@ async def _queue_storage_tasks(self, document_id: UUID, images: list[dict[str, A
     if not self.database_service or not hasattr(self.database_service, "create_image"):
         adapter.warning("Database service does not support create_image - skipping persistence")
         return 0
-    
+
     from backend.core.data_models import ImageModel, ImageType
-    
+
     def _map_image_type(val: Any) -> str:
         if not val:
             return ImageType.DIAGRAM.value
@@ -201,26 +201,26 @@ async def _queue_storage_tasks(self, document_id: UUID, images: list[dict[str, A
         if s == "table":
             return ImageType.DIAGRAM.value
         return ImageType.DIAGRAM.value
-    
+
     def _compute_file_hash(img: dict[str, Any]) -> str:
         path = img.get("temp_path") or img.get("path") or ""
         size = img.get("size_bytes", 0)
         page = img.get("page_number", 0)
         return hashlib.sha256(f"{path}|{size}|{page}".encode()).hexdigest()
-    
+
     success_count = 0
     for idx, img in enumerate(images):
         temp_path = img.get("temp_path") or img.get("path")
         if not temp_path or not os.path.exists(temp_path):
             adapter.debug("Skipping image without valid temp_path: %s", img.get("filename"))
             continue
-        
+
         try:
             file_hash = _compute_file_hash(img)
             storage_path = temp_path
             # STORAGE_URL IS SET TO LOCAL FILE PATH
             storage_url = f"file://{temp_path}"
-            
+
             # CREATE IMAGE MODEL WITH ALL CONTEXT DATA
             image_model = ImageModel(
                 document_id=str(document_id),
@@ -249,7 +249,7 @@ async def _queue_storage_tasks(self, document_id: UUID, images: list[dict[str, A
                 related_products=img.get("related_products") or [],
                 surrounding_paragraphs=img.get("surrounding_paragraphs") or [],
             )
-            
+
             # INSERT INTO krai_content.images
             db_id = await self.database_service.create_image(image_model)
             img["id"] = db_id
@@ -257,7 +257,7 @@ async def _queue_storage_tasks(self, document_id: UUID, images: list[dict[str, A
             adapter.debug("Persisted image %s -> id=%s", img.get("filename"), db_id)
         except Exception as e:
             adapter.warning("Failed to persist image %s: %s", img.get("filename"), e)
-    
+
     return success_count
 ```
 
@@ -278,14 +278,14 @@ async def upload_image(
 ) -> Dict[str, Any]:
     """
     Upload single image with deduplication
-    
+
     Args:
         image_path: Path to image file
         document_id: Document UUID
         page_number: Page number
         image_type: Type of image
         metadata: Additional metadata
-        
+
     Returns:
         Result dict with storage_url
     """
@@ -296,14 +296,14 @@ async def upload_image(
             'storage_url': None,
             'deduplicated': False
         }
-    
+
     try:
         # 1. Calculate hash
         file_hash = self.calculate_image_hash(image_path)
-        
+
         # 2. Check if already exists
         existing = await self.check_image_exists(file_hash)
-        
+
         if existing:
             # Image already exists - just return existing URL
             self.logger.debug(f"Image deduplicated: {file_hash[:8]}... (already exists)")
@@ -315,13 +315,13 @@ async def upload_image(
                 'deduplicated': True,
                 'existing_id': existing['id']
             }
-        
+
         # 3. New image - upload to object storage (MinIO)
         extension = image_path.suffix.lstrip('.')
         is_svg = extension.lower() == 'svg'
         has_png_derivative = bool(metadata.get('has_png_derivative', not is_svg)) if metadata else (not is_svg)
         storage_path = f"svg/{file_hash}.svg" if is_svg else f"{file_hash}.{extension}"
-        
+
         # UPLOAD TO MINIO
         with open(image_path, 'rb') as f:
             self.storage_client.upload_fileobj(
@@ -341,20 +341,20 @@ async def upload_image(
                     'ContentType': 'image/svg+xml' if is_svg else (mimetypes.guess_type(image_path)[0] or 'image/png')
                 }
             )
-        
+
         # Generate public URL
         if self.public_url:
             storage_url = f"{self.public_url}/{storage_path}"
         else:
             storage_url = f"{self.endpoint_url}/{self.bucket_name}/{storage_path}"
-        
+
         svg_storage_url = storage_url if is_svg else (metadata.get('svg_storage_url') if metadata else None)
         if is_svg and metadata and metadata.get('png_storage_url'):
             storage_url = metadata['png_storage_url']
-        
+
         # 4. Insert to database using DatabaseAdapter
         from backend.core.data_models import ImageModel
-        
+
         image_model = ImageModel(
             document_id=str(document_id),
             filename=storage_path,
@@ -378,14 +378,14 @@ async def upload_image(
             ocr_text=metadata.get('ocr_text') if metadata else None,
             ocr_confidence=metadata.get('ocr_confidence') if metadata else None
         )
-        
+
         if is_svg and hasattr(self.db_client, 'create_image_with_svg'):
             db_id = await self.db_client.create_image_with_svg(image_model)
         else:
             db_id = await self.db_client.create_image(image_model)
-        
+
         self.logger.debug(f"Uploaded new image: {file_hash[:8]}... -> {storage_path}")
-        
+
         return {
             'success': True,
             'storage_url': storage_url,
@@ -394,7 +394,7 @@ async def upload_image(
             'deduplicated': False,
             'db_id': db_id
         }
-        
+
     except Exception as e:
         self.logger.error(f"Failed to upload image: {e}")
         return {
@@ -416,7 +416,7 @@ def __init__(self, database_adapter=None):
     """Initialize image storage processor"""
     self.logger = get_logger()
     self.db_client = database_adapter
-    
+
     # Object Storage Configuration
     self.access_key = os.getenv('OBJECT_STORAGE_ACCESS_KEY')
     self.secret_key = os.getenv('OBJECT_STORAGE_SECRET_KEY')
@@ -425,7 +425,7 @@ def __init__(self, database_adapter=None):
         raise ValueError("OBJECT_STORAGE_ENDPOINT must be set in .env")
     self.bucket_name = os.getenv('OBJECT_STORAGE_BUCKET_DOCUMENTS')
     self.public_url = os.getenv('OBJECT_STORAGE_PUBLIC_URL_DOCUMENTS')
-    
+
     # Initialize S3-compatible client (works with MinIO)
     self.storage_client = None
     if all([self.access_key, self.secret_key, self.endpoint_url, self.bucket_name]):
@@ -543,4 +543,3 @@ FINAL RECORD IN DATABASE
    - Deduplication by MD5 hash
    - Metadata stored in MinIO object metadata
    - Public URL from OBJECT_STORAGE_PUBLIC_URL_DOCUMENTS env var
-

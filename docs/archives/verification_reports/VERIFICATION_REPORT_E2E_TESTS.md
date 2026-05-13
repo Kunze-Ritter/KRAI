@@ -1,6 +1,6 @@
 # KRAI Pipeline Verification Report – E2E Tests
 
-**Datum:** 2026-02-08  
+**Datum:** 2026-02-08
 **Gültig für:** Plan „Verification Steps“ (Master Pipeline E2E, Processor E2E, Error Recovery, Integration, Performance, Coverage)
 
 ---
@@ -38,7 +38,7 @@
 | TestFullPipelineSmartProcessing::test_full_pipeline_duplicate_document_uses_smart_processing | ✅ PASSED |
 | TestProcessDocumentSmartStages::test_smart_stages_only_runs_missing_stages | ❌ FAILED |
 
-**Fehler Smart Stages:**  
+**Fehler Smart Stages:**
 `assert 'svg' in result["completed_stages"]` – Tatsächlich wurden nur `['classification', 'storage', 'embedding']` als completed_stages gemeldet. Smart Processing hat nicht alle fehlenden Stages (svg, image, chunk_prep, links, metadata, search) ausgeführt, sondern nur einen Teil. Entweder Testannahme oder Pipeline-Logik für „nur fehlende Stages“ weicht ab.
 
 ---
@@ -77,9 +77,9 @@
 | TestFullPipelineErrorHandling::test_full_pipeline_upload_failure_returns_clean_error | ❌ FAILED |
 | TestFullPipelineErrorHandling::test_full_pipeline_mid_stage_exception_returns_error | ✅ PASSED |
 
-**Fehler:**  
-- Ein Test erwartet Fehlertext `'processor boom'`, erhält `"ProcessingContext.__init__() got an unexpected keyword argument 'chunks'"`.  
-- Ein Test erwartet `'Upload failed'`, erhält `"'NoneType' object has no attribute 'get'"`.  
+**Fehler:**
+- Ein Test erwartet Fehlertext `'processor boom'`, erhält `"ProcessingContext.__init__() got an unexpected keyword argument 'chunks'"`.
+- Ein Test erwartet `'Upload failed'`, erhält `"'NoneType' object has no attribute 'get'"`.
 Hinweis: Retry, Idempotenz und Advisory Locks wurden nicht separat ausgeführt (scripts/test_transient_errors.py, test_advisory_locks.py); bei Bedarf manuell mit laufender DB ausführen.
 
 ---
@@ -106,7 +106,7 @@ Nicht in dieser Session ausgeführt. Empfohlen:
 
 ## 8. Performance Benchmarks (Schritt 7)
 
-Benchmark wurde nicht ausgeführt (abhängig von PostgreSQL, MinIO, Ollama und vorregistrierten Benchmark-Dokumenten in `krai_system.benchmark_documents`).  
+Benchmark wurde nicht ausgeführt (abhängig von PostgreSQL, MinIO, Ollama und vorregistrierten Benchmark-Dokumenten in `krai_system.benchmark_documents`).
 Die Datei `benchmark_results_baseline.json` wurde als Vorlage/Platzhalter angelegt (siehe Abschnitt 11). Bei laufender Umgebung:
 
 - `python scripts/select_benchmark_documents.py --count 10`
@@ -189,10 +189,10 @@ Die Datei `benchmark_results_baseline.json` enthält die im Plan beschriebene St
 
 ## 14. Durchgeführte Code- und Fixture-Änderungen
 
-1. **backend/services/performance_service.py**  
+1. **backend/services/performance_service.py**
    - In `flush_metrics_buffer`: innere Funktion `flush_one` zu `async def flush_one` geändert; Aufrufe `flush_one(...)` zu `await flush_one(...)`. Behebt SyntaxError: `'await' outside async function`.
 
-2. **tests/processors/conftest.py**  
+2. **tests/processors/conftest.py**
    - In `MockDatabaseAdapter` fehlende abstrakte Methoden des `DatabaseAdapter`-ABC ergänzt: `disconnect`, `fetch_one`, `fetch_all`, `insert_chunk`, `insert_table`, `create_unified_embedding`, `insert_link`, `insert_part`, `start_stage`, `complete_stage`, `fail_stage`, `skip_stage`, `get_stage_status`. Ermöglicht Instanziierung von `MockDatabaseAdapter` und Lauf der Master-Pipeline- und Processor-E2E-Tests.
 
 Diese Änderungen sind für die Ausführung der geplanten Verifikation notwendig und können gemeinsam mit dem Report geprüft werden.

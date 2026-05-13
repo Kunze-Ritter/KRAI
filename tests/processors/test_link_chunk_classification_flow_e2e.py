@@ -1,6 +1,5 @@
 from pathlib import Path
-from typing import Any, Dict, List
-from uuid import uuid4
+from typing import Any
 
 import pytest
 
@@ -8,7 +7,6 @@ from backend.core.base_processor import ProcessingContext
 from backend.processors.chunk_preprocessor import ChunkPreprocessor
 from backend.processors.classification_processor import ClassificationProcessor
 from backend.processors.link_extraction_processor_ai import LinkExtractionProcessorAI
-
 
 pytestmark = [
     pytest.mark.e2e,
@@ -57,15 +55,15 @@ class TestLinkChunkClassificationPipeline:
 
         # Database-like client used by ChunkPreprocessor and ClassificationProcessor
         class DummyResult:
-            def __init__(self, data: List[Dict[str, Any]] | None = None) -> None:
+            def __init__(self, data: list[dict[str, Any]] | None = None) -> None:
                 self.data = data or []
 
         class ChunksTable:
-            def __init__(self, storage: Dict[str, Dict[str, Any]]) -> None:
+            def __init__(self, storage: dict[str, dict[str, Any]]) -> None:
                 self._storage = storage
                 self._doc: str | None = None
                 self._update_id: str | None = None
-                self._payload: Dict[str, Any] | None = None
+                self._payload: dict[str, Any] | None = None
 
             def select(self, *_args: Any) -> "ChunksTable":
                 return self
@@ -80,7 +78,7 @@ class TestLinkChunkClassificationPipeline:
             def order(self, _col: str) -> "ChunksTable":
                 return self
 
-            def update(self, payload: Dict[str, Any]) -> "ChunksTable":
+            def update(self, payload: dict[str, Any]) -> "ChunksTable":
                 self._payload = payload
                 return self
 
@@ -137,10 +135,10 @@ class TestLinkChunkClassificationPipeline:
         }
         ctx_link.manufacturer = "Canon"
 
-        async def fake_save_links(links: List[Dict[str, Any]], doc_id: str, adapter: Any) -> Dict[str, str]:
+        async def fake_save_links(links: list[dict[str, Any]], doc_id: str, adapter: Any) -> dict[str, str]:
             return {}
 
-        async def fake_save_videos(videos: List[Dict[str, Any]], mapping: Dict[str, str], adapter: Any) -> None:
+        async def fake_save_videos(videos: list[dict[str, Any]], mapping: dict[str, str], adapter: Any) -> None:
             return None
 
         link_processor._save_links_to_db = fake_save_links  # type: ignore[assignment]

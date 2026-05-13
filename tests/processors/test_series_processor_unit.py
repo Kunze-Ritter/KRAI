@@ -1,9 +1,8 @@
 import sys
 import types
-from typing import Dict
+from unittest.mock import AsyncMock
 
 import pytest
-from unittest.mock import AsyncMock
 
 import backend.core.base_processor as backend_base_processor
 import backend.utils.series_detector as backend_series_detector
@@ -19,8 +18,8 @@ utils_pkg.series_detector = backend_series_detector
 sys.modules.setdefault("utils", utils_pkg)
 sys.modules.setdefault("utils.series_detector", backend_series_detector)
 
-from backend.utils.series_detector import detect_series  # noqa: E402
 from backend.processors.series_processor import SeriesProcessor  # noqa: E402
+from backend.utils.series_detector import detect_series  # noqa: E402
 
 
 @pytest.mark.series
@@ -98,7 +97,7 @@ class TestSeriesProcessorHelpers:
         async def fake_get_series(**_kwargs):
             return None
 
-        async def fake_create_series(series_dict: Dict) -> Dict:
+        async def fake_create_series(series_dict: dict) -> dict:
             stored = dict(series_dict)
             stored["id"] = "series-123"
             return stored

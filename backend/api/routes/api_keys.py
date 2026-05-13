@@ -1,26 +1,18 @@
 """API key management routes."""
+
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
+import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
 from api.dependencies.database import get_database_pool
 from api.middleware.auth_middleware import require_permission
-from api.middleware.rate_limit_middleware import (
-    limiter,
-    rate_limit_search,
-    rate_limit_standard,
-)
+from api.middleware.rate_limit_middleware import limiter, rate_limit_search, rate_limit_standard
 from api.routes.response_models import SuccessResponse
-from models.api_key import (
-    APIKeyCreateRequest,
-    APIKeyListResponse,
-    APIKeyResponse,
-    APIKeyWithSecretResponse,
-)
+from models.api_key import APIKeyCreateRequest, APIKeyListResponse, APIKeyResponse, APIKeyWithSecretResponse
 from services.api_key_service import APIKeyService
-import asyncpg
 
 router = APIRouter(prefix="/api-keys", tags=["api_keys"])
 
@@ -33,8 +25,8 @@ def _get_service(pool: asyncpg.Pool) -> APIKeyService:
 
 
 def _resolve_target_user(
-    requested_user_id: Optional[str],
-    current_user: Dict[str, Any],
+    requested_user_id: str | None,
+    current_user: dict[str, Any],
 ) -> str:
     if requested_user_id and requested_user_id != current_user["id"]:
         if current_user.get("role") != "admin":
@@ -50,9 +42,9 @@ def _resolve_target_user(
 @limiter.limit(rate_limit_search)
 async def list_api_keys(
     request: Request,
-    current_user: Dict[str, Any] = Depends(require_api_keys_permission),
+    current_user: dict[str, Any] = Depends(require_api_keys_permission),
     pool: asyncpg.Pool = Depends(get_database_pool),
-    user_id: Optional[str] = Query(None, description="Filter keys for a specific user (admin only)"),
+    user_id: str | None = Query(None, description="Filter keys for a specific user (admin only)"),
 ) -> SuccessResponse[APIKeyListResponse]:
     """List API keys for the current user or a specified user (admin only)."""
 
@@ -72,7 +64,7 @@ async def list_api_keys(
 async def create_api_key(
     request: Request,
     payload: APIKeyCreateRequest,
-    current_user: Dict[str, Any] = Depends(require_api_keys_permission),
+    current_user: dict[str, Any] = Depends(require_api_keys_permission),
     pool: asyncpg.Pool = Depends(get_database_pool),
 ) -> SuccessResponse[APIKeyWithSecretResponse]:
     """Create a new API key for the current user or (admin) another user."""
@@ -97,9 +89,9 @@ async def create_api_key(
 async def rotate_api_key(
     request: Request,
     key_id: str,
-    current_user: Dict[str, Any] = Depends(require_api_keys_permission),
+    current_user: dict[str, Any] = Depends(require_api_keys_permission),
     pool: asyncpg.Pool = Depends(get_database_pool),
-    user_id: Optional[str] = Query(None, description="User that owns the key (admin only)"),
+    user_id: str | None = Query(None, description="User that owns the key (admin only)"),
 ) -> SuccessResponse[APIKeyWithSecretResponse]:
     """Rotate an API key and return the new secret."""
 
@@ -112,16 +104,16 @@ async def rotate_api_key(
 
 @router.post(
     "/{key_id}/revoke",
-    response_model=SuccessResponse[Dict[str, Any]],
+    response_model=SuccessResponse[dict[str, Any]],
 )
 @limiter.limit(rate_limit_standard)
 async def revoke_api_key(
     request: Request,
     key_id: str,
-    current_user: Dict[str, Any] = Depends(require_api_keys_permission),
+    current_user: dict[str, Any] = Depends(require_api_keys_permission),
     pool: asyncpg.Pool = Depends(get_database_pool),
-    user_id: Optional[str] = Query(None, description="User that owns the key (admin only)"),
-) -> SuccessResponse[Dict[str, Any]]:
+    user_id: str | None = Query(None, description="User that owns the key (admin only)"),
+) -> SuccessResponse[dict[str, Any]]:
     """Revoke an API key."""
 
     target_user_id = _resolve_target_user(user_id, current_user)

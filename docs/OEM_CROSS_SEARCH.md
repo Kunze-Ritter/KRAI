@@ -67,7 +67,7 @@ CREATE TABLE krai_core.oem_relationships (
 Neue Spalten für schnellen OEM-Zugriff:
 
 ```sql
-ALTER TABLE krai_core.products 
+ALTER TABLE krai_core.products
 ADD COLUMN oem_manufacturer VARCHAR(100),
 ADD COLUMN oem_relationship_type VARCHAR(50),
 ADD COLUMN oem_notes TEXT;
@@ -141,8 +141,8 @@ model = "5000i"
 
 # Erweitere Query mit OEM
 expanded_queries = expand_search_query_with_oem(
-    manufacturer, 
-    model, 
+    manufacturer,
+    model,
     user_query
 )
 
@@ -382,8 +382,8 @@ manufacturers = get_oem_equivalent_manufacturers("Konica Minolta", "5000i")
 
 # Expand search query
 queries = expand_search_query_with_oem(
-    "Konica Minolta", 
-    "5000i", 
+    "Konica Minolta",
+    "5000i",
     "error C4080 solution"
 )
 # → [
@@ -430,6 +430,6 @@ WHERE p1.model_name = '5000i';
 
 ---
 
-**Autor:** KRAI Development Team  
-**Version:** 1.0  
+**Autor:** KRAI Development Team
+**Version:** 1.0
 **Letzte Aktualisierung:** 10. Oktober 2025

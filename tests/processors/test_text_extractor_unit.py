@@ -1,8 +1,8 @@
-import pytest
 from pathlib import Path
 
-from backend.processors.text_extractor import TextExtractor
+import pytest
 
+from backend.processors.text_extractor import TextExtractor
 
 pytestmark = pytest.mark.processor
 
@@ -242,7 +242,9 @@ class TestExtractTextAPI:
         def fake_open(path: Path):  # type: ignore[override]
             return dummy_doc
 
-        monkeypatch.setattr("backend.processors.text_extractor.fitz", type("_M", (), {"open": staticmethod(fake_open)}), raising=False)
+        monkeypatch.setattr(
+            "backend.processors.text_extractor.fitz", type("_M", (), {"open": staticmethod(fake_open)}), raising=False
+        )
 
         extractor = TextExtractor(prefer_engine="pymupdf", enable_ocr_fallback=False)
         page_texts, metadata, structured = extractor.extract_text(pdf_path, uuid4())

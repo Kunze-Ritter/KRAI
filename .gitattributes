@@ -7,7 +7,7 @@
 # Python files - always LF
 *.py text eol=lf
 
-# YAML files - always LF  
+# YAML files - always LF
 *.yml text eol=lf
 *.yaml text eol=lf
 

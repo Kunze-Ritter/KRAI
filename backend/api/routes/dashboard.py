@@ -1,12 +1,13 @@
 """Dashboard overview routes for aggregated production metrics."""
+
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Any, Dict, List
 import logging
+from datetime import UTC, datetime
+from typing import Any
 
-from fastapi import APIRouter, HTTPException, Depends
 import asyncpg
+from fastapi import APIRouter, Depends
 
 from api.dependencies.database import get_database_pool
 from api.middleware.auth_middleware import require_permission
@@ -25,17 +26,17 @@ async def _fetch_count(pool: asyncpg.Pool, query: str) -> int:
     return int(row["count"] or 0)
 
 
-async def _fetch_group_counts(pool: asyncpg.Pool, query: str, key_field: str) -> Dict[str, int]:
+async def _fetch_group_counts(pool: asyncpg.Pool, query: str, key_field: str) -> dict[str, int]:
     async with pool.acquire() as conn:
         rows = await conn.fetch(query)
-    results: Dict[str, int] = {}
+    results: dict[str, int] = {}
     for row in rows or []:
         key = row.get(key_field) or "unknown"
         results[str(key)] = int(row.get("count", 0) or 0)
     return results
 
 
-async def _fetch_recent_documents(pool: asyncpg.Pool, limit: int = 5) -> List[Dict[str, Any]]:
+async def _fetch_recent_documents(pool: asyncpg.Pool, limit: int = 5) -> list[dict[str, Any]]:
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             """
@@ -46,11 +47,11 @@ async def _fetch_recent_documents(pool: asyncpg.Pool, limit: int = 5) -> List[Di
             """,
             limit,
         )
-        recent: List[Dict[str, Any]] = []
+        recent: list[dict[str, Any]] = []
         for row in rows or []:
             updated_at = row.get("updated_at")
             if isinstance(updated_at, datetime):
-                updated_at = updated_at.astimezone(timezone.utc).isoformat()
+                updated_at = updated_at.astimezone(UTC).isoformat()
             recent.append(
                 {
                     "id": str(row.get("id")),
@@ -65,9 +66,9 @@ async def _fetch_recent_documents(pool: asyncpg.Pool, limit: int = 5) -> List[Di
 
 @router.get("/overview")
 async def get_dashboard_overview(
-    current_user: dict = Depends(require_permission('monitoring:read')),
+    current_user: dict = Depends(require_permission("monitoring:read")),
     pool: asyncpg.Pool = Depends(get_database_pool),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Return aggregated dashboard stats for production data.
 
     This endpoint requires 'monitoring:read' permission to access.
@@ -76,20 +77,15 @@ async def get_dashboard_overview(
     """
 
     try:
-        total_documents = await _fetch_count(
-            pool,
-            "SELECT COUNT(*) AS count FROM krai_core.documents"
-        )
+        total_documents = await _fetch_count(pool, "SELECT COUNT(*) AS count FROM krai_core.documents")
         documents_by_status = await _fetch_group_counts(
             pool,
-            "SELECT processing_status, COUNT(*) AS count "
-            "FROM krai_core.documents GROUP BY processing_status",
+            "SELECT processing_status, COUNT(*) AS count " "FROM krai_core.documents GROUP BY processing_status",
             "processing_status",
         )
         documents_by_type = await _fetch_group_counts(
             pool,
-            "SELECT document_type, COUNT(*) AS count "
-            "FROM krai_core.documents GROUP BY document_type",
+            "SELECT document_type, COUNT(*) AS count " "FROM krai_core.documents GROUP BY document_type",
             "document_type",
         )
         processed_last_24h = await _fetch_count(
@@ -99,23 +95,17 @@ async def get_dashboard_overview(
             "AND updated_at >= NOW() - INTERVAL '24 hours'",
         )
 
-        total_products = await _fetch_count(
-            pool,
-            "SELECT COUNT(*) AS count FROM krai_core.products"
-        )
-        manufacturers_total = await _fetch_count(
-            pool,
-            "SELECT COUNT(*) AS count FROM krai_core.manufacturers"
-        )
+        total_products = await _fetch_count(pool, "SELECT COUNT(*) AS count FROM krai_core.products")
+        manufacturers_total = await _fetch_count(pool, "SELECT COUNT(*) AS count FROM krai_core.manufacturers")
         active_products = await _fetch_count(
             pool,
             "SELECT COUNT(*) AS count FROM krai_core.products "
-            "WHERE end_of_life_date IS NULL OR end_of_life_date > NOW()"
+            "WHERE end_of_life_date IS NULL OR end_of_life_date > NOW()",
         )
         discontinued_products = await _fetch_count(
             pool,
             "SELECT COUNT(*) AS count FROM krai_core.products "
-            "WHERE end_of_life_date IS NOT NULL AND end_of_life_date <= NOW()"
+            "WHERE end_of_life_date IS NOT NULL AND end_of_life_date <= NOW()",
         )
 
         queue_by_status = await _fetch_group_counts(
@@ -126,19 +116,13 @@ async def get_dashboard_overview(
         queue_total = sum(queue_by_status.values())
 
         try:
-            images_total = await _fetch_count(
-                pool,
-                "SELECT COUNT(*) AS count FROM krai_content.images"
-            )
+            images_total = await _fetch_count(pool, "SELECT COUNT(*) AS count FROM krai_content.images")
         except Exception as exc:  # pragma: no cover - defensive
             logger.warning("Dashboard images_total query failed: %s", exc)
             images_total = 0
 
         try:
-            videos_total = await _fetch_count(
-                pool,
-                "SELECT COUNT(*) AS count FROM krai_content.videos"
-            )
+            videos_total = await _fetch_count(pool, "SELECT COUNT(*) AS count FROM krai_content.videos")
         except Exception as exc:  # pragma: no cover - defensive
             logger.warning("Dashboard videos_total query failed: %s", exc)
             videos_total = 0
@@ -151,21 +135,21 @@ async def get_dashboard_overview(
                 "processed_last_24h": processed_last_24h,
                 "recent": await _fetch_recent_documents(pool),
             },
-                "products": {
-                    "total": total_products,
-                    "manufacturers": manufacturers_total,
-                    "active": active_products,
-                    "discontinued": discontinued_products,
-                },
-                "queue": {
-                    "total": queue_total,
-                    "by_status": queue_by_status,
-                },
-                "media": {
-                    "images": images_total,
-                    "videos": videos_total,
-                },
-            }
+            "products": {
+                "total": total_products,
+                "manufacturers": manufacturers_total,
+                "active": active_products,
+                "discontinued": discontinued_products,
+            },
+            "queue": {
+                "total": queue_total,
+                "by_status": queue_by_status,
+            },
+            "media": {
+                "images": images_total,
+                "videos": videos_total,
+            },
+        }
 
         return {"success": True, "data": overview}
     except Exception as exc:  # pragma: no cover - defensive

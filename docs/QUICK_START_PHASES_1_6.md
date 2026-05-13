@@ -163,7 +163,7 @@ POSTGRES_DB=krai_db
 POSTGRES_USER=krai_user
 POSTGRES_PASSWORD=your_secure_password
 
-# Storage Configuration  
+# Storage Configuration
 MINIO_ACCESS_KEY=your_access_key
 MINIO_SECRET_KEY=your_secret_key
 
@@ -248,7 +248,7 @@ python scripts/quick_test.py
 
 # Expected output:
 # ✅ Database: Connected
-# ✅ Storage: Connected  
+# ✅ Storage: Connected
 # ✅ AI Service: Connected
 ```
 
@@ -280,7 +280,7 @@ python scripts/test_search.py --query "fuser unit error"
 # 🔍 Searching: "fuser unit error"
 # 📊 Results found: 12
 # 📄 Text chunks: 8
-# 🖼️ Images: 2  
+# 🖼️ Images: 2
 # 📊 Tables: 1
 # 🎥 Videos: 1
 # ⏱️ Search time: 45ms

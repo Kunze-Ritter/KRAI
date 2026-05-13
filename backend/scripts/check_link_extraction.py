@@ -4,9 +4,11 @@
 import os
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from dotenv import load_dotenv
+
 from processors.link_extractor import LinkExtractor
 
 # Load environment
@@ -17,7 +19,7 @@ print("LINK EXTRACTION CONFIGURATION CHECK")
 print("=" * 60)
 
 # Check YouTube API Key
-youtube_key = os.getenv('YOUTUBE_API_KEY')
+youtube_key = os.getenv("YOUTUBE_API_KEY")
 print(f"\n1. YouTube API Key: {'✅ SET' if youtube_key else '❌ NOT SET'}")
 if youtube_key:
     print(f"   Length: {len(youtube_key)} chars")
@@ -26,13 +28,13 @@ else:
     print("   ⚠️  Without API key, only basic metadata available (oEmbed)")
 
 # Check Vimeo API Key
-vimeo_key = os.getenv('VIMEO_API_KEY')
+vimeo_key = os.getenv("VIMEO_API_KEY")
 print(f"\n2. Vimeo API Key: {'✅ SET' if vimeo_key else '❌ NOT SET'}")
 if vimeo_key:
     print(f"   Length: {len(vimeo_key)} chars")
 
 # Initialize LinkExtractor
-print(f"\n3. Initializing LinkExtractor...")
+print("\n3. Initializing LinkExtractor...")
 try:
     extractor = LinkExtractor(youtube_api_key=youtube_key)
     print("   ✅ LinkExtractor initialized")
@@ -41,7 +43,7 @@ except Exception as e:
     sys.exit(1)
 
 # Test URL patterns
-print(f"\n4. Testing URL patterns:")
+print("\n4. Testing URL patterns:")
 test_urls = [
     "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
     "https://youtu.be/dQw4w9WgXcQ",
@@ -53,37 +55,37 @@ test_urls = [
 for url in test_urls:
     youtube_id = extractor._extract_youtube_id(url)
     link_type = extractor._classify_link(url)
-    
+
     print(f"\n   URL: {url}")
     print(f"   YouTube ID: {youtube_id if youtube_id else 'N/A'}")
     print(f"   Type: {link_type}")
 
 # Test YouTube metadata fetch
 if youtube_key:
-    print(f"\n5. Testing YouTube API:")
+    print("\n5. Testing YouTube API:")
     test_video_id = "dQw4w9WgXcQ"  # Rick Astley - Never Gonna Give You Up
     try:
         metadata = extractor._fetch_youtube_metadata(test_video_id)
         if metadata:
-            print(f"   ✅ API working!")
+            print("   ✅ API working!")
             print(f"   Title: {metadata.get('title', 'N/A')[:50]}...")
             print(f"   Duration: {metadata.get('duration_seconds', 0)} seconds")
             print(f"   Views: {metadata.get('view_count', 0):,}")
         else:
-            print(f"   ❌ No metadata returned")
+            print("   ❌ No metadata returned")
     except Exception as e:
         print(f"   ❌ API Error: {e}")
 else:
-    print(f"\n5. Testing YouTube oEmbed (fallback):")
+    print("\n5. Testing YouTube oEmbed (fallback):")
     test_video_id = "dQw4w9WgXcQ"
     try:
         metadata = extractor._fetch_youtube_metadata(test_video_id)
         if metadata:
-            print(f"   ✅ oEmbed working!")
+            print("   ✅ oEmbed working!")
             print(f"   Title: {metadata.get('title', 'N/A')[:50]}...")
-            print(f"   Note: Limited metadata (no views, duration, etc.)")
+            print("   Note: Limited metadata (no views, duration, etc.)")
         else:
-            print(f"   ❌ No metadata returned")
+            print("   ❌ No metadata returned")
     except Exception as e:
         print(f"   ❌ Error: {e}")
 

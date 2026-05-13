@@ -1,9 +1,10 @@
-﻿"""PostgreSQL-backed Manufacturer API routes for KR-AI-Engine."""
+"""PostgreSQL-backed Manufacturer API routes for KR-AI-Engine."""
+
 from __future__ import annotations
 
 import logging
 from math import ceil
-from typing import Any, Dict, List
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
@@ -36,13 +37,13 @@ class ManufacturerAPI:
             pagination: PaginationParams = Depends(),
             filters: ManufacturerFilterParams = Depends(),
             sort: ManufacturerSortParams = Depends(),
-            current_user: Dict[str, Any] = Depends(require_permission("manufacturers:read")),
+            current_user: dict[str, Any] = Depends(require_permission("manufacturers:read")),
         ) -> SuccessResponse[ManufacturerListResponse]:
             """List manufacturers with pagination, filtering, and sorting (PostgreSQL-backed)."""
 
             try:
-                conditions: List[str] = []
-                params: Dict[str, Any] = {}
+                conditions: list[str] = []
+                params: dict[str, Any] = {}
 
                 if filters.country:
                     conditions.append("country = :country")
@@ -57,9 +58,7 @@ class ManufacturerAPI:
                     conditions.append("founded_year <= :founded_year_to")
                     params["founded_year_to"] = filters.founded_year_to
                 if filters.search:
-                    conditions.append(
-                        "(name ILIKE :search OR short_name ILIKE :search OR country ILIKE :search)"
-                    )
+                    conditions.append("(name ILIKE :search OR short_name ILIKE :search OR country ILIKE :search)")
                     params["search"] = f"%{filters.search}%"
 
                 where_clause = f" WHERE {' AND '.join(conditions)}" if conditions else ""
@@ -94,17 +93,10 @@ class ManufacturerAPI:
                     FROM krai_core.manufacturers
                 """
 
-                list_query = (
-                    base_select
-                    + where_clause
-                    + order_clause
-                    + " LIMIT :limit OFFSET :offset"
-                )
+                list_query = base_select + where_clause + order_clause + " LIMIT :limit OFFSET :offset"
                 rows = await self.database_service.fetch_all(list_query, params)
 
-                count_query = (
-                    "SELECT COUNT(*) AS count FROM krai_core.manufacturers" + where_clause
-                )
+                count_query = "SELECT COUNT(*) AS count FROM krai_core.manufacturers" + where_clause
                 count_row = await self.database_service.fetch_one(count_query, params)
                 total = int(count_row["count"]) if count_row and "count" in count_row else 0
 
@@ -125,4 +117,3 @@ class ManufacturerAPI:
             except Exception as exc:  # pragma: no cover - defensive
                 self.logger.error("Failed to list manufacturers: %s", exc)
                 raise HTTPException(status_code=500, detail=str(exc))
-

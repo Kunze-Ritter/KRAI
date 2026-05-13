@@ -4,13 +4,10 @@ Covers table detection, data extraction, type detection, context extraction,
 and embedding generation using the structured-data fixtures and mock services.
 """
 
-import hashlib
-from pathlib import Path
-from typing import Any, Dict, List, Optional
-from uuid import uuid4
+from typing import Any
 
-import pytest
 import pandas as pd
+import pytest
 
 try:  # Optional – some tests are skipped if PyMuPDF is unavailable
     import fitz
@@ -18,8 +15,6 @@ except ImportError:  # pragma: no cover - environment dependent
     fitz = None
 
 from backend.processors.table_processor import TableProcessor
-from backend.core.base_processor import ProcessingContext
-
 
 pytestmark = [pytest.mark.processor, pytest.mark.table]
 
@@ -39,11 +34,11 @@ class DummyBBox:
 class DummyTab:
     """Minimal table object compatible with TableProcessor._extract_table_data."""
 
-    def __init__(self, data: List[List[Any]], bbox: Optional[DummyBBox] = None) -> None:
+    def __init__(self, data: list[list[Any]], bbox: DummyBBox | None = None) -> None:
         self._data = data
         self.bbox = bbox or DummyBBox(0, 100, 400, 300)
 
-    def extract(self) -> List[List[Any]]:
+    def extract(self) -> list[list[Any]]:
         return self._data
 
 
@@ -130,7 +125,9 @@ class TestTableDetection:
 
         assert tables == []
 
-    def test_extract_table_data_validation_min_rows_and_cols(self, mock_database_adapter, mock_embedding_service) -> None:
+    def test_extract_table_data_validation_min_rows_and_cols(
+        self, mock_database_adapter, mock_embedding_service
+    ) -> None:
         processor = TableProcessor(
             database_service=mock_database_adapter,
             embedding_service=mock_embedding_service,
@@ -225,7 +222,7 @@ class TestTableTypeDetection:
     )
     def test_detect_table_type_parametrized(
         self,
-        columns: List[str],
+        columns: list[str],
         expected: str,
         mock_database_adapter,
         mock_embedding_service,
@@ -286,7 +283,7 @@ class TestTableEmbeddingGeneration:
 
     def test_generate_table_embedding_service_failure(self, mock_database_adapter) -> None:
         class FailingEmbeddingService:
-            def _generate_embedding(self, text: str) -> List[float]:  # pragma: no cover - simple failure path
+            def _generate_embedding(self, text: str) -> list[float]:  # pragma: no cover - simple failure path
                 raise RuntimeError("embedding failed")
 
         processor = TableProcessor(mock_database_adapter, FailingEmbeddingService())
@@ -294,7 +291,7 @@ class TestTableEmbeddingGeneration:
         assert emb == []
 
 
-def json_loads(value: Optional[str]) -> Any:
+def json_loads(value: str | None) -> Any:
     """Small helper to safely load JSON from strings used in table metadata/bbox."""
     import json
 

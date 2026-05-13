@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Diagnose: videos without series_id and enrichment status."""
+
 import asyncio
 import sys
 from pathlib import Path
@@ -21,7 +22,6 @@ async def main():
     pool = db._ensure_pool()
 
     async with pool.acquire() as conn:
-
         # --- 252 videos without series_id: who are they? ---
         print("=" * 60)
         print("Videos ohne series_id – nach Hersteller / Plattform")
@@ -95,7 +95,7 @@ async def main():
         print(f"  Gesamt            : {total}")
         print(f"  enriched_at gesetzt: {enriched}")
         print(f"  needs_enrichment   : {needs_enrichment}")
-        print(f"  Plattformen:")
+        print("  Plattformen:")
         for r in platforms:
             print(f"    {r['platform']:20s}  {r['anzahl']:>5}")
         print()

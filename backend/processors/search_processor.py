@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
 import time
+from typing import Any
 
-from backend.core.base_processor import BaseProcessor, Stage, ProcessingContext, ProcessingResult, ProcessingError
-from .stage_tracker import StageTracker
+from backend.core.base_processor import BaseProcessor, ProcessingContext, ProcessingError, ProcessingResult, Stage
+
 from .search_analytics import SearchAnalytics
+from .stage_tracker import StageTracker
 
 
 class SearchProcessor(BaseProcessor):
@@ -22,13 +23,14 @@ class SearchProcessor(BaseProcessor):
         # Initialize StageTracker with database adapter
         if database_adapter:
             from .stage_tracker import StageTracker
-            self.stage_tracker: Optional[StageTracker] = StageTracker(database_adapter)
+
+            self.stage_tracker: StageTracker | None = StageTracker(database_adapter)
         else:
             self.stage_tracker = None
             self.logger.warning("SearchProcessor initialized without database adapter")
 
         # Initialize SearchAnalytics with database adapter
-        from .search_analytics import SearchAnalytics
+
         self.analytics = SearchAnalytics(database_adapter)
 
     async def process(self, context: ProcessingContext) -> ProcessingResult:
@@ -62,7 +64,7 @@ class SearchProcessor(BaseProcessor):
                     document_id=document_id,
                     chunks_count=chunks_count,
                     embeddings_count=embeddings_count,
-                    processing_time_seconds=processing_time
+                    processing_time_seconds=processing_time,
                 )
 
                 stage_metadata = {
@@ -70,27 +72,19 @@ class SearchProcessor(BaseProcessor):
                     "embeddings_indexed": embeddings_count,
                     "links_indexed": links_count,
                     "videos_indexed": videos_count,
-                    "processing_time_seconds": round(processing_time, 2)
+                    "processing_time_seconds": round(processing_time, 2),
                 }
 
                 if self.stage_tracker:
                     await self.stage_tracker.complete_stage(document_id, self.stage, stage_metadata)
 
-                return self._create_result(
-                    success=True,
-                    message="Search indexing completed",
-                    data=stage_metadata
-                )
+                return self._create_result(success=True, message="Search indexing completed", data=stage_metadata)
 
             except Exception as exc:
                 adapter.error("Search indexing failed: %s", exc)
                 self.logger.error(f"Search indexing failed: {exc}")
                 if self.stage_tracker:
-                    await self.stage_tracker.fail_stage(
-                        document_id,
-                        self.stage,
-                        error=str(exc)
-                    )
+                    await self.stage_tracker.fail_stage(document_id, self.stage, error=str(exc))
                 return self._create_result(False, f"Search indexing error: {exc}", {})
 
     async def _count_records(self, view_name: str, document_id: str) -> int:
@@ -98,7 +92,7 @@ class SearchProcessor(BaseProcessor):
         try:
             query = f"SELECT COUNT(*) as count FROM {view_name} WHERE document_id = $1"
             result = await self.database_adapter.execute_query(query, [document_id])
-            return result[0]['count'] if result else 0
+            return result[0]["count"] if result else 0
         except Exception as exc:
             self.logger.debug(f"Failed counting records in {view_name}: {exc}")
             return 0
@@ -108,8 +102,8 @@ class SearchProcessor(BaseProcessor):
         try:
             # search_ready: bound parameter
             # search_ready_at: use SQL NOW() when embeddings exist (not a bound string literal)
-            set_clauses: List[str] = []
-            params: List[Any] = []
+            set_clauses: list[str] = []
+            params: list[Any] = []
             param_index = 1
 
             set_clauses.append(f"search_ready = ${param_index}")
@@ -124,15 +118,14 @@ class SearchProcessor(BaseProcessor):
                 params.append(document_id)
                 query = f"UPDATE vw_documents SET {', '.join(set_clauses)} WHERE id = ${param_index}"
                 await self.database_adapter.execute_query(query, params)
-                
+
         except Exception as exc:
             logger = adapter if adapter else self.logger
             logger.debug("Failed updating document search flags: %s", exc)
 
-    def _create_result(self, success: bool, message: str, data: Dict) -> ProcessingResult:
+    def _create_result(self, success: bool, message: str, data: dict) -> ProcessingResult:
         """Create a processing result object using BaseProcessor helpers"""
         if success:
-            return self.create_success_result(data=data, metadata={'message': message})
-        else:
-            error = ProcessingError(message, self.name, "SEARCH_INDEXING_ERROR")
-            return self.create_error_result(error=error, metadata={})
+            return self.create_success_result(data=data, metadata={"message": message})
+        error = ProcessingError(message, self.name, "SEARCH_INDEXING_ERROR")
+        return self.create_error_result(error=error, metadata={})

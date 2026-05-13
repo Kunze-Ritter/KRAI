@@ -1,8 +1,9 @@
 """Unit tests for APIKeyService."""
+
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-from typing import Any, List, Tuple
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import pytest
 
@@ -12,11 +13,11 @@ from services.api_key_service import APIKeyService
 class StubAdapter:
     """Simple adapter mock capturing queries and returning queued responses."""
 
-    def __init__(self, responses: List[List[dict]] | None = None):
+    def __init__(self, responses: list[list[dict]] | None = None):
         self.responses = list(responses or [])
-        self.calls: List[Tuple[str, List[Any]]] = []
+        self.calls: list[tuple[str, list[Any]]] = []
 
-    async def execute_query(self, query: str, params: List[Any] | Tuple[Any, ...]):
+    async def execute_query(self, query: str, params: list[Any] | tuple[Any, ...]):
         self.calls.append((query, list(params)))
         if self.responses:
             return self.responses.pop(0)
@@ -42,19 +43,23 @@ async def test_generate_api_key_uses_prefix():
 
 @pytest.mark.anyio
 async def test_create_api_key_stores_hash_and_returns_metadata():
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     adapter = StubAdapter(
-        responses=[[{
-            "id": "key-1",
-            "name": "CI Bot",
-            "permissions": ["documents:read"],
-            "version": 1,
-            "created_at": now,
-            "updated_at": now,
-            "expires_at": now + timedelta(days=90),
-            "last_used_at": None,
-            "revoked": False,
-        }]]
+        responses=[
+            [
+                {
+                    "id": "key-1",
+                    "name": "CI Bot",
+                    "permissions": ["documents:read"],
+                    "version": 1,
+                    "created_at": now,
+                    "updated_at": now,
+                    "expires_at": now + timedelta(days=90),
+                    "last_used_at": None,
+                    "revoked": False,
+                }
+            ]
+        ]
     )
     service = APIKeyService(adapter=adapter)
 
@@ -73,19 +78,23 @@ async def test_create_api_key_stores_hash_and_returns_metadata():
 
 @pytest.mark.anyio
 async def test_rotate_api_key_resets_revocation_flags():
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     adapter = StubAdapter(
-        responses=[[{
-            "id": "key-1",
-            "name": "CI Bot",
-            "permissions": ["documents:read"],
-            "version": 2,
-            "created_at": now,
-            "updated_at": now,
-            "expires_at": now + timedelta(days=90),
-            "last_used_at": None,
-            "revoked": False,
-        }]]
+        responses=[
+            [
+                {
+                    "id": "key-1",
+                    "name": "CI Bot",
+                    "permissions": ["documents:read"],
+                    "version": 2,
+                    "created_at": now,
+                    "updated_at": now,
+                    "expires_at": now + timedelta(days=90),
+                    "last_used_at": None,
+                    "revoked": False,
+                }
+            ]
+        ]
     )
     service = APIKeyService(adapter=adapter)
 
@@ -99,15 +108,19 @@ async def test_rotate_api_key_resets_revocation_flags():
 
 @pytest.mark.anyio
 async def test_validate_api_key_updates_last_used_timestamp():
-    expires = datetime.now(timezone.utc) + timedelta(days=1)
+    expires = datetime.now(UTC) + timedelta(days=1)
     adapter = StubAdapter(
-        responses=[[{
-            "id": "key-1",
-            "user_id": "user-123",
-            "permissions": ["documents:read"],
-            "expires_at": expires,
-            "revoked": False,
-        }]]
+        responses=[
+            [
+                {
+                    "id": "key-1",
+                    "user_id": "user-123",
+                    "permissions": ["documents:read"],
+                    "expires_at": expires,
+                    "revoked": False,
+                }
+            ]
+        ]
     )
     service = APIKeyService(adapter=adapter)
 
@@ -121,13 +134,17 @@ async def test_validate_api_key_updates_last_used_timestamp():
 @pytest.mark.anyio
 async def test_validate_api_key_rejects_revoked_records():
     adapter = StubAdapter(
-        responses=[[{
-            "id": "key-1",
-            "user_id": "user-123",
-            "permissions": [],
-            "expires_at": datetime.now(timezone.utc) + timedelta(days=1),
-            "revoked": True,
-        }]]
+        responses=[
+            [
+                {
+                    "id": "key-1",
+                    "user_id": "user-123",
+                    "permissions": [],
+                    "expires_at": datetime.now(UTC) + timedelta(days=1),
+                    "revoked": True,
+                }
+            ]
+        ]
     )
     service = APIKeyService(adapter=adapter)
 

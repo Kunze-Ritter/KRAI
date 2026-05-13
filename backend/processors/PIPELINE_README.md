@@ -179,19 +179,19 @@ print(f"Total time: {result['processing_time']:.1f}s")
 ```python
 pipeline = MasterPipeline(
     supabase_client=supabase,
-    
+
     # Manufacturer detection
     manufacturer="AUTO",  # or "HP", "Canon", "Xerox", etc.
-    
+
     # Image processing
     enable_images=True,   # Extract images
     enable_ocr=True,      # OCR on images
     enable_vision=True,   # Vision AI analysis
-    
+
     # Optional stages
     # storage upload disabled
     enable_embeddings=True,   # Generate embeddings
-    
+
     # Error handling
     max_retries=2  # Retry failed stages
 )
@@ -564,4 +564,3 @@ For issues or questions:
 ## License
 
 Internal use only - Kunze-Ritter AI Project
-

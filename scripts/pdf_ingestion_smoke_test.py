@@ -7,7 +7,7 @@ import os
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import requests
 
@@ -22,7 +22,7 @@ def parse_bool(value: str | None) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
-def _print_json(label: str, payload: Dict[str, Any]) -> None:
+def _print_json(label: str, payload: dict[str, Any]) -> None:
     print(label)
     print(json.dumps(payload, indent=2, default=str))
 
@@ -131,7 +131,7 @@ def main() -> int:
     status_url = f"{base_url}/api/v1/documents/{document_id}/status"
     print(f"\nPolling status: {status_url}")
 
-    last_status: Dict[str, Any] = {}
+    last_status: dict[str, Any] = {}
     for attempt in range(1, max_polls + 1):
         try:
             status_response = requests.get(status_url, headers=headers, timeout=15)

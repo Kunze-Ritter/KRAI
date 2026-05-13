@@ -92,16 +92,17 @@ LIMIT 5
 
 # ── Extraction helpers ─────────────────────────────────────────────────────────
 
+
 def _is_toc_or_index(text: str) -> bool:
     """Return True if text looks like a table-of-contents or index entry (not real content)."""
     if not text:
         return True
     # TOC entries have many consecutive dots
-    if text.count('...') > 3:
+    if text.count("...") > 3:
         return True
     # Very short with no sentence structure
     stripped = text.strip()
-    if len(stripped) < 80 and '\n' not in stripped:
+    if len(stripped) < 80 and "\n" not in stripped:
         return True
     return False
 
@@ -117,7 +118,7 @@ def _extract_solution_block(chunk_text: str, error_code: str) -> str:
 
     section = chunk_text[idx:]
     # Stop at the next error-code entry (e.g. "99.00.03 Upgrade…")
-    stop = re.search(r'\n\d{2,3}\.\d{2}[\.\d]*\s+\S', section[len(error_code):])
+    stop = re.search(r"\n\d{2,3}\.\d{2}[\.\d]*\s+\S", section[len(error_code) :])
     if stop:
         section = section[: len(error_code) + stop.start()]
     return section.strip()
@@ -145,16 +146,17 @@ def _levels_for_manufacturer(chunk_text: str, error_code: str, manufacturer: str
 
 # ── Main ───────────────────────────────────────────────────────────────────────
 
+
 async def main(dry_run: bool = False, limit: int = 0):
-    db_url = os.environ.get('POSTGRES_URL') or os.environ.get('DATABASE_URL')
+    db_url = os.environ.get("POSTGRES_URL") or os.environ.get("DATABASE_URL")
     if not db_url:
         print("ERROR: POSTGRES_URL not set in environment")
         sys.exit(1)
 
     # asyncpg needs postgresql:// not postgres://
-    db_url = db_url.replace('postgres://', 'postgresql://', 1)
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
 
-    print(f"Connecting to DB…")
+    print("Connecting to DB…")
     pool = await asyncpg.create_pool(db_url, min_size=2, max_size=8)
 
     limit_clause = f"LIMIT {limit}" if limit else ""
@@ -172,14 +174,14 @@ async def main(dry_run: bool = False, limit: int = 0):
     no_chunk = 0
 
     for i, row in enumerate(rows, 1):
-        ec_id      = row['id']
-        code       = row['error_code']
-        doc_id     = row['document_id']
-        mfr_name   = row['manufacturer_name'] or row['doc_manufacturer'] or ''
+        ec_id = row["id"]
+        code = row["error_code"]
+        doc_id = row["document_id"]
+        mfr_name = row["manufacturer_name"] or row["doc_manufacturer"] or ""
 
         # Find matching chunk(s)
         async with pool.acquire() as conn:
-            chunks = await conn.fetch(_CHUNK_SQL, doc_id, f'%{code}%')
+            chunks = await conn.fetch(_CHUNK_SQL, doc_id, f"%{code}%")
 
         if not chunks:
             no_chunk += 1
@@ -188,14 +190,14 @@ async def main(dry_run: bool = False, limit: int = 0):
             continue
 
         # Pick the chunk with the most solution-related content
-        best_chunk  = None
+        best_chunk = None
         best_levels = None
         for cr in chunks:
-            levels = _levels_for_manufacturer(cr['text_chunk'], code, mfr_name)
-            tech = levels.get('technician') or ''
-            if levels['technician'] and not _is_toc_or_index(tech):
-                if best_levels is None or len(tech) > len(best_levels.get('technician') or ''):
-                    best_chunk  = cr['text_chunk']
+            levels = _levels_for_manufacturer(cr["text_chunk"], code, mfr_name)
+            tech = levels.get("technician") or ""
+            if levels["technician"] and not _is_toc_or_index(tech):
+                if best_levels is None or len(tech) > len(best_levels.get("technician") or ""):
+                    best_chunk = cr["text_chunk"]
                     best_levels = levels
 
         if best_levels is None:
@@ -204,16 +206,16 @@ async def main(dry_run: bool = False, limit: int = 0):
             # page.  Concatenate the code-chunk with each adjacent same-page chunk
             # that contains a "Recommended action" header and retry extraction.
             async with pool.acquire() as conn:
-                adj_chunks = await conn.fetch(_ADJACENT_SQL, doc_id, f'%{code}%')
+                adj_chunks = await conn.fetch(_ADJACENT_SQL, doc_id, f"%{code}%")
 
             for adj in adj_chunks:
                 # Process adjacent chunk directly (no code context) — when the
                 # error code is absent, _extract_solution_block returns the full
                 # chunk, and extract_all_hp_levels picks up the last header section.
-                levels = _levels_for_manufacturer(adj['text_chunk'], code, mfr_name)
-                tech = levels.get('technician') or ''
-                if levels['technician'] and not _is_toc_or_index(tech):
-                    if best_levels is None or len(tech) > len(best_levels.get('technician') or ''):
+                levels = _levels_for_manufacturer(adj["text_chunk"], code, mfr_name)
+                tech = levels.get("technician") or ""
+                if levels["technician"] and not _is_toc_or_index(tech):
+                    if best_levels is None or len(tech) > len(best_levels.get("technician") or ""):
                         best_levels = levels
 
         if best_levels is None:
@@ -230,9 +232,9 @@ async def main(dry_run: bool = False, limit: int = 0):
                 await conn.execute(
                     _UPDATE_SQL,
                     ec_id,
-                    best_levels['customer'],
-                    best_levels['agent'],
-                    best_levels['technician'],
+                    best_levels["customer"],
+                    best_levels["agent"],
+                    best_levels["technician"],
                 )
             updated += 1
 
@@ -243,9 +245,9 @@ async def main(dry_run: bool = False, limit: int = 0):
     print(f"\nDone.  Updated={updated}  No-chunk={no_chunk}  Skipped={skipped}  Total={total}")
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Backfill solution_*_text columns from chunks')
-    parser.add_argument('--dry-run', action='store_true', help='Show stats without writing to DB')
-    parser.add_argument('--limit', type=int, default=0, help='Process only first N rows (0=all)')
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Backfill solution_*_text columns from chunks")
+    parser.add_argument("--dry-run", action="store_true", help="Show stats without writing to DB")
+    parser.add_argument("--limit", type=int, default=0, help="Process only first N rows (0=all)")
     args = parser.parse_args()
     asyncio.run(main(dry_run=args.dry_run, limit=args.limit))

@@ -12,8 +12,9 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import logging
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Sequence
+from collections.abc import Sequence
+from datetime import UTC, datetime
+from typing import Any
 
 try:
     from croniter import croniter
@@ -31,9 +32,9 @@ class ManufacturerCrawler:
         self,
         web_scraping_service: WebScrapingService,
         database_service: Any,
-        config_service: Optional[ConfigService] = None,
-        structured_extraction_service: Optional[Any] = None,
-        batch_task_service: Optional[Any] = None,
+        config_service: ConfigService | None = None,
+        structured_extraction_service: Any | None = None,
+        batch_task_service: Any | None = None,
     ) -> None:
         self._scraper = web_scraping_service
         self._database_service = database_service
@@ -50,13 +51,13 @@ class ManufacturerCrawler:
     # ------------------------------------------------------------------
     # Schedule management
     # ------------------------------------------------------------------
-    async def create_crawl_schedule(self, manufacturer_id: str, crawl_config: Dict[str, Any]) -> Optional[str]:
+    async def create_crawl_schedule(self, manufacturer_id: str, crawl_config: dict[str, Any]) -> str | None:
         if not self._enabled:
             self._logger.warning("Manufacturer crawling disabled; schedule not created")
             return None
 
         import json
-        
+
         payload = {
             "manufacturer_id": manufacturer_id,
             "crawl_type": crawl_config.get("crawl_type", "full_site"),
@@ -83,8 +84,9 @@ class ManufacturerCrawler:
             next_run_dt = None
             if payload["next_run_at"]:
                 from datetime import datetime
-                next_run_dt = datetime.fromisoformat(payload["next_run_at"].replace('Z', '+00:00'))
-            
+
+                next_run_dt = datetime.fromisoformat(payload["next_run_at"].replace("Z", "+00:00"))
+
             params = [
                 payload["manufacturer_id"],
                 payload["crawl_type"],
@@ -106,9 +108,9 @@ class ManufacturerCrawler:
             self._logger.error("Failed to create crawl schedule: %s", exc)
             return None
 
-    async def update_crawl_schedule(self, schedule_id: str, updates: Dict[str, Any]) -> bool:
+    async def update_crawl_schedule(self, schedule_id: str, updates: dict[str, Any]) -> bool:
         import json
-        
+
         if "schedule_cron" in updates:
             updates["next_run_at"] = self._calculate_next_run(updates.get("schedule_cron"))
 
@@ -117,7 +119,7 @@ class ManufacturerCrawler:
             set_clauses = []
             params = []
             param_idx = 1
-            
+
             for key, value in updates.items():
                 set_clauses.append(f"{key} = ${param_idx}")
                 # Serialize dicts to JSON
@@ -126,14 +128,14 @@ class ManufacturerCrawler:
                 else:
                     params.append(value)
                 param_idx += 1
-            
+
             params.append(str(schedule_id))
             query = f"""
                 UPDATE krai_system.manufacturer_crawl_schedules
                 SET {', '.join(set_clauses)}, updated_at = NOW()
                 WHERE id = ${param_idx}
             """
-            
+
             await self._database_service.execute_query(query, params)
             return True
         except Exception as exc:  # pragma: no cover - defensive logging
@@ -152,7 +154,7 @@ class ManufacturerCrawler:
             self._logger.error("Failed to delete crawl schedule %s: %s", schedule_id, exc)
             return False
 
-    async def list_crawl_schedules(self, manufacturer_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    async def list_crawl_schedules(self, manufacturer_id: str | None = None) -> list[dict[str, Any]]:
         try:
             if manufacturer_id:
                 query = """
@@ -172,7 +174,7 @@ class ManufacturerCrawler:
             self._logger.error("Failed to list crawl schedules: %s", exc)
             return []
 
-    async def get_crawl_schedule(self, schedule_id: str) -> Optional[Dict[str, Any]]:
+    async def get_crawl_schedule(self, schedule_id: str) -> dict[str, Any] | None:
         try:
             query = """
                 SELECT * FROM krai_system.manufacturer_crawl_schedules
@@ -188,7 +190,7 @@ class ManufacturerCrawler:
     # ------------------------------------------------------------------
     # Job lifecycle
     # ------------------------------------------------------------------
-    async def start_crawl_job(self, schedule_id: str) -> Optional[str]:
+    async def start_crawl_job(self, schedule_id: str) -> str | None:
         if not self._enabled:
             self._logger.warning("Manufacturer crawling disabled; job not started")
             return None
@@ -199,7 +201,7 @@ class ManufacturerCrawler:
             return None
 
         import json
-        
+
         payload = {
             "schedule_id": schedule_id,
             "manufacturer_id": schedule["manufacturer_id"],
@@ -215,7 +217,7 @@ class ManufacturerCrawler:
             """
             rows = await self._database_service.execute_query(
                 query,
-                [schedule_id, payload["manufacturer_id"], payload["status"], json.dumps(payload["crawl_metadata"])]
+                [schedule_id, payload["manufacturer_id"], payload["status"], json.dumps(payload["crawl_metadata"])],
             )
             job_id = str(rows[0]["id"]) if rows else None
             self._logger.info("Queued crawl job %s for schedule %s", job_id, schedule_id)
@@ -249,8 +251,7 @@ class ManufacturerCrawler:
             self._logger.warning("BatchTaskService unavailable, running crawl job %s inline", job_id)
             asyncio.create_task(self.execute_crawl_job(job_id))
 
-    async def execute_crawl_job(self, job_id: str) -> Dict[str, Any]:
-
+    async def execute_crawl_job(self, job_id: str) -> dict[str, Any]:
         job = await self.get_crawl_job_status(job_id)
         if not job:
             return {"success": False, "error": "job not found"}
@@ -259,7 +260,7 @@ class ManufacturerCrawler:
         if not schedule:
             return {"success": False, "error": "schedule not found"}
 
-        await self._update_job(job_id, {"status": "running", "started_at": datetime.now(timezone.utc).isoformat()})
+        await self._update_job(job_id, {"status": "running", "started_at": datetime.now(UTC).isoformat()})
 
         crawl_options = schedule.get("crawl_options", {}) or {}
         crawl_options.setdefault("limit", schedule.get("max_pages") or self._config.get("default_max_pages", 100))
@@ -285,7 +286,7 @@ class ManufacturerCrawler:
             job_id,
             {
                 "status": "completed",
-                "completed_at": datetime.now(timezone.utc).isoformat(),
+                "completed_at": datetime.now(UTC).isoformat(),
                 "pages_discovered": len(pages),
                 "pages_scraped": persisted["scraped"],
                 "pages_failed": persisted["failed"],
@@ -306,7 +307,7 @@ class ManufacturerCrawler:
             "pages_failed": persisted["failed"],
         }
 
-    async def process_crawled_pages(self, job_id: str) -> Dict[str, Any]:
+    async def process_crawled_pages(self, job_id: str) -> dict[str, Any]:
         if not self._structured_extraction_service:
             return {"processed": 0, "extractions": 0}
 
@@ -317,7 +318,7 @@ class ManufacturerCrawler:
                 WHERE crawl_job_id = $1 AND status = $2
             """
             pages = await self._database_service.execute_query(query, [str(job_id), "scraped"])
-            
+
             extraction_count = 0
             processed_ids = []
             failed_ids = []
@@ -338,8 +339,7 @@ class ManufacturerCrawler:
                     WHERE id = ANY($3)
                 """
                 await self._database_service.execute_query(
-                    update_query,
-                    ["processed", datetime.now(timezone.utc), processed_ids]
+                    update_query, ["processed", datetime.now(UTC), processed_ids]
                 )
             if failed_ids:
                 update_query = """
@@ -347,17 +347,14 @@ class ManufacturerCrawler:
                     SET status = $1, processed_at = $2
                     WHERE id = ANY($3)
                 """
-                await self._database_service.execute_query(
-                    update_query,
-                    ["failed", datetime.now(timezone.utc), failed_ids]
-                )
+                await self._database_service.execute_query(update_query, ["failed", datetime.now(UTC), failed_ids])
 
             return {"processed": len(processed_ids), "failed": len(failed_ids), "extractions": extraction_count}
         except Exception as exc:  # pragma: no cover
             self._logger.error("Failed to process crawled pages: %s", exc)
             return {"processed": 0, "extractions": 0}
 
-    async def detect_content_changes(self, manufacturer_id: str) -> List[Dict[str, Any]]:
+    async def detect_content_changes(self, manufacturer_id: str) -> list[dict[str, Any]]:
         try:
             query = """
                 SELECT url, content_hash, created_at
@@ -367,7 +364,7 @@ class ManufacturerCrawler:
             """
             rows = await self._database_service.execute_query(query, [str(manufacturer_id)])
 
-            changes: Dict[str, Dict[str, Any]] = {}
+            changes: dict[str, dict[str, Any]] = {}
             for row in rows or []:
                 url = row.get("url")
                 url_hash = row.get("content_hash")
@@ -398,7 +395,7 @@ class ManufacturerCrawler:
             self._logger.error("Failed to detect content changes: %s", exc)
             return []
 
-    async def get_crawl_job_status(self, job_id: str) -> Optional[Dict[str, Any]]:
+    async def get_crawl_job_status(self, job_id: str) -> dict[str, Any] | None:
         try:
             query = """
                 SELECT *
@@ -417,12 +414,12 @@ class ManufacturerCrawler:
             self._logger.error("Failed to get crawl job status %s: %s", job_id, exc)
             return None
 
-    async def list_crawl_jobs(self, schedule_id: Optional[str] = None, status: Optional[str] = None) -> List[Dict[str, Any]]:
+    async def list_crawl_jobs(self, schedule_id: str | None = None, status: str | None = None) -> list[dict[str, Any]]:
         try:
             conditions = []
             params = []
             param_idx = 1
-            
+
             if schedule_id:
                 conditions.append(f"schedule_id = ${param_idx}")
                 params.append(str(schedule_id))
@@ -431,7 +428,7 @@ class ManufacturerCrawler:
                 conditions.append(f"status = ${param_idx}")
                 params.append(status)
                 param_idx += 1
-            
+
             where_clause = " AND ".join(conditions) if conditions else "1=1"
             query = f"""
                 SELECT *
@@ -445,7 +442,7 @@ class ManufacturerCrawler:
             self._logger.error("Failed to list crawl jobs: %s", exc)
             return []
 
-    async def retry_failed_job(self, job_id: str) -> Optional[str]:
+    async def retry_failed_job(self, job_id: str) -> str | None:
         job = await self.get_crawl_job_status(job_id)
         if not job or job.get("status") != "failed":
             return None
@@ -457,15 +454,15 @@ class ManufacturerCrawler:
     async def get_crawled_pages(
         self,
         *,
-        job_id: Optional[str] = None,
-        manufacturer_id: Optional[str] = None,
-        page_type: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        job_id: str | None = None,
+        manufacturer_id: str | None = None,
+        page_type: str | None = None,
+    ) -> list[dict[str, Any]]:
         try:
             conditions = []
             params = []
             param_idx = 1
-            
+
             if job_id:
                 conditions.append(f"crawl_job_id = ${param_idx}")
                 params.append(str(job_id))
@@ -478,7 +475,7 @@ class ManufacturerCrawler:
                 conditions.append(f"page_type = ${param_idx}")
                 params.append(page_type)
                 param_idx += 1
-            
+
             where_clause = " AND ".join(conditions) if conditions else "1=1"
             query = f"""
                 SELECT *
@@ -492,12 +489,12 @@ class ManufacturerCrawler:
             self._logger.error("Failed to get crawled pages: %s", exc)
             return []
 
-    async def check_scheduled_crawls(self) -> List[str]:
+    async def check_scheduled_crawls(self) -> list[str]:
         if not self._enabled:
             return []
 
         try:
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             query = """
                 SELECT id
                 FROM krai_system.manufacturer_crawl_schedules
@@ -505,7 +502,7 @@ class ManufacturerCrawler:
             """
             rows = await self._database_service.execute_query(query, [True, now])
 
-            job_ids: List[str] = []
+            job_ids: list[str] = []
             for row in rows or []:
                 schedule_id = row["id"]
                 job_id = await self.start_crawl_job(schedule_id)
@@ -516,31 +513,31 @@ class ManufacturerCrawler:
             self._logger.error("Failed to check scheduled crawls: %s", exc)
             return []
 
-    async def get_crawler_stats(self) -> Dict[str, Any]:
+    async def get_crawler_stats(self) -> dict[str, Any]:
         try:
             # Get schedule counts
             schedules_query = "SELECT COUNT(*) as count FROM krai_system.manufacturer_crawl_schedules"
             schedules_result = await self._database_service.execute_query(schedules_query)
             total_schedules = schedules_result[0]["count"] if schedules_result else 0
-            
+
             active_query = "SELECT COUNT(*) as count FROM krai_system.manufacturer_crawl_schedules WHERE enabled = $1"
             active_result = await self._database_service.execute_query(active_query, [True])
             active_schedules = active_result[0]["count"] if active_result else 0
-            
+
             # Get job counts
             jobs_query = "SELECT COUNT(*) as count FROM krai_system.manufacturer_crawl_jobs"
             jobs_result = await self._database_service.execute_query(jobs_query)
             total_jobs = jobs_result[0]["count"] if jobs_result else 0
-            
+
             running_query = "SELECT COUNT(*) as count FROM krai_system.manufacturer_crawl_jobs WHERE status = $1"
             running_result = await self._database_service.execute_query(running_query, ["running"])
             running_jobs = running_result[0]["count"] if running_result else 0
-            
+
             # Get page counts
             pages_query = "SELECT COUNT(*) as count FROM krai_system.crawled_pages"
             pages_result = await self._database_service.execute_query(pages_query)
             total_pages = pages_result[0]["count"] if pages_result else 0
-            
+
             # Get page type distribution
             page_type_query = """
                 SELECT page_type, COUNT(*) as count
@@ -570,24 +567,25 @@ class ManufacturerCrawler:
     def _get_db_client(self):
         """
         Get a compatible database client for database operations.
-        
+
         Returns the underlying client from DatabaseService if available.
         Logs an error and returns None if unavailable.
         """
-        if hasattr(self._database_service, 'service_client') and self._database_service.service_client:
+        if hasattr(self._database_service, "service_client") and self._database_service.service_client:
             return self._database_service.service_client
-        if hasattr(self._database_service, 'client') and self._database_service.client:
+        if hasattr(self._database_service, "client") and self._database_service.client:
             return self._database_service.client
         self._logger.error("Database client unavailable for database operations")
         return None
 
-    async def _update_job(self, job_id: str, updates: Dict[str, Any]) -> None:
+    async def _update_job(self, job_id: str, updates: dict[str, Any]) -> None:
         import json
+
         try:
             set_clauses = []
             params = []
             param_idx = 1
-            
+
             for key, value in updates.items():
                 set_clauses.append(f"{key} = ${param_idx}")
                 if isinstance(value, dict):
@@ -595,7 +593,7 @@ class ManufacturerCrawler:
                 else:
                     params.append(value)
                 param_idx += 1
-            
+
             params.append(str(job_id))
             query = f"""
                 UPDATE krai_system.manufacturer_crawl_jobs
@@ -614,19 +612,18 @@ class ManufacturerCrawler:
                 SET last_run_at = $1, next_run_at = $2
                 WHERE id = $3
             """
-            await self._database_service.execute_query(
-                query,
-                [datetime.now(timezone.utc), next_run, str(schedule_id)]
-            )
+            await self._database_service.execute_query(query, [datetime.now(UTC), next_run, str(schedule_id)])
         except Exception as exc:  # pragma: no cover - defensive logging
             self._logger.debug("Failed to update schedule run %s: %s", schedule_id, exc)
 
-    async def _persist_crawled_pages(self, job_id: str, manufacturer_id: str, pages: Sequence[Dict[str, Any]]) -> Dict[str, int]:
+    async def _persist_crawled_pages(
+        self, job_id: str, manufacturer_id: str, pages: Sequence[dict[str, Any]]
+    ) -> dict[str, int]:
         client = self._get_db_client()
         if client is None:
             self._logger.error("Cannot persist crawled pages: database client unavailable")
             return {"scraped": 0, "failed": len(pages)}
-        
+
         scraped = 0
         failed = 0
         for page in pages:
@@ -636,7 +633,9 @@ class ManufacturerCrawler:
                 failed += 1
                 continue
             url_hash = hashlib.sha256(url.encode("utf-8", errors="ignore")).hexdigest()
-            content_hash = hashlib.sha256((content or "").encode("utf-8", errors="ignore")).hexdigest() if content else None
+            content_hash = (
+                hashlib.sha256((content or "").encode("utf-8", errors="ignore")).hexdigest() if content else None
+            )
             page_type = self._determine_page_type(url)
 
             payload = {
@@ -664,7 +663,9 @@ class ManufacturerCrawler:
                     .execute()
                 )
                 if existing.data:
-                    client.table("crawled_pages", schema="krai_system").update(payload).eq("id", existing.data[0]["id"]).execute()
+                    client.table("crawled_pages", schema="krai_system").update(payload).eq(
+                        "id", existing.data[0]["id"]
+                    ).execute()
                 else:
                     client.table("crawled_pages", schema="krai_system").insert(payload).execute()
                 scraped += 1
@@ -674,7 +675,7 @@ class ManufacturerCrawler:
 
         return {"scraped": scraped, "failed": failed}
 
-    def _determine_page_type(self, url: str) -> Optional[str]:
+    def _determine_page_type(self, url: str) -> str | None:
         url_lower = url.lower()
         if any(keyword in url_lower for keyword in ["product", "spec", "datasheet"]):
             return "product_page"
@@ -686,17 +687,17 @@ class ManufacturerCrawler:
             return "parts_page"
         return "unknown"
 
-    def _calculate_next_run(self, cron_expression: Optional[str]) -> Optional[str]:
+    def _calculate_next_run(self, cron_expression: str | None) -> str | None:
         if not cron_expression or croniter is None:
             return None
         try:
-            iterator = croniter(cron_expression, datetime.now(timezone.utc))
+            iterator = croniter(cron_expression, datetime.now(UTC))
             return iterator.get_next(datetime).isoformat()
         except Exception as exc:  # pragma: no cover - defensive logging
             self._logger.debug("Invalid cron expression %s: %s", cron_expression, exc)
             return None
 
-    def _load_config(self) -> Dict[str, Any]:
+    def _load_config(self) -> dict[str, Any]:
         if self._config_service:
             try:
                 config = self._config_service.get_scraping_config()

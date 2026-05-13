@@ -8,8 +8,9 @@ Voraussetzung:
     Zuerst einmalig ausführen:  install_agent_deps.bat
 
 Dann:
-    backend\venv\Scripts\python.exe test_agent_local.py
+    backend\venv\\Scripts\\python.exe test_agent_local.py
 """
+
 import asyncio
 import os
 import sys
@@ -22,19 +23,20 @@ os.environ.setdefault("OLLAMA_URL", "http://localhost:11434")
 os.environ.setdefault("OLLAMA_MODEL_CHAT", "llama3.2:3b")
 os.environ.setdefault("OLLAMA_MODEL_EMBED", "nomic-embed-text")
 
+from pathlib import Path
+
 # .env laden für DB-Credentials
 from processors.env_loader import load_all_env_files
-from pathlib import Path
+
 load_all_env_files(Path(__file__).parent)
 # Hostname-Überschreibung (Docker-intern → Windows-localhost)
 os.environ["OLLAMA_URL"] = "http://localhost:11434"
 
 import asyncpg
 
-POSTGRES_URL = (
-    os.getenv("POSTGRES_URL")
-    or "postgresql://krai_user:Krai_Secure_Pass123!@localhost:5432/krai"
-).replace("krai-postgres", "localhost")
+POSTGRES_URL = (os.getenv("POSTGRES_URL") or "postgresql://krai_user:Krai_Secure_Pass123!@localhost:5432/krai").replace(
+    "krai-postgres", "localhost"
+)
 
 
 TEST_CASES = [
@@ -63,6 +65,7 @@ async def run():
 
     # Ollama-Verbindung prüfen
     import httpx
+
     print(f"\n🤖 Verbinde mit Ollama: {os.environ['OLLAMA_URL']} ...")
     try:
         async with httpx.AsyncClient(timeout=5) as client:
@@ -81,11 +84,13 @@ async def run():
     print("\n🚀 Initialisiere Agent...")
     try:
         from api.agent_api import KRAIAgent
+
         agent = KRAIAgent(pool, ollama_base_url=os.environ["OLLAMA_URL"])
         print("   ✅ Agent initialisiert")
     except Exception as e:
         print(f"   ❌ Agent-Fehler: {e}")
         import traceback
+
         traceback.print_exc()
         return
 

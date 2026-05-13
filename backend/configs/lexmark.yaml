@@ -17,49 +17,49 @@ product_patterns:
     examples: ["CX833", "CX961", "CX962", "CX963"]
     series: "CX Series"
     type: "laser_multifunction"
-  
+
   # XC Series (Color MFP - High Volume)
   - pattern: '\bXC\d{4}[a-z]{0,3}\b'
     flags: IGNORECASE
     examples: ["XC8355", "XC9635", "XC9645"]
     series: "XC Series"
     type: "laser_multifunction"
-  
+
   # MX Series (Mono MFP)
   - pattern: '\bMX\d{3,4}[a-z]{0,3}\b'
     flags: IGNORECASE
     examples: ["MX321", "MX421", "MX521", "MX622"]
     series: "MX Series"
     type: "laser_multifunction"
-  
+
   # MS Series (Mono Printer)
   - pattern: '\bMS\d{3,4}[a-z]{0,3}\b'
     flags: IGNORECASE
     examples: ["MS321", "MS421", "MS521", "MS622"]
     series: "MS Series"
     type: "laser_printer"
-  
+
   # MB Series (Mono MFP)
   - pattern: '\bMB\d{4}[a-z]{0,3}\b'
     flags: IGNORECASE
     examples: ["MB2236", "MB2338", "MB2442", "MB2546"]
     series: "MB Series"
     type: "laser_multifunction"
-  
+
   # B Series (Mono Printer)
   - pattern: '\bB\d{4}[a-z]{0,3}\b'
     flags: IGNORECASE
     examples: ["B2236", "B2338", "B2442", "B2546"]
     series: "B Series"
     type: "laser_printer"
-  
+
   # CS Series (Color Printer)
   - pattern: '\bCS\d{3,4}[a-z]{0,3}\b'
     flags: IGNORECASE
     examples: ["CS331", "CS431", "CS521", "CS622", "CS943"]
     series: "CS Series"
     type: "laser_printer"
-  
+
   # C Series (Color MFP - Legacy)
   - pattern: '\bC\d{3,4}[a-z]{0,3}\b'
     flags: IGNORECASE
@@ -74,37 +74,37 @@ series:
     patterns: ["CX\\d{3,4}"]
     type: "laser_multifunction"
     description: "Lexmark CX Series Color Multifunction Printers"
-  
+
   - name: "XC Series"
     patterns: ["XC\\d{4}"]
     type: "laser_multifunction"
     description: "Lexmark XC Series High-Volume Color Multifunction Printers"
-  
+
   - name: "MX Series"
     patterns: ["MX\\d{3,4}"]
     type: "laser_multifunction"
     description: "Lexmark MX Series Monochrome Multifunction Printers"
-  
+
   - name: "MS Series"
     patterns: ["MS\\d{3,4}"]
     type: "laser_printer"
     description: "Lexmark MS Series Monochrome Printers"
-  
+
   - name: "MB Series"
     patterns: ["MB\\d{4}"]
     type: "laser_multifunction"
     description: "Lexmark MB Series Monochrome Multifunction Printers"
-  
+
   - name: "B Series"
     patterns: ["B\\d{4}"]
     type: "laser_printer"
     description: "Lexmark B Series Monochrome Printers"
-  
+
   - name: "CS Series"
     patterns: ["CS\\d{3,4}"]
     type: "laser_printer"
     description: "Lexmark CS Series Color Printers"
-  
+
   - name: "C Series"
     patterns: ["C\\d{3,4}"]
     type: "printer"
@@ -117,64 +117,64 @@ part_prefixes:
     type: "toner_cartridge"
     pattern: "^C\\d{5}[A-Z]{0,2}$"
     examples: ["C540H1KG", "C540H1CG", "C540H1MG", "C540H1YG"]
-  
+
   - prefix: "E"
     type: "toner_cartridge"
     pattern: "^E\\d{3,5}[A-Z]{0,2}$"
     examples: ["E260A11E", "E360H11E", "E460X11E"]
-  
+
   - prefix: "T"
     type: "toner_cartridge"
     pattern: "^T\\d{3}[A-Z]{0,2}$"
     examples: ["T650H11E", "T654X11E"]
-  
+
   # Drum Units
   - prefix: "C"
     type: "drum_unit"
     pattern: "^C\\d{5}[A-Z]{2}$"
     examples: ["C540X71G", "C540X74G"]
-  
+
   - prefix: "E"
     type: "drum_unit"
     pattern: "^E\\d{3}X\\d{2}[A-Z]$"
     examples: ["E260X22G", "E360X21E"]
-  
+
   # Waste Toner Box
   - prefix: "C"
     type: "waste_toner_box"
     pattern: "^C\\d{5}WB$"
     examples: ["C540X75G"]
-  
+
   # Fuser Units
   - prefix: "40X"
     type: "fuser_unit"
     pattern: "^40X\\d{4}$"
     examples: ["40X5345", "40X7562"]
-  
+
   # Transfer Units
   - prefix: "40X"
     type: "transfer_unit"
     pattern: "^40X\\d{4}$"
     examples: ["40X5852", "40X6401"]
-  
+
   # Maintenance Kits
   - prefix: "40X"
     type: "maintenance_kit"
     pattern: "^40X\\d{4}$"
     examples: ["40X4724", "40X4765"]
-  
+
   # Finishers
   - prefix: "20"
     type: "finisher"
     pattern: "^20[A-Z]\\d{4}$"
     examples: ["20G0850", "20G0851"]
-  
+
   # Paper Trays
   - prefix: "35"
     type: "paper_tray"
     pattern: "^35[A-Z]\\d{4}$"
     examples: ["35S0567", "35S0568"]
-  
+
   # Duplex Units
   - prefix: "40X"
     type: "duplex_unit"

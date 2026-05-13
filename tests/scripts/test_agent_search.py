@@ -1,6 +1,6 @@
 """Test Agent Search Endpoints"""
+
 import requests
-import json
 
 API_URL = "http://localhost:8000"
 
@@ -12,27 +12,18 @@ print("=" * 80)
 print("\n📝 Test 1: Fehlercode-Suche")
 print("-" * 80)
 
-test_cases = [
-    "C9402",
-    "Konica Minolta C3320i Fehler C9402",
-    "HP Fehler 10.00.33",
-    "Papierstau beheben"
-]
+test_cases = ["C9402", "Konica Minolta C3320i Fehler C9402", "HP Fehler 10.00.33", "Papierstau beheben"]
 
 for query in test_cases:
     print(f"\n🔍 Query: '{query}'")
-    
+
     try:
-        response = requests.get(
-            f"{API_URL}/search/error-codes",
-            params={"q": query, "limit": 3},
-            timeout=30
-        )
-        
+        response = requests.get(f"{API_URL}/search/error-codes", params={"q": query, "limit": 3}, timeout=30)
+
         if response.status_code == 200:
             results = response.json()
             print(f"   ✅ {len(results)} Ergebnisse")
-            
+
             if results:
                 top = results[0]
                 print(f"   📌 Top: {top.get('error_code', 'N/A')} - {top.get('description', 'N/A')[:60]}...")
@@ -51,34 +42,26 @@ print("\n" + "=" * 80)
 print("📝 Test 2: Semantic Search (Vector)")
 print("-" * 80)
 
-semantic_queries = [
-    "Wie behebe ich einen Papierstau?",
-    "Druckkopf reinigen",
-    "Toner wechseln Anleitung"
-]
+semantic_queries = ["Wie behebe ich einen Papierstau?", "Druckkopf reinigen", "Toner wechseln Anleitung"]
 
 for query in semantic_queries:
     print(f"\n🔍 Query: '{query}'")
-    
+
     try:
-        response = requests.post(
-            f"{API_URL}/search/vector",
-            params={"query": query, "limit": 3},
-            timeout=30
-        )
-        
+        response = requests.post(f"{API_URL}/search/vector", params={"query": query, "limit": 3}, timeout=30)
+
         if response.status_code == 200:
             data = response.json()
-            results = data.get('results', [])
+            results = data.get("results", [])
             print(f"   ✅ {len(results)} Ergebnisse")
-            
+
             if results:
                 top = results[0]
                 # match_chunks returns: id, content, metadata, similarity
-                text_preview = top.get('content', 'N/A')[:80].replace('\n', ' ')
+                text_preview = top.get("content", "N/A")[:80].replace("\n", " ")
                 print(f"   📌 Top: {text_preview}...")
                 print(f"   📊 Similarity: {top.get('similarity', 0):.3f}")
-                metadata = top.get('metadata', {})
+                metadata = top.get("metadata", {})
                 print(f"   📄 Seite: {metadata.get('page_start', 'N/A')}")
             else:
                 print("   ⚠️  Keine Ergebnisse")

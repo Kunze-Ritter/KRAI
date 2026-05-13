@@ -76,16 +76,16 @@ class ErrorSummaryWidget extends BaseWidget
             for ($i = 5; $i >= 0; $i--) {
                 $start = now()->subHours($i + 1);
                 $end = now()->subHours($i);
-                
+
                 $query = match($scope) {
                     'active' => PipelineError::active(),
                     'retrying' => PipelineError::retrying(),
                     default => PipelineError::query(),
                 };
-                
+
                 $count = $query->whereBetween('created_at', [$start, $end])
                     ->count();
-                
+
                 $counts[] = $count;
             }
             return $counts;
@@ -101,11 +101,11 @@ class ErrorSummaryWidget extends BaseWidget
             for ($i = 5; $i >= 0; $i--) {
                 $start = now()->subHours($i + 1);
                 $end = now()->subHours($i);
-                
+
                 $count = PipelineError::resolved()
                     ->whereBetween('resolved_at', [$start, $end])
                     ->count();
-                
+
                 $counts[] = $count;
             }
             return $counts;

@@ -1,6 +1,7 @@
 """Generate fresh JWT RSA key pair for .env configuration."""
 
 import base64
+
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
@@ -8,7 +9,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 def main():
     """Generate and print Base64-encoded DER keys for JWT authentication."""
     print("Generating fresh RSA 2048-bit key pair...")
-    
+
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
     priv_der = key.private_bytes(

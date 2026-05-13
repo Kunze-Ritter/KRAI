@@ -7,6 +7,9 @@ from typing import Any
 
 import psutil
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+
+from api.middleware.auth_middleware import require_permission
 from models.monitoring import (
     ActiveDocument,
     ActivityEntry,
@@ -24,9 +27,6 @@ from models.monitoring import (
     StageErrorLogsResponse,
     StageQueueResponse,
 )
-from pydantic import BaseModel
-
-from api.middleware.auth_middleware import require_permission
 from services.alert_service import AlertService
 from services.metrics_service import MetricsService
 from services.performance_service import PerformanceCollector

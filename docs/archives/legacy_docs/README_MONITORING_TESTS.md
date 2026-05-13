@@ -309,10 +309,10 @@ async def test_new_feature(self, metrics_service, mock_database_adapter):
     mock_database_adapter.client.table.return_value.select.return_value.execute.return_value.data = [
         {"field": "value"}
     ]
-    
+
     # Call service method
     result = await metrics_service.new_method()
-    
+
     # Assertions
     assert result is not None
     assert result.field == "value"
@@ -326,19 +326,19 @@ async def test_new_integration():
     print("\n" + "="*60)
     print("Testing New Feature")
     print("="*60)
-    
+
     try:
         # Setup
         adapter = create_database_adapter()
         service = NewService(adapter)
-        
+
         # Test
         result = await service.do_something()
         print(f"   ✅ Result: {result}")
-        
+
         print("\n✅ New Feature: ALL TESTS PASSED")
         return True
-        
+
     except Exception as e:
         print(f"\n❌ New Feature: TEST FAILED - {e}")
         return False
@@ -356,20 +356,20 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v2
-    
+
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
         python-version: '3.9'
-    
+
     - name: Install dependencies
       run: |
         pip install -r backend/requirements.txt
         pip install pytest pytest-asyncio pytest-cov
-    
+
     - name: Run tests
       env:
         DATABASE_CONNECTION_URL: ${{ secrets.DATABASE_CONNECTION_URL }}
@@ -404,6 +404,6 @@ For issues with tests:
 
 ---
 
-**Last Updated:** 2025-11-02  
-**Test Coverage:** 95%+  
+**Last Updated:** 2025-11-02
+**Test Coverage:** 95%+
 **Status:** Production Ready

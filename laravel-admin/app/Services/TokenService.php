@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Centralized JWT token management for backend authentication
- * 
+ *
  * Handles caching, refresh, and retrieval of service JWT tokens
  * across all Laravel services that communicate with the FastAPI backend.
  */
@@ -27,7 +27,7 @@ class TokenService
 
     /**
      * Get JWT token - returns static token or fetches cached token
-     * 
+     *
      * @return string|null JWT token or null if unavailable
      */
     public function getToken(): ?string
@@ -49,7 +49,7 @@ class TokenService
 
     /**
      * Obtain new token via auto-login with admin credentials
-     * 
+     *
      * @return string|null Token or null on failure
      */
     private function obtainToken(): ?string
@@ -73,7 +73,7 @@ class TokenService
 
             if ($response->successful()) {
                 $token = $response->json('data.access_token');
-                
+
                 if (is_string($token) && $token !== '') {
                     Cache::put(self::CACHE_KEY, $token, now()->addMinutes(self::CACHE_TTL_MINUTES));
                     Log::debug('TokenService: Successfully obtained new token');
@@ -96,7 +96,7 @@ class TokenService
 
     /**
      * Force refresh of cached token
-     * 
+     *
      * @return string|null New token or null on failure
      */
     public function refreshToken(): ?string
@@ -107,14 +107,14 @@ class TokenService
 
     /**
      * Check if credentials are configured
-     * 
+     *
      * @return bool
      */
     public function hasCredentials(): bool
     {
         $username = config('krai.engine_admin_username', env('KRAI_ENGINE_ADMIN_USERNAME'));
         $password = config('krai.engine_admin_password', env('KRAI_ENGINE_ADMIN_PASSWORD'));
-        
+
         return !empty($username) && !empty($password);
     }
 

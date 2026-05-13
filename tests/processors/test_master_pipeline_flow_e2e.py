@@ -1,13 +1,10 @@
-import os
-from types import SimpleNamespace
 from pathlib import Path
-from typing import List
-
-import pytest
+from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
-from backend.pipeline.master_pipeline import KRMasterPipeline
+import pytest
 
+from backend.pipeline.master_pipeline import KRMasterPipeline
 
 pytestmark = pytest.mark.processor
 
@@ -17,7 +14,7 @@ class FakeProcessor:
 
     def __init__(self, name: str) -> None:
         self.name = name
-        self.calls: List[SimpleNamespace] = []
+        self.calls: list[SimpleNamespace] = []
 
     async def process(self, context):  # type: ignore[override]
         self.calls.append(SimpleNamespace(context=context))
@@ -62,18 +59,18 @@ class TestMasterPipelineSmartProcessing:
 
         # Minimal database_service stub
         pipeline.database_service = SimpleNamespace(
-            get_document=AsyncMock(return_value=SimpleNamespace(
-                file_hash="test-hash",
-                document_type="service_manual",
-            )),
+            get_document=AsyncMock(
+                return_value=SimpleNamespace(
+                    file_hash="test-hash",
+                    document_type="service_manual",
+                )
+            ),
             update_document_status=AsyncMock(),
         )
 
         # Quality service stub
         pipeline.quality_service = SimpleNamespace(
-            check_document_quality=AsyncMock(
-                return_value={"score": 95, "passed": True, "issues": []}
-            )
+            check_document_quality=AsyncMock(return_value={"score": 95, "passed": True, "issues": []})
         )
 
         # Processor stubs for relevant stages
@@ -181,6 +178,8 @@ class TestMasterPipelineSmartProcessing:
 
         assert result["success"] is True
         assert result["message"] == "All stages already completed"
-        assert result["stages_completed"] == len(fake_get_stage_status.__defaults__[0]) if fake_get_stage_status.__defaults__ else len(
-            await fake_get_stage_status(document_id)
+        assert (
+            result["stages_completed"] == len(fake_get_stage_status.__defaults__[0])
+            if fake_get_stage_status.__defaults__
+            else len(await fake_get_stage_status(document_id))
         )

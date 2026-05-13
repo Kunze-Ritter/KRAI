@@ -1,11 +1,10 @@
+from typing import Any
 from uuid import uuid4
-from typing import Any, Dict, List
 
 import pytest
 
 from backend.core.base_processor import ProcessingContext
 from backend.processors.chunk_preprocessor import ChunkPreprocessor
-
 
 pytestmark = [pytest.mark.e2e, pytest.mark.asyncio, pytest.mark.chunk_prep]
 
@@ -29,18 +28,18 @@ class TestChunkPreprocessorE2E:
         document_id = sample_chunks_for_preprocessing[0]["document_id"]
 
         # Build a minimal supabase-like client that returns our chunks and records updates
-        updated_chunks: Dict[str, Dict[str, Any]] = {}
+        updated_chunks: dict[str, dict[str, Any]] = {}
 
         class DummyResult:
-            def __init__(self, data: List[Dict[str, Any]] | None = None) -> None:
+            def __init__(self, data: list[dict[str, Any]] | None = None) -> None:
                 self.data = data or []
 
         class ChunksTable:
-            def __init__(self, storage: Dict[str, Dict[str, Any]]) -> None:
+            def __init__(self, storage: dict[str, dict[str, Any]]) -> None:
                 self._storage = storage
                 self._filter_doc: str | None = None
                 self._update_id: str | None = None
-                self._payload: Dict[str, Any] | None = None
+                self._payload: dict[str, Any] | None = None
 
             def select(self, *_args: Any) -> "ChunksTable":
                 return self
@@ -55,7 +54,7 @@ class TestChunkPreprocessorE2E:
             def order(self, _col: str) -> "ChunksTable":
                 return self
 
-            def update(self, payload: Dict[str, Any]) -> "ChunksTable":
+            def update(self, payload: dict[str, Any]) -> "ChunksTable":
                 self._payload = payload
                 return self
 
@@ -73,7 +72,7 @@ class TestChunkPreprocessorE2E:
                 return DummyResult(rows)
 
         class DummyClient:
-            def __init__(self, storage: Dict[str, Dict[str, Any]]) -> None:
+            def __init__(self, storage: dict[str, dict[str, Any]]) -> None:
                 self._storage = storage
 
             def table(self, name: str) -> ChunksTable:
@@ -101,7 +100,15 @@ class TestChunkPreprocessorE2E:
         for chunk_id, stored in updated_chunks.items():
             meta = stored.get("metadata", {})
             assert meta.get("preprocessed") is True
-            assert meta.get("chunk_type") in {"error_code", "parts_list", "procedure", "specification", "table", "text", "empty"}
+            assert meta.get("chunk_type") in {
+                "error_code",
+                "parts_list",
+                "procedure",
+                "specification",
+                "table",
+                "text",
+                "empty",
+            }
             assert stored.get("char_count") == len(stored.get("content", ""))
 
     async def test_process_no_chunks_found_returns_failure(
@@ -112,7 +119,7 @@ class TestChunkPreprocessorE2E:
         # Client without any chunks for the given document
         class DummyResult:
             def __init__(self) -> None:
-                self.data: List[Dict[str, Any]] = []
+                self.data: list[dict[str, Any]] = []
 
         class EmptyChunksTable:
             def select(self, *_args: Any) -> "EmptyChunksTable":
@@ -149,11 +156,11 @@ class TestChunkPreprocessorE2E:
         document_id = sample_chunks_for_preprocessing[0]["document_id"]
 
         class DummyResult:
-            def __init__(self, data: List[Dict[str, Any]] | None = None) -> None:
+            def __init__(self, data: list[dict[str, Any]] | None = None) -> None:
                 self.data = data or []
 
         class FailingTable:
-            def __init__(self, storage: Dict[str, Dict[str, Any]]) -> None:
+            def __init__(self, storage: dict[str, dict[str, Any]]) -> None:
                 self._storage = storage
                 self._doc: str | None = None
 
@@ -168,7 +175,7 @@ class TestChunkPreprocessorE2E:
             def order(self, _col: str) -> "FailingTable":
                 return self
 
-            def update(self, _payload: Dict[str, Any]) -> "FailingTable":
+            def update(self, _payload: dict[str, Any]) -> "FailingTable":
                 raise RuntimeError("Simulated DB error")
 
             def execute(self) -> DummyResult:
@@ -178,7 +185,7 @@ class TestChunkPreprocessorE2E:
                 return DummyResult(rows)
 
         class DummyClient:
-            def __init__(self, storage: Dict[str, Dict[str, Any]]) -> None:
+            def __init__(self, storage: dict[str, dict[str, Any]]) -> None:
                 self._storage = storage
 
             def table(self, name: str) -> FailingTable:

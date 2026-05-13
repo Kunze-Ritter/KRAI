@@ -4,7 +4,7 @@ import json
 import traceback
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from backend.core.types import Stage
 
@@ -14,7 +14,7 @@ class ReportGenerator:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
-    def generate(self, test_results: Dict[str, Any]) -> str:
+    def generate(self, test_results: dict[str, Any]) -> str:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         quality_results = test_results.get("quality_results", {})
         quality_metrics = quality_results.get("metrics", {})
@@ -79,7 +79,7 @@ class ReportGenerator:
         self._print_console_summary(report)
         return str(output_path)
 
-    def _print_console_summary(self, report: Dict[str, Any]):
+    def _print_console_summary(self, report: dict[str, Any]):
         status = report.get("result", "FAIL")
         status_icon = "\u2705" if status == "PASS" else "\u274c"
         color = "\033[92m" if status == "PASS" else "\033[91m"
@@ -106,9 +106,7 @@ class ReportGenerator:
         if dashboard_validation:
             dashboard_status = dashboard_validation.get("status", "FAIL")
             dashboard_icon = (
-                "\u2705" if dashboard_status == "PASS"
-                else "\u23f3" if dashboard_status == "PENDING"
-                else "\u274c"
+                "\u2705" if dashboard_status == "PASS" else "\u23f3" if dashboard_status == "PENDING" else "\u274c"
             )
             print(f"\n{dashboard_icon} Dashboard Validation: {dashboard_status}")
             if dashboard_status == "FAIL":
@@ -123,7 +121,7 @@ class ReportGenerator:
         print(f"\nReport file: {report.get('artifacts', {}).get('report_path')}")
         print("=" * 72)
 
-    def _generate_error_report(self, error: Exception, context: Dict[str, Any]) -> str:
+    def _generate_error_report(self, error: Exception, context: dict[str, Any]) -> str:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         output_path = self.output_dir / f"production_test_ERROR_{timestamp}.json"
 

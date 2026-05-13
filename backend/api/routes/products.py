@@ -1,24 +1,21 @@
 """Product CRUD and batch API routes."""
+
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from math import ceil
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel
-from backend.services.database_adapter import DatabaseAdapter
+
 from api.dependencies.database import get_database_adapter
-from backend.constants.product_types import ALLOWED_PRODUCT_TYPES
 from api.middleware.auth_middleware import require_permission
-from api.middleware.rate_limit_middleware import (
-    limiter,
-    rate_limit_standard,
-    rate_limit_search,
-    rate_limit_upload,
-)
+from api.middleware.rate_limit_middleware import limiter, rate_limit_search, rate_limit_standard, rate_limit_upload
 from api.routes.response_models import ErrorResponse, SuccessResponse
+from backend.constants.product_types import ALLOWED_PRODUCT_TYPES
+from backend.services.database_adapter import DatabaseAdapter
 from models.document import PaginationParams
 from models.manufacturer import ManufacturerResponse
 from models.product import (
@@ -53,7 +50,7 @@ class MessagePayload(BaseModel):
 class ProductTypesResponse(BaseModel):
     """Response payload listing all allowed product types."""
 
-    product_types: List[str]
+    product_types: list[str]
 
 
 def _apply_product_filters(query: Any, filters: ProductFilterParams) -> Any:
@@ -82,9 +79,7 @@ def _apply_product_filters(query: Any, filters: ProductFilterParams) -> Any:
     if filters.search:
         search = filters.search
         query = query.or_(
-            f"model_number.ilike.%{search}%,"
-            f"model_name.ilike.%{search}%,"
-            f"product_type.ilike.%{search}%"
+            f"model_number.ilike.%{search}%," f"model_name.ilike.%{search}%," f"product_type.ilike.%{search}%"
         )
     return query
 
@@ -101,9 +96,9 @@ def _apply_pagination(query: Any, pagination: PaginationParams) -> Any:
 
 def _error_response(
     error: str,
-    detail: Optional[str] = None,
-    error_code: Optional[str] = None,
-) -> Dict[str, Optional[str]]:
+    detail: str | None = None,
+    error_code: str | None = None,
+) -> dict[str, str | None]:
     return ErrorResponse(error=error, detail=detail, error_code=error_code).dict()
 
 
@@ -112,7 +107,7 @@ def _log_and_raise(
     message: str,
     *,
     error: str = "Error",
-    error_code: Optional[str] = None,
+    error_code: str | None = None,
 ) -> None:
     LOGGER.error(message)
     raise HTTPException(
@@ -128,19 +123,18 @@ def _calculate_total_pages(total: int, page_size: int) -> int:
 
 
 def _build_product_relations(
-    product: Dict[str, Any],
+    product: dict[str, Any],
     adapter: DatabaseAdapter,
     include_relations: bool,
 ) -> ProductWithRelationsResponse:
-    product_payload: Dict[str, Any] = {**product}
+    product_payload: dict[str, Any] = {**product}
     if not include_relations:
         return ProductWithRelationsResponse(**product_payload)
 
     manufacturer_id = product.get("manufacturer_id")
     if manufacturer_id:
         manufacturer_resp = adapter.execute_query(
-            "SELECT * FROM krai_core.manufacturers WHERE id = $1 LIMIT 1",
-            [manufacturer_id]
+            "SELECT * FROM krai_core.manufacturers WHERE id = $1 LIMIT 1", [manufacturer_id]
         )
         manufacturer_data = manufacturer_resp[0] if manufacturer_resp else None
         if manufacturer_data:
@@ -148,20 +142,14 @@ def _build_product_relations(
 
     series_id = product.get("series_id")
     if series_id:
-        series_resp = adapter.execute_query(
-            "SELECT * FROM krai_core.product_series WHERE id = $1 LIMIT 1",
-            [series_id]
-        )
+        series_resp = adapter.execute_query("SELECT * FROM krai_core.product_series WHERE id = $1 LIMIT 1", [series_id])
         series_data = series_resp[0] if series_resp else None
         if series_data:
             product_payload["series"] = ProductSeriesResponse(**series_data)
 
     parent_id = product.get("parent_id")
     if parent_id:
-        parent_resp = adapter.execute_query(
-            "SELECT * FROM krai_core.products WHERE id = $1 LIMIT 1",
-            [parent_id]
-        )
+        parent_resp = adapter.execute_query("SELECT * FROM krai_core.products WHERE id = $1 LIMIT 1", [parent_id])
         parent_data = parent_resp[0] if parent_resp else None
         if parent_data:
             product_payload["parent_product"] = ProductResponse(**parent_data)
@@ -179,7 +167,7 @@ async def list_products(
     pagination: PaginationParams = Depends(),
     filters: ProductFilterParams = Depends(),
     sort: ProductSortParams = Depends(),
-    current_user: Dict[str, Any] = Depends(require_permission("products:read")),
+    current_user: dict[str, Any] = Depends(require_permission("products:read")),
     adapter: DatabaseAdapter = Depends(get_database_adapter),
 ) -> SuccessResponse[ProductListResponse]:
     try:
@@ -229,11 +217,11 @@ async def list_products(
 
         total = 0
         if result:
-            total = result[0].get('total_count', len(result))
+            total = result[0].get("total_count", len(result))
         else:
             count_query = f"SELECT COUNT(*) as count FROM krai_core.products{where_clause}"
             count_result = await adapter.execute_query(count_query, params)
-            total = count_result[0].get('count', 0) if count_result else 0
+            total = count_result[0].get("count", 0) if count_result else 0
 
         LOGGER.info(
             "Listed products page=%s size=%s total=%s",
@@ -263,7 +251,7 @@ async def list_products(
 @limiter.limit(rate_limit_search)
 def get_product_types(
     request: Request,
-    current_user: Dict[str, Any] = Depends(require_permission("products:read")),
+    current_user: dict[str, Any] = Depends(require_permission("products:read")),
 ) -> SuccessResponse[ProductTypesResponse]:
     """Return the canonical list of allowed product types."""
 
@@ -280,14 +268,11 @@ async def get_product(
     request: Request,
     product_id: str,
     include_relations: bool = Query(False),
-    current_user: Dict[str, Any] = Depends(require_permission("products:read")),
+    current_user: dict[str, Any] = Depends(require_permission("products:read")),
     adapter: DatabaseAdapter = Depends(get_database_adapter),
 ) -> SuccessResponse[ProductWithRelationsResponse]:
     try:
-        result = await adapter.execute_query(
-            "SELECT * FROM krai_core.products WHERE id = $1 LIMIT 1",
-            [product_id]
-        )
+        result = await adapter.execute_query("SELECT * FROM krai_core.products WHERE id = $1 LIMIT 1", [product_id])
         if not result:
             raise HTTPException(
                 status.HTTP_404_NOT_FOUND,
@@ -312,11 +297,11 @@ async def get_product(
 async def create_product(
     request: Request,
     payload: ProductCreateRequest,
-    current_user: Dict[str, Any] = Depends(require_permission("products:write")),
+    current_user: dict[str, Any] = Depends(require_permission("products:write")),
     adapter: DatabaseAdapter = Depends(get_database_adapter),
 ) -> SuccessResponse[ProductResponse]:
     try:
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         product_dict = payload.dict(exclude_none=True)
         product_dict["created_at"] = now
         product_dict["updated_at"] = now
@@ -367,7 +352,7 @@ async def create_product(
                 product_dict["description"],
                 product_dict["created_at"],
                 product_dict["updated_at"],
-            ]
+            ],
         )
         if not result:
             raise HTTPException(
@@ -399,7 +384,7 @@ async def create_product(
                     product_id,
                     current_user.get("id"),
                     result[0],
-                ]
+                ],
             )
         except Exception as audit_exc:  # pragma: no cover - defensive
             LOGGER.warning("Audit log insert failed for product %s: %s", product_id, audit_exc)
@@ -420,14 +405,11 @@ async def update_product(
     request: Request,
     product_id: str,
     payload: ProductUpdateRequest,
-    current_user: Dict[str, Any] = Depends(require_permission("products:write")),
+    current_user: dict[str, Any] = Depends(require_permission("products:write")),
     adapter: DatabaseAdapter = Depends(get_database_adapter),
 ) -> SuccessResponse[ProductResponse]:
     try:
-        existing = await adapter.execute_query(
-            "SELECT * FROM krai_core.products WHERE id = $1 LIMIT 1",
-            [product_id]
-        )
+        existing = await adapter.execute_query("SELECT * FROM krai_core.products WHERE id = $1 LIMIT 1", [product_id])
         if not existing:
             raise HTTPException(
                 status.HTTP_404_NOT_FOUND,
@@ -437,7 +419,7 @@ async def update_product(
         previous_record = existing[0]
 
         update_payload = payload.dict(exclude_unset=True, exclude_none=True)
-        update_payload["updated_at"] = datetime.now(timezone.utc).isoformat()
+        update_payload["updated_at"] = datetime.now(UTC).isoformat()
 
         result = await adapter.execute_query(
             """
@@ -472,7 +454,7 @@ async def update_product(
                 update_payload.get("description"),
                 update_payload.get("updated_at"),
                 product_id,
-            ]
+            ],
         )
         if not result:
             raise HTTPException(
@@ -506,7 +488,7 @@ async def update_product(
                     current_user.get("id"),
                     previous_record,
                     update_payload,
-                ]
+                ],
             )
         except Exception as audit_exc:  # pragma: no cover - defensive
             LOGGER.warning("Audit log update failed for product %s: %s", product_id, audit_exc)
@@ -526,24 +508,18 @@ async def update_product(
 async def delete_product(
     request: Request,
     product_id: str,
-    current_user: Dict[str, Any] = Depends(require_permission("products:delete")),
+    current_user: dict[str, Any] = Depends(require_permission("products:delete")),
     adapter: DatabaseAdapter = Depends(get_database_adapter),
 ) -> SuccessResponse[MessagePayload]:
     try:
-        existing = await adapter.execute_query(
-            "SELECT * FROM krai_core.products WHERE id = $1 LIMIT 1",
-            [product_id]
-        )
+        existing = await adapter.execute_query("SELECT * FROM krai_core.products WHERE id = $1 LIMIT 1", [product_id])
         if not existing:
             raise HTTPException(
                 status.HTTP_404_NOT_FOUND,
                 detail=_error_response("Not Found", "Product not found", "PRODUCT_NOT_FOUND"),
             )
 
-        await adapter.execute_query(
-            "DELETE FROM krai_core.products WHERE id = $1",
-            [product_id]
-        )
+        await adapter.execute_query("DELETE FROM krai_core.products WHERE id = $1", [product_id])
         LOGGER.info("Deleted product %s", product_id)
 
         try:
@@ -567,7 +543,7 @@ async def delete_product(
                     product_id,
                     current_user.get("id"),
                     existing[0],
-                ]
+                ],
             )
         except Exception as audit_exc:  # pragma: no cover - defensive
             LOGGER.warning("Audit log delete failed for product %s: %s", product_id, audit_exc)
@@ -586,22 +562,18 @@ async def delete_product(
 @limiter.limit(rate_limit_search)
 async def get_product_stats(
     request: Request,
-    current_user: Dict[str, Any] = Depends(require_permission("products:read")),
+    current_user: dict[str, Any] = Depends(require_permission("products:read")),
     adapter: DatabaseAdapter = Depends(get_database_adapter),
 ) -> SuccessResponse[ProductStatsResponse]:
     try:
-        total_result = await adapter.execute_query(
-            "SELECT COUNT(*) as count FROM krai_core.products"
-        )
-        total_products = total_result[0].get('count', 0) if total_result else 0
+        total_result = await adapter.execute_query("SELECT COUNT(*) as count FROM krai_core.products")
+        total_products = total_result[0].get("count", 0) if total_result else 0
 
         type_result = await adapter.execute_query(
             "SELECT product_type, COUNT(*) as count FROM krai_core.products GROUP BY product_type"
         )
         by_type = {
-            item.get("product_type"): item.get("count", 0)
-            for item in type_result or []
-            if item.get("product_type")
+            item.get("product_type"): item.get("count", 0) for item in type_result or [] if item.get("product_type")
         }
 
         manufacturer_result = await adapter.execute_query(
@@ -613,19 +585,14 @@ async def get_product_stats(
             if item.get("manufacturer_id")
         }
 
-        manufacturer_names: Dict[str, str] = {}
+        manufacturer_names: dict[str, str] = {}
         if manufacturer_counts:
             ids = list(manufacturer_counts.keys())
-            placeholders = ','.join([f'${i+1}' for i in range(len(ids))])
+            placeholders = ",".join([f"${i+1}" for i in range(len(ids))])
             manufacturer_data_result = await adapter.execute_query(
-                f"SELECT id, name FROM krai_core.manufacturers WHERE id IN ({placeholders})",
-                ids
+                f"SELECT id, name FROM krai_core.manufacturers WHERE id IN ({placeholders})", ids
             )
-            manufacturer_names = {
-                item["id"]: item["name"] 
-                for item in manufacturer_data_result or [] 
-                if item.get("id")
-            }
+            manufacturer_names = {item["id"]: item["name"] for item in manufacturer_data_result or [] if item.get("id")}
 
         by_manufacturer = {
             manufacturer_names.get(manufacturer_id, manufacturer_id): count
@@ -635,15 +602,14 @@ async def get_product_stats(
         today = date.today().isoformat()
         active_result = await adapter.execute_query(
             "SELECT COUNT(*) as count FROM krai_core.products WHERE end_of_life_date IS NULL OR end_of_life_date > $1",
-            [today]
+            [today],
         )
-        active_products = active_result[0].get('count', 0) if active_result else 0
+        active_products = active_result[0].get("count", 0) if active_result else 0
 
         discontinued_result = await adapter.execute_query(
-            "SELECT COUNT(*) as count FROM krai_core.products WHERE end_of_life_date < $1",
-            [today]
+            "SELECT COUNT(*) as count FROM krai_core.products WHERE end_of_life_date < $1", [today]
         )
-        discontinued_products = discontinued_result[0].get('count', 0) if discontinued_result else 0
+        discontinued_products = discontinued_result[0].get("count", 0) if discontinued_result else 0
 
         LOGGER.info(
             "Product stats computed totals=%s types=%s manufacturers=%s",
@@ -674,19 +640,19 @@ async def get_product_stats(
 async def batch_create_products(
     request: Request,
     payload: ProductBatchCreateRequest,
-    current_user: Dict[str, Any] = Depends(require_permission("products:write")),
+    current_user: dict[str, Any] = Depends(require_permission("products:write")),
     adapter: DatabaseAdapter = Depends(get_database_adapter),
 ) -> SuccessResponse[ProductBatchResponse]:
-    results: List[ProductBatchResult] = []
+    results: list[ProductBatchResult] = []
     success_count = 0
     try:
         for product in payload.products:
             try:
-                now = datetime.now(timezone.utc).isoformat()
+                now = datetime.now(UTC).isoformat()
                 product_dict = product.dict(exclude_none=True)
                 product_dict["created_at"] = now
                 product_dict["updated_at"] = now
-                
+
                 result = await adapter.execute_query(
                     """
                         INSERT INTO krai_core.products (
@@ -721,12 +687,12 @@ async def batch_create_products(
                         product_dict.get("description"),
                         product_dict.get("created_at"),
                         product_dict.get("updated_at"),
-                    ]
+                    ],
                 )
-                
+
                 if not result:
                     raise ValueError("Failed to insert product")
-                
+
                 product_id = result[0]["id"]
                 results.append(ProductBatchResult(id=product_id, status="success"))
                 success_count += 1
@@ -748,7 +714,7 @@ async def batch_create_products(
                             product_id,
                             current_user.get("id"),
                             result[0],
-                        ]
+                        ],
                     )
                 except Exception as audit_exc:  # pragma: no cover - defensive
                     LOGGER.warning(
@@ -788,10 +754,10 @@ async def batch_create_products(
 async def batch_update_products(
     request: Request,
     payload: ProductBatchUpdateRequest,
-    current_user: Dict[str, Any] = Depends(require_permission("products:write")),
+    current_user: dict[str, Any] = Depends(require_permission("products:write")),
     adapter: DatabaseAdapter = Depends(get_database_adapter),
 ) -> SuccessResponse[ProductBatchResponse]:
-    results: List[ProductBatchResult] = []
+    results: list[ProductBatchResult] = []
     success_count = 0
     try:
         for item in payload.updates:
@@ -799,33 +765,33 @@ async def batch_update_products(
                 update_data = item.update_data.dict(exclude_unset=True, exclude_none=True)
                 if not update_data:
                     raise ValueError("No update data provided")
-                update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
-                
+                update_data["updated_at"] = datetime.now(UTC).isoformat()
+
                 # Build dynamic UPDATE query
                 set_clauses = []
                 params = []
                 param_count = 0
-                
+
                 for key, value in update_data.items():
                     param_count += 1
                     set_clauses.append(f"{key} = ${param_count}")
                     params.append(value)
-                
+
                 param_count += 1  # For the WHERE clause
                 params.append(item.id)
-                
+
                 query = f"""
                     UPDATE krai_core.products
                     SET {', '.join(set_clauses)}
                     WHERE id = ${param_count}
                     RETURNING *
                 """
-                
+
                 result = await adapter.execute_query(query, params)
-                
+
                 if not result:
                     raise ValueError("Product not found or update failed")
-                
+
                 results.append(ProductBatchResult(id=item.id, status="success"))
                 success_count += 1
 
@@ -846,7 +812,7 @@ async def batch_update_products(
                             item.id,
                             current_user.get("id"),
                             update_data,
-                        ]
+                        ],
                     )
                 except Exception as audit_exc:  # pragma: no cover - defensive
                     LOGGER.warning(
@@ -886,28 +852,24 @@ async def batch_update_products(
 async def batch_delete_products(
     request: Request,
     payload: ProductBatchDeleteRequest,
-    current_user: Dict[str, Any] = Depends(require_permission("products:delete")),
+    current_user: dict[str, Any] = Depends(require_permission("products:delete")),
     adapter: DatabaseAdapter = Depends(get_database_adapter),
 ) -> SuccessResponse[ProductBatchResponse]:
-    results: List[ProductBatchResult] = []
+    results: list[ProductBatchResult] = []
     success_count = 0
     try:
         for product_id in payload.product_ids:
             try:
                 # First get the existing product for audit log
                 existing = await adapter.execute_query(
-                    "SELECT * FROM krai_core.products WHERE id = $1 LIMIT 1",
-                    [product_id]
+                    "SELECT * FROM krai_core.products WHERE id = $1 LIMIT 1", [product_id]
                 )
                 if not existing:
                     raise ValueError("Product not found")
-                
+
                 # Delete the product
-                await adapter.execute_query(
-                    "DELETE FROM krai_core.products WHERE id = $1",
-                    [product_id]
-                )
-                
+                await adapter.execute_query("DELETE FROM krai_core.products WHERE id = $1", [product_id])
+
                 results.append(ProductBatchResult(id=product_id, status="success"))
                 success_count += 1
 
@@ -928,7 +890,7 @@ async def batch_delete_products(
                             product_id,
                             current_user.get("id"),
                             existing[0],
-                        ]
+                        ],
                     )
                 except Exception as audit_exc:  # pragma: no cover - defensive
                     LOGGER.warning(
@@ -962,20 +924,19 @@ async def batch_delete_products(
 
 @router.get(
     "/series/by-manufacturer/{manufacturer_id}",
-    response_model=SuccessResponse[List[ProductSeriesResponse]],
+    response_model=SuccessResponse[list[ProductSeriesResponse]],
 )
 @limiter.limit(rate_limit_search)
 async def get_manufacturer_series(
     request: Request,
     manufacturer_id: str,
-    current_user: Dict[str, Any] = Depends(require_permission("products:read")),
+    current_user: dict[str, Any] = Depends(require_permission("products:read")),
     adapter: DatabaseAdapter = Depends(get_database_adapter),
-) -> SuccessResponse[List[ProductSeriesResponse]]:
+) -> SuccessResponse[list[ProductSeriesResponse]]:
     """Get all product series for a manufacturer."""
     try:
         result = await adapter.execute_query(
-            "SELECT * FROM krai_core.product_series WHERE manufacturer_id = $1",
-            [manufacturer_id]
+            "SELECT * FROM krai_core.product_series WHERE manufacturer_id = $1", [manufacturer_id]
         )
         series_list = [ProductSeriesResponse(**item) for item in result or []]
         return SuccessResponse(data=series_list)

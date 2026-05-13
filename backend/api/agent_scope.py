@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping, Sequence
 from contextvars import ContextVar
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 from pydantic import BaseModel, Field
-
 
 CURRENT_AGENT_SCOPE: ContextVar[dict[str, str] | None] = ContextVar(
     "current_agent_scope",

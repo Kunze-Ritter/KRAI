@@ -9,11 +9,10 @@ Covers:
   - _extract_and_link_parts_from_text
 """
 
-import uuid
-from typing import Any, Dict, List
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from backend.processors.parts_processor import PartsProcessor
 
@@ -321,7 +320,7 @@ class TestPartsProcessorHelpers:
                 {"part": "UNKNOWN-2", "confidence": 0.9},
             ]
 
-            async def fake_get_part(pn: str) -> Dict[str, Any] | None:
+            async def fake_get_part(pn: str) -> dict[str, Any] | None:
                 if pn == "KNOWN-1":
                     return {"id": "part-known-1", "part_number": pn}
                 return None
@@ -349,14 +348,12 @@ class TestPartsProcessorHelpers:
                 {"part": "P2", "confidence": 0.9},
             ]
 
-            mock_database_adapter.get_part_by_number = AsyncMock(
-                side_effect=lambda pn: {"id": pn, "part_number": pn}
-            )
+            mock_database_adapter.get_part_by_number = AsyncMock(side_effect=lambda pn: {"id": pn, "part_number": pn})
 
-            async def fake_create_link(payload: Dict[str, Any]) -> None:
+            async def fake_create_link(payload: dict[str, Any]) -> None:
                 if payload["part_id"] == "P1":
                     raise Exception("duplicate link")
-                return None
+                return
 
             mock_database_adapter.create_error_code_part_link = AsyncMock(side_effect=fake_create_link)
 

@@ -1,58 +1,59 @@
 from datetime import datetime
+from typing import Any
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Optional, Dict, Any, List
 
-from services.web_scraping_service import create_web_scraping_service
 from services.config_service import ConfigService
+from services.web_scraping_service import create_web_scraping_service
 
 router = APIRouter(prefix="/scraping", tags=["Scraping"])
 config_service = ConfigService()
-runtime_firecrawl_config: Dict[str, Any] = {}
-activity_logs: List[Dict[str, Any]] = []
+runtime_firecrawl_config: dict[str, Any] = {}
+activity_logs: list[dict[str, Any]] = []
 
 
 class ScrapeRequest(BaseModel):
     url: str
-    options: Optional[Dict[str, Any]] = None
-    force_backend: Optional[str] = None
+    options: dict[str, Any] | None = None
+    force_backend: str | None = None
 
 
 class CrawlRequest(BaseModel):
     start_url: str
-    options: Optional[Dict[str, Any]] = None
+    options: dict[str, Any] | None = None
 
 
 class ExtractRequest(BaseModel):
     url: str
-    extraction_schema: Dict[str, Any]
-    options: Optional[Dict[str, Any]] = None
+    extraction_schema: dict[str, Any]
+    options: dict[str, Any] | None = None
 
 
 class MapRequest(BaseModel):
     url: str
-    options: Optional[Dict[str, Any]] = None
+    options: dict[str, Any] | None = None
 
 
 class FirecrawlConfigRequest(BaseModel):
-    provider: Optional[str] = None
-    model_name: Optional[str] = None
-    embedding_model: Optional[str] = None
-    max_concurrency: Optional[int] = None
-    block_media: Optional[bool] = None
+    provider: str | None = None
+    model_name: str | None = None
+    embedding_model: str | None = None
+    max_concurrency: int | None = None
+    block_media: bool | None = None
 
 
-def _get_effective_config() -> Dict[str, Any]:
+def _get_effective_config() -> dict[str, Any]:
     base = config_service.get_scraping_config()
     return {**base, **runtime_firecrawl_config}
 
 
-def _create_service(backend: Optional[str] = None):
-    config_service._configs['scraping_config'] = _get_effective_config()
+def _create_service(backend: str | None = None):
+    config_service._configs["scraping_config"] = _get_effective_config()
     return create_web_scraping_service(backend=backend, config_service=config_service)
 
 
-def _add_activity_log(action: str, url: str, backend: Optional[str]) -> None:
+def _add_activity_log(action: str, url: str, backend: str | None) -> None:
     entry = {
         "timestamp": datetime.utcnow().isoformat() + "Z",
         "action": action,

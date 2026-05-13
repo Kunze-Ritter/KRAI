@@ -17,7 +17,7 @@ Vollständige Pattern-Erkennung für alle Xerox-Produktserien: Production, Offic
 
 #### Color Press Series
 - **Pattern**: `COLOR PRESS \d{3,4}i?(/\d{3,4}i?)?`
-- **Beispiele**: 
+- **Beispiele**:
   - Color Press 800/1000
   - Color Press 280, 570
   - Color Press 800/1000i
@@ -48,7 +48,7 @@ Vollständige Pattern-Erkennung für alle Xerox-Produktserien: Production, Offic
 
 #### AltaLink Series
 - **Pattern**: `ALTALINK [BC]\d{4}`
-- **Beispiele**: 
+- **Beispiele**:
   - AltaLink B8045, B8055 (Monochrome)
   - AltaLink C8030, C8045, C8255, C8270 (Color)
 - **Beschreibung**: High-End A3 MFPs
@@ -61,7 +61,7 @@ Vollständige Pattern-Erkennung für alle Xerox-Produktserien: Production, Offic
 
 #### VersaLink Series
 - **Pattern**: `VERSALINK [BC]\d{3}`
-- **Beispiele**: 
+- **Beispiele**:
   - **Printer**: B400, C400, C500, C600, B600
   - **MFP**: C405, C505, C605, B405, B605, B615, B625
 - **Beschreibung**: Office MFPs & Printers (A4/A3)
@@ -74,7 +74,7 @@ Vollständige Pattern-Erkennung für alle Xerox-Produktserien: Production, Offic
 
 #### WorkCentre Series
 - **Pattern**: `WORKCENTRE \d{4}i?`
-- **Beispiele**: 
+- **Beispiele**:
   - WorkCentre 6515, 7855, 7858
   - WorkCentre 7970, 7970i, 7835i
 - **Beschreibung**: Office Multifunction Printers
@@ -87,7 +87,7 @@ Vollständige Pattern-Erkennung für alle Xerox-Produktserien: Production, Offic
 
 #### Phaser Series
 - **Pattern**: `PHASER \d{4}`
-- **Beispiele**: 
+- **Beispiele**:
   - Phaser 6022, 6510, 6600
   - Phaser 7100, 7800
 - **Beschreibung**: Color Laser Printers

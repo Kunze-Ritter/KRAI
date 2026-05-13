@@ -1,5 +1,6 @@
 # Locust load test for HTTP API endpoints
-from locust import HttpUser, task, between
+from locust import HttpUser, between, task
+
 
 class ApiUser(HttpUser):
     wait_time = between(1, 3)

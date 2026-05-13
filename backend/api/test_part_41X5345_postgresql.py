@@ -2,10 +2,9 @@
 Quick test: What does search_parts return for 41X5345? (PostgreSQL version)
 """
 
-import json
-import os
-import sys
 import asyncio
+import json
+import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -23,8 +22,9 @@ async def search_parts(part_number: str):
     """Search for parts in PostgreSQL database"""
     pool = await get_pool()
     async with pool.acquire() as conn:
-        results = await conn.fetch("""
-            SELECT 
+        results = await conn.fetch(
+            """
+            SELECT
                 p.part_number,
                 p.part_name,
                 p.description,
@@ -36,32 +36,30 @@ async def search_parts(part_number: str):
             LEFT JOIN krai_core.documents d ON p.document_id = d.id
             WHERE p.part_number ILIKE $1
             ORDER BY p.created_at DESC
-        """, f'%{part_number}%')
-        
+        """,
+            f"%{part_number}%",
+        )
+
         return [dict(row) for row in results]
 
 
 async def main():
-    print("="*60)
+    print("=" * 60)
     print("TESTING: search_parts('41X5345')")
-    print("="*60)
-    
+    print("=" * 60)
+
     parts = await search_parts("41X5345")
-    
-    result_data = {
-        "found": len(parts) > 0,
-        "count": len(parts),
-        "parts": parts
-    }
-    
+
+    result_data = {"found": len(parts) > 0, "count": len(parts), "parts": parts}
+
     print("\nRaw JSON result:")
     print(json.dumps(result_data, indent=2, ensure_ascii=False))
-    
-    print("\n" + "="*60)
+
+    print("\n" + "=" * 60)
     print("Parsed result:")
-    print("="*60)
+    print("=" * 60)
     print(json.dumps(result_data, indent=2, ensure_ascii=False))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     asyncio.run(main())

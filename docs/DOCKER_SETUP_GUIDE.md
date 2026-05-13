@@ -96,7 +96,7 @@
    curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/ \
      nvidia-docker.list \
      | sudo tee /etc/apt/sources.list.d/nvidia-docker.list
-   
+
    sudo apt-get update && sudo apt-get install -y nvidia-container-toolkit
    sudo systemctl restart docker
    ```
@@ -919,13 +919,13 @@ services:
 
 ### Supabase → PostgreSQL (Completed November 2024)
 
-> **⚠️ HISTORICAL REFERENCE - Migration Complete (KRAI-002)**  
+> **⚠️ HISTORICAL REFERENCE - Migration Complete (KRAI-002)**
 > This section is preserved for legacy users only. All new deployments should use PostgreSQL-only configuration.
 
 #### Export Data from Supabase (Historical Reference)
 
 ```bash
-# Using pg_dump with Supabase 
+# Using pg_dump with Supabase
 # connection string
 pg_dump "postgresql://postgres:[PASSWORD]@db.[PROJECT].supabase.co:5432/ \
   postgres" \
@@ -969,10 +969,10 @@ mc mirror ./downloads/parts/ local/parts-images/
 
 ```sql
 -- Update image URLs in database
-UPDATE krai_content.images 
+UPDATE krai_content.images
 SET storage_url = REPLACE(
-  storage_url, 
-  'https://old-storage-url', 
+  storage_url,
+  'https://old-storage-url',
   'http://localhost:9000/images'
 );
 ```
@@ -1019,7 +1019,7 @@ mc mirror ./old_storage_downloads/parts/ local/parts-images/
 # 7. Update database URLs
 echo "🔄 Updating storage URLs in database..."
 docker exec krai-postgres psql -U krai_user -d krai -c "
-UPDATE krai_content.images 
+UPDATE krai_content.images
 SET storage_url = REPLACE(storage_url, 'https://pub-', 'http://localhost:9000/images');
 "
 
@@ -1043,8 +1043,8 @@ echo "🔍 Verify setup: python scripts/verify_local_setup.py"
 
 ---
 
-**Last Updated**: 2025-12-08  
-**Version**: 3.0 Phase 6 Enhanced  
+**Last Updated**: 2025-12-08
+**Version**: 3.0 Phase 6 Enhanced
 **Compatible with**: KRAI Engine v3.0+ (Phase 6 Multimodal AI Features)
 
 ### Phase 6 Features Included
@@ -1069,5 +1069,3 @@ echo "🔍 Verify setup: python scripts/verify_local_setup.py"
 ### Archived Docker Compose Files
 
 > **Note**: 7 deprecated Docker Compose files have been archived to reduce confusion. The project now maintains 3 active configurations: `docker-compose.simple.yml`, `docker-compose.with-firecrawl.yml`, and `docker-compose.production.yml`. See `archive/docker/README.md` for details about archived files and migration guidance.
-
-

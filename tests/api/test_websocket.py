@@ -1,8 +1,10 @@
 # Tests for WebSocket endpoints
-import pytest
 import json
+
+import pytest
 from httpx import AsyncClient
 from websockets import connect
+
 
 @pytest.mark.asyncio
 async def test_websocket_connect(async_client: AsyncClient, admin_token: str):

@@ -1,4 +1,5 @@
 """Test API direkt"""
+
 import requests
 
 print("Testing KRAI API...")
@@ -23,12 +24,8 @@ except Exception as e:
 try:
     response = requests.post(
         "http://localhost:8000/v1/chat/completions",
-        json={
-            "model": "krai-assistant",
-            "messages": [{"role": "user", "content": "Test"}],
-            "stream": False
-        },
-        timeout=30
+        json={"model": "krai-assistant", "messages": [{"role": "user", "content": "Test"}], "stream": False},
+        timeout=30,
     )
     print(f"✅ Chat: {response.status_code}")
     if response.status_code != 200:

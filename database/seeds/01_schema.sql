@@ -435,7 +435,7 @@ BEGIN
     FROM krai_content.instructional_videos
     WHERE video_url = p_url
     LIMIT 1;
-    
+
     IF v_video_id IS NULL THEN
         INSERT INTO krai_content.instructional_videos (
             manufacturer_id, title, description, video_url, auto_created, metadata
@@ -447,7 +447,7 @@ BEGIN
         )
         RETURNING id INTO v_video_id;
     END IF;
-    
+
     RETURN v_video_id;
 END;
 $$;
@@ -476,8 +476,8 @@ CREATE FUNCTION krai_core.check_compatibility(product_1_id uuid, product_2_id uu
     AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
-        CASE 
+    SELECT
+        CASE
             WHEN pa.compatibility_type = 'conflicts' THEN false
             ELSE true
         END as compatible,
@@ -486,7 +486,7 @@ BEGIN
     FROM krai_core.product_accessories pa
     WHERE (pa.product_id = product_1_id AND pa.accessory_id = product_2_id)
        OR (pa.product_id = product_2_id AND pa.accessory_id = product_1_id);
-    
+
     -- If no relationship found, assume compatible
     IF NOT FOUND THEN
         RETURN QUERY SELECT true, 'unknown'::VARCHAR, 'No compatibility information found'::TEXT;
@@ -505,14 +505,14 @@ CREATE FUNCTION krai_core.compare_products(product_id_1 uuid, product_id_2 uuid)
 BEGIN
     RETURN QUERY
     WITH specs AS (
-        SELECT 
+        SELECT
             p1.specifications as specs_1,
             p2.specifications as specs_2
         FROM krai_core.products p1
         CROSS JOIN krai_core.products p2
         WHERE p1.id = product_id_1 AND p2.id = product_id_2
     )
-    SELECT 
+    SELECT
         keys.key::TEXT,
         (specs_1 -> keys.key)::TEXT,
         (specs_2 -> keys.key)::TEXT
@@ -531,7 +531,7 @@ CREATE FUNCTION krai_core.get_document_products(doc_id uuid) RETURNS TABLE(produ
     AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         p.id as product_id,
         p.model_number,
         m.name as manufacturer_name,
@@ -563,7 +563,7 @@ CREATE FUNCTION krai_core.get_incompatible_products(p_product_id uuid) RETURNS T
     AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         p.id,
         p.model_number,
         p.product_type,
@@ -585,7 +585,7 @@ CREATE FUNCTION krai_core.get_product_accessories(p_product_id uuid) RETURNS TAB
     AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         p.id,
         p.model_number,
         p.product_type,
@@ -607,7 +607,7 @@ CREATE FUNCTION krai_core.get_required_accessories(p_product_id uuid) RETURNS TA
     AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         p.id,
         p.model_number,
         p.product_type,
@@ -643,12 +643,12 @@ CREATE FUNCTION krai_core.update_document_manufacturer(p_document_id uuid, p_man
 BEGIN
     -- Update document with manufacturer info
     UPDATE krai_core.documents
-    SET 
+    SET
         manufacturer = p_manufacturer,
         manufacturer_id = p_manufacturer_id,
         updated_at = NOW()
     WHERE id = p_document_id;
-    
+
     -- Log if no rows were updated (document doesn't exist)
     IF NOT FOUND THEN
         RAISE NOTICE 'Document % not found', p_document_id;
@@ -698,7 +698,7 @@ BEGIN
     FROM krai_core.product_accessories
     WHERE product_id = p_base_product_id
       AND compatibility_type IN ('required', 'prerequisite');
-    
+
     -- Check if all required accessories are present
     IF v_required_accessories IS NOT NULL THEN
         FOREACH v_accessory IN ARRAY v_required_accessories
@@ -713,7 +713,7 @@ BEGIN
             END IF;
         END LOOP;
     END IF;
-    
+
     -- Check for conflicts between accessories
     FOREACH v_accessory IN ARRAY p_accessory_ids
     LOOP
@@ -723,7 +723,7 @@ BEGIN
                 -- Check compatibility
                 SELECT * INTO v_compatibility
                 FROM krai_core.check_compatibility(v_accessory, v_other_accessory);
-                
+
                 IF v_compatibility.compatible = false THEN
                     v_is_valid := false;
                     v_errors := v_errors || jsonb_build_object(
@@ -736,7 +736,7 @@ BEGIN
             END IF;
         END LOOP;
     END LOOP;
-    
+
     RETURN QUERY SELECT v_is_valid, v_errors;
 END;
 $$;
@@ -761,14 +761,14 @@ CREATE FUNCTION krai_intelligence.find_similar_chunks(query_embedding extensions
     AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         c.id,
         c.document_id,
         (1 - (e.embedding <=> query_embedding))::DECIMAL(5,4) as similarity,
         LEFT(c.text_chunk, 200) as preview
     FROM krai_intelligence.chunks c
     JOIN krai_intelligence.embeddings e ON c.id = e.chunk_id
-    WHERE 
+    WHERE
         c.processing_status = 'completed'
         AND (1 - (e.embedding <=> query_embedding)) >= similarity_threshold
     ORDER BY e.embedding <=> query_embedding
@@ -804,7 +804,7 @@ BEGIN
     WHERE manufacturer = p_manufacturer
       AND model_number = p_model_number
       AND (cache_valid_until IS NULL OR cache_valid_until > NOW());
-    
+
     RETURN v_result;
 END;
 $$;
@@ -826,7 +826,7 @@ CREATE FUNCTION krai_intelligence.get_frequent_parts(p_manufacturer text DEFAULT
     AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         pt.part_number::TEXT,
         pt.part_name::TEXT,
         COUNT(DISTINCT pt.id) as occurrence_count,
@@ -861,7 +861,7 @@ CREATE FUNCTION krai_intelligence.get_popular_error_codes(p_manufacturer text DE
     AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         ec.error_code::TEXT,
         ec.description::TEXT,
         COUNT(DISTINCT ec.id) as occurrence_count,
@@ -893,7 +893,7 @@ CREATE FUNCTION krai_intelligence.get_product_info(p_model_number text, p_manufa
     AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         p.id as product_id,
         p.model_number::TEXT,
         m.name::TEXT as manufacturer,
@@ -910,7 +910,7 @@ BEGIN
     WHERE p.model_number ILIKE '%' || p_model_number || '%'
         AND (p_manufacturer IS NULL OR m.name ILIKE '%' || p_manufacturer || '%')
     GROUP BY p.id, m.id, m.name, ps.series_name
-    ORDER BY 
+    ORDER BY
         -- Exact match first
         CASE WHEN p.model_number = p_model_number THEN 0 ELSE 1 END,
         similarity(p.model_number, p_model_number) DESC
@@ -935,7 +935,7 @@ CREATE FUNCTION krai_intelligence.get_session_context(p_session_id text) RETURNS
     AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         sc.context_type,
         sc.context_value,
         sc.confidence,
@@ -970,11 +970,11 @@ BEGIN
     FROM krai_intelligence.product_research_cache
     WHERE manufacturer = p_manufacturer
       AND model_number = p_model_number;
-    
+
     IF v_valid_until IS NULL THEN
         RETURN false;
     END IF;
-    
+
     RETURN v_valid_until > NOW();
 END;
 $$;
@@ -1009,7 +1009,7 @@ CREATE FUNCTION krai_intelligence.search_documentation_context(p_query text, p_m
     AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         c.id as chunk_id,
         c.text_chunk::TEXT,
         c.page_number,
@@ -1052,7 +1052,7 @@ CREATE FUNCTION krai_intelligence.search_documents_optimized(search_query text, 
     AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         d.id,
         d.filename,
         ts_rank(to_tsvector('english', d.content_text), plainto_tsquery('english', search_query)) as relevance,
@@ -1060,7 +1060,7 @@ BEGIN
         d.document_type
     FROM krai_core.documents d
     JOIN krai_core.manufacturers m ON d.manufacturer_id = m.id
-    WHERE 
+    WHERE
         to_tsvector('english', d.content_text) @@ plainto_tsquery('english', search_query)
         AND (manufacturer_filter IS NULL OR d.manufacturer_id = manufacturer_filter)
         AND (document_type_filter IS NULL OR d.document_type = document_type_filter)
@@ -1080,7 +1080,7 @@ CREATE FUNCTION krai_intelligence.search_error_codes(p_error_code text, p_manufa
     AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         ec.error_code::TEXT,
         ec.description::TEXT,
         ec.cause::TEXT,
@@ -1097,7 +1097,7 @@ BEGIN
     WHERE ec.error_code ILIKE '%' || p_error_code || '%'
         AND (p_manufacturer IS NULL OR m.name ILIKE '%' || p_manufacturer || '%')
         AND (p_model IS NULL OR p.model_number ILIKE '%' || p_model || '%')
-    ORDER BY 
+    ORDER BY
         -- Exact match first
         CASE WHEN ec.error_code = p_error_code THEN 0 ELSE 1 END,
         -- Then by similarity
@@ -1123,7 +1123,7 @@ CREATE FUNCTION krai_intelligence.search_parts(p_search_term text, p_part_number
     AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         pt.part_number::TEXT,
         pt.part_name::TEXT,
         pt.description::TEXT,
@@ -1138,13 +1138,13 @@ BEGIN
     LEFT JOIN krai_core.document_products dp ON d.id = dp.document_id
     LEFT JOIN krai_core.products p ON dp.product_id = p.id
     WHERE (
-        pt.part_name ILIKE '%' || p_search_term || '%' 
+        pt.part_name ILIKE '%' || p_search_term || '%'
         OR pt.description ILIKE '%' || p_search_term || '%'
         OR (p_part_number IS NOT NULL AND pt.part_number ILIKE '%' || p_part_number || '%')
     )
     AND (p_manufacturer IS NULL OR m.name ILIKE '%' || p_manufacturer || '%')
     AND (p_model IS NULL OR p.model_number ILIKE '%' || p_model || '%')
-    ORDER BY 
+    ORDER BY
         -- Exact part number match first
         CASE WHEN pt.part_number = p_part_number THEN 0 ELSE 1 END,
         -- Then by name similarity
@@ -1170,7 +1170,7 @@ CREATE FUNCTION krai_intelligence.search_videos(p_search_term text, p_manufactur
     AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         v.id as video_id,
         v.youtube_id::TEXT,
         v.title::TEXT,
@@ -1192,7 +1192,7 @@ BEGIN
     )
     AND (p_manufacturer IS NULL OR m.name ILIKE '%' || p_manufacturer || '%')
     AND (p_model IS NULL OR p.model_number ILIKE '%' || p_model || '%')
-    ORDER BY 
+    ORDER BY
         -- Prioritize by view count and relevance
         v.view_count DESC NULLS LAST,
         similarity(v.title, p_search_term) DESC
@@ -1225,16 +1225,16 @@ BEGIN
         FROM krai_intelligence.session_context
         WHERE session_id = p_session_id AND context_type = 'manufacturer'
         ORDER BY last_used_at DESC LIMIT 1;
-        
+
         SELECT context_value INTO v_model
         FROM krai_intelligence.session_context
         WHERE session_id = p_session_id AND context_type = 'model'
         ORDER BY last_used_at DESC LIMIT 1;
     END IF;
-    
+
     -- Search error codes
     RETURN QUERY
-    SELECT 
+    SELECT
         'error_code'::TEXT,
         jsonb_build_object(
             'error_code', ec.error_code,
@@ -1252,10 +1252,10 @@ BEGIN
     WHERE ec.error_code ILIKE '%' || p_query || '%'
         OR ec.description ILIKE '%' || p_query || '%'
     LIMIT 3;
-    
+
     -- Search parts
     RETURN QUERY
-    SELECT 
+    SELECT
         'part'::TEXT,
         jsonb_build_object(
             'part_number', pt.part_number,
@@ -1274,10 +1274,10 @@ BEGIN
     WHERE pt.part_name ILIKE '%' || p_query || '%'
         OR pt.part_number ILIKE '%' || p_query || '%'
     LIMIT 3;
-    
+
     -- Search products
     RETURN QUERY
-    SELECT 
+    SELECT
         'product'::TEXT,
         jsonb_build_object(
             'model_number', p.model_number,
@@ -1343,7 +1343,7 @@ BEGIN
         NOW(),
         1
     )
-    ON CONFLICT (session_id, context_type, context_value) 
+    ON CONFLICT (session_id, context_type, context_value)
     DO UPDATE SET
         last_used_at = NOW(),
         use_count = krai_intelligence.session_context.use_count + 1,
@@ -1397,19 +1397,19 @@ DECLARE
     freed_bytes BIGINT := 0;
 BEGIN
     -- Get statistics before cleanup
-    SELECT 
-        COUNT(*), 
-        COALESCE(SUM(size), 0) 
+    SELECT
+        COUNT(*),
+        COALESCE(SUM(size), 0)
     INTO deleted_count, freed_bytes
-    FROM storage.objects 
+    FROM storage.objects
     WHERE created_at < (NOW() - INTERVAL '1 day' * days_old)
       AND bucket_id LIKE 'krai-%';
-    
+
     -- Delete old objects (this would need proper implementation)
-    -- DELETE FROM storage.objects 
+    -- DELETE FROM storage.objects
     -- WHERE created_at < (NOW() - INTERVAL '1 day' * days_old)
     --   AND bucket_id LIKE 'krai-%';
-    
+
     RETURN QUERY SELECT deleted_count, (freed_bytes::DECIMAL(10,2) / (1024 * 1024));
 END;
 $$;
@@ -1424,34 +1424,34 @@ CREATE FUNCTION krai_system.get_performance_metrics() RETURNS TABLE(metric_name 
     AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         'active_connections'::TEXT,
         pg_stat_get_numbackends(oid)::DECIMAL(15,6),
         'count'::TEXT,
         NOW()
     FROM pg_database WHERE datname = current_database()
-    
+
     UNION ALL
-    
-    SELECT 
+
+    SELECT
         'cache_hit_ratio'::TEXT,
         (blks_hit::DECIMAL / (blks_hit + blks_read + 1)) * 100,
         'percentage'::TEXT,
         NOW()
     FROM pg_stat_database WHERE datname = current_database()
-    
+
     UNION ALL
-    
-    SELECT 
+
+    SELECT
         'total_documents'::TEXT,
         COUNT(*)::DECIMAL(15,6),
         'count'::TEXT,
         NOW()
     FROM krai_core.documents
-    
+
     UNION ALL
-    
-    SELECT 
+
+    SELECT
         'total_embeddings'::TEXT,
         COUNT(*)::DECIMAL(15,6),
         'count'::TEXT,
@@ -1470,7 +1470,7 @@ CREATE FUNCTION krai_system.get_processing_statistics(date_from date DEFAULT (CU
     AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         COUNT(*)::INTEGER as total,
         COUNT(CASE WHEN processing_status = 'completed' THEN 1 END)::INTEGER as completed,
         COUNT(CASE WHEN processing_status = 'pending' THEN 1 END)::INTEGER as pending,
@@ -1478,7 +1478,7 @@ BEGIN
         AVG(EXTRACT(EPOCH FROM (updated_at - created_at)) / 3600)::DECIMAL(8,2) as avg_hours,
         (SELECT COUNT(*) FROM krai_intelligence.chunks WHERE created_at BETWEEN date_from AND date_to + INTERVAL '1 day')::INTEGER,
         (SELECT COUNT(*) FROM krai_content.images WHERE created_at BETWEEN date_from AND date_to + INTERVAL '1 day')::INTEGER
-    FROM krai_core.documents 
+    FROM krai_core.documents
     WHERE created_at BETWEEN date_from AND date_to + INTERVAL '1 day';
 END;
 $$;
@@ -1493,7 +1493,7 @@ CREATE FUNCTION krai_system.get_storage_statistics() RETURNS TABLE(bucket_name t
     AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         b.name,
         COUNT(o.id),
         COALESCE(SUM(o.size), 0),
@@ -1522,19 +1522,19 @@ BEGIN
     ANALYZE krai_intelligence.chunks;
     ANALYZE krai_intelligence.embeddings;
     ANALYZE krai_content.images;
-    
+
     result_text := result_text || 'Table statistics updated. ';
-    
+
     -- Reindex critical indexes if needed
     REINDEX INDEX CONCURRENTLY idx_embeddings_vector_hnsw;
     result_text := result_text || 'Vector index reindexed. ';
-    
+
     -- Vacuum analyze for performance
     VACUUM ANALYZE krai_core.documents;
     VACUUM ANALYZE krai_intelligence.chunks;
-    
+
     result_text := result_text || 'Vacuum analyze completed.';
-    
+
     RETURN result_text;
 END;
 $$;
@@ -1556,17 +1556,17 @@ DECLARE
     test_recommendation TEXT;
 BEGIN
     RAISE NOTICE '🚀 Starting KRAI Performance Test Suite...';
-    
+
     -- Test 1: Basic Schema Connectivity
     start_time := clock_timestamp();
-    
-    SELECT COUNT(*)::TEXT INTO test_result 
-    FROM information_schema.tables 
+
+    SELECT COUNT(*)::TEXT INTO test_result
+    FROM information_schema.tables
     WHERE table_schema LIKE 'krai_%';
-    
+
     end_time := clock_timestamp();
     duration_ms := EXTRACT(EPOCH FROM (end_time - start_time)) * 1000;
-    
+
     IF test_result::INTEGER >= 31 THEN
         test_detail := test_result || ' tables found across KRAI schemas';
         test_recommendation := 'Schema structure is complete';
@@ -1574,61 +1574,61 @@ BEGIN
         test_detail := 'Only ' || test_result || ' tables found - expected 31+';
         test_recommendation := 'Check schema migration completeness';
     END IF;
-    
-    RETURN QUERY SELECT 
+
+    RETURN QUERY SELECT
         'Schema Connectivity'::TEXT,
         CASE WHEN test_result::INTEGER >= 31 THEN '✅ PASS' ELSE '❌ FAIL' END,
         duration_ms,
         test_detail,
         test_recommendation;
-    
+
     -- Test 2: Index Effectiveness Check
     start_time := clock_timestamp();
-    
-    SELECT COUNT(*)::TEXT INTO test_result 
-    FROM pg_indexes 
+
+    SELECT COUNT(*)::TEXT INTO test_result
+    FROM pg_indexes
     WHERE schemaname LIKE 'krai_%' AND indexname LIKE 'idx_%';
-    
+
     end_time := clock_timestamp();
     duration_ms := EXTRACT(EPOCH FROM (end_time - start_time)) * 1000;
-    
+
     test_detail := test_result || ' performance indexes found';
-    test_recommendation := CASE 
+    test_recommendation := CASE
         WHEN test_result::INTEGER >= 15 THEN 'Index coverage is excellent'
         WHEN test_result::INTEGER >= 10 THEN 'Index coverage is good'
         ELSE 'Consider adding more performance indexes'
     END;
-    
-    RETURN QUERY SELECT 
+
+    RETURN QUERY SELECT
         'Index Coverage'::TEXT,
         CASE WHEN test_result::INTEGER >= 10 THEN '✅ PASS' ELSE '⚠️ WARN' END,
         duration_ms,
         test_detail,
         test_recommendation;
-    
+
     -- Test 3: Foreign Key Constraint Performance
     start_time := clock_timestamp();
-    
-    SELECT COUNT(*)::TEXT INTO test_result 
-    FROM information_schema.table_constraints 
+
+    SELECT COUNT(*)::TEXT INTO test_result
+    FROM information_schema.table_constraints
     WHERE table_schema LIKE 'krai_%' AND constraint_type = 'FOREIGN KEY';
-    
+
     end_time := clock_timestamp();
     duration_ms := EXTRACT(EPOCH FROM (end_time - start_time)) * 1000;
-    
+
     test_detail := test_result || ' foreign key constraints active';
     test_recommendation := 'Foreign key integrity is maintained';
-    
-    RETURN QUERY SELECT 
+
+    RETURN QUERY SELECT
         'Foreign Key Constraints'::TEXT,
         CASE WHEN test_result::INTEGER >= 40 THEN '✅ PASS' ELSE '⚠️ WARN' END,
         duration_ms,
         test_detail,
         test_recommendation;
-    
+
     -- Test 4: Vector Extension Check
     start_time := clock_timestamp();
-    
+
     BEGIN
         EXECUTE 'SELECT 1 WHERE EXISTS (SELECT 1 FROM pg_extension WHERE extname = ''vector'')';
         test_result := 'Available';
@@ -1639,40 +1639,40 @@ BEGIN
         test_detail := 'pgvector extension not found';
         test_recommendation := 'Install pgvector extension for embeddings';
     END;
-    
+
     end_time := clock_timestamp();
     duration_ms := EXTRACT(EPOCH FROM (end_time - start_time)) * 1000;
-    
-    RETURN QUERY SELECT 
+
+    RETURN QUERY SELECT
         'Vector Extension'::TEXT,
         CASE WHEN test_result = 'Available' THEN '✅ PASS' ELSE '❌ FAIL' END,
         duration_ms,
         test_detail,
         test_recommendation;
-    
+
     -- Test 5: Storage Buckets Check
     start_time := clock_timestamp();
-    
-    SELECT COUNT(*)::TEXT INTO test_result 
-    FROM storage.buckets 
+
+    SELECT COUNT(*)::TEXT INTO test_result
+    FROM storage.buckets
     WHERE name LIKE 'krai-%';
-    
+
     end_time := clock_timestamp();
     duration_ms := EXTRACT(EPOCH FROM (end_time - start_time)) * 1000;
-    
+
     test_detail := test_result || ' KRAI storage buckets configured';
-    test_recommendation := CASE 
+    test_recommendation := CASE
         WHEN test_result::INTEGER >= 3 THEN 'Storage buckets ready for file uploads'
         ELSE 'Configure missing storage buckets'
     END;
-    
-    RETURN QUERY SELECT 
+
+    RETURN QUERY SELECT
         'Storage Buckets'::TEXT,
         CASE WHEN test_result::INTEGER >= 3 THEN '✅ PASS' ELSE '❌ FAIL' END,
         duration_ms,
         test_detail,
         test_recommendation;
-    
+
     RAISE NOTICE '✅ KRAI Performance Test Suite completed!';
 END;
 $$;
@@ -1687,50 +1687,50 @@ CREATE FUNCTION krai_system.system_health_check() RETURNS TABLE(component text, 
     AS $$
 BEGIN
     -- Database size check
-    RETURN QUERY 
-    SELECT 
+    RETURN QUERY
+    SELECT
         'Database Size'::TEXT,
         '✅ Healthy'::TEXT,
         pg_size_pretty(pg_database_size(current_database())) || ' total size',
         'Database size is within normal limits'::TEXT;
-    
+
     -- Connection check
     RETURN QUERY
-    SELECT 
+    SELECT
         'Active Connections'::TEXT,
         '✅ Healthy'::TEXT,
         pg_stat_get_numbackends(oid)::TEXT || ' active connections' as details,
         'Connection count is normal'::TEXT
     FROM pg_database WHERE datname = current_database();
-    
+
     -- Cache hit ratio
     RETURN QUERY
-    SELECT 
+    SELECT
         'Cache Hit Ratio'::TEXT,
-        CASE 
+        CASE
             WHEN (blks_hit::FLOAT / (blks_hit + blks_read + 1)) > 0.90 THEN '✅ Excellent'
             WHEN (blks_hit::FLOAT / (blks_hit + blks_read + 1)) > 0.75 THEN '⚠️ Good'
             ELSE '❌ Poor'
         END,
         ROUND((blks_hit::FLOAT / (blks_hit + blks_read + 1)) * 100, 2)::TEXT || '% cache hit rate',
-        CASE 
+        CASE
             WHEN (blks_hit::FLOAT / (blks_hit + blks_read + 1)) > 0.90 THEN 'Excellent cache performance'
             WHEN (blks_hit::FLOAT / (blks_hit + blks_read + 1)) > 0.75 THEN 'Consider increasing shared_buffers'
             ELSE 'Increase shared_buffers and work_mem'
         END
     FROM pg_stat_database WHERE datname = current_database();
-    
+
     -- Table statistics freshness
     RETURN QUERY
-    SELECT 
+    SELECT
         'Statistics Currency'::TEXT,
-        CASE 
+        CASE
             WHEN MAX(last_analyze) > NOW() - INTERVAL '7 days' THEN '✅ Current'
             WHEN MAX(last_analyze) > NOW() - INTERVAL '30 days' THEN '⚠️ Stale'
             ELSE '❌ Very Stale'
         END,
         'Last analyze: ' || COALESCE(MAX(last_analyze)::TEXT, 'Never'),
-        CASE 
+        CASE
             WHEN MAX(last_analyze) > NOW() - INTERVAL '7 days' THEN 'Statistics are current'
             ELSE 'Run ANALYZE on tables for better query planning'
         END
@@ -1755,66 +1755,66 @@ DECLARE
 BEGIN
     -- Test 1: Document lookup by manufacturer (should use index)
     start_time := clock_timestamp();
-    
-    PERFORM COUNT(*) FROM krai_core.documents d 
-    JOIN krai_core.manufacturers m ON d.manufacturer_id = m.id 
+
+    PERFORM COUNT(*) FROM krai_core.documents d
+    JOIN krai_core.manufacturers m ON d.manufacturer_id = m.id
     WHERE m.name = 'HP Inc.';
-    
+
     end_time := clock_timestamp();
     duration_ms := EXTRACT(EPOCH FROM (end_time - start_time)) * 1000;
-    
+
     -- Check if index is used (simplified)
     uses_index := duration_ms < 100; -- Heuristic: fast queries likely use indexes
-    
-    RETURN QUERY SELECT 
+
+    RETURN QUERY SELECT
         'Document by Manufacturer'::TEXT,
         duration_ms,
         uses_index,
-        CASE 
+        CASE
             WHEN duration_ms < 50 THEN '🚀 Excellent'
             WHEN duration_ms < 200 THEN '✅ Good'
             WHEN duration_ms < 500 THEN '⚠️ Fair'
             ELSE '❌ Slow'
         END;
-    
+
     -- Test 2: Full-text search (should use GIN index)
     start_time := clock_timestamp();
-    
-    PERFORM COUNT(*) FROM krai_core.documents 
+
+    PERFORM COUNT(*) FROM krai_core.documents
     WHERE to_tsvector('english', COALESCE(content_text, '')) @@ plainto_tsquery('english', 'printer error');
-    
+
     end_time := clock_timestamp();
     duration_ms := EXTRACT(EPOCH FROM (end_time - start_time)) * 1000;
     uses_index := duration_ms < 200;
-    
-    RETURN QUERY SELECT 
+
+    RETURN QUERY SELECT
         'Full-Text Search'::TEXT,
         duration_ms,
         uses_index,
-        CASE 
+        CASE
             WHEN duration_ms < 100 THEN '🚀 Excellent'
             WHEN duration_ms < 300 THEN '✅ Good'
             WHEN duration_ms < 1000 THEN '⚠️ Fair'
             ELSE '❌ Slow'
         END;
-    
+
     -- Test 3: Composite index test (manufacturer + document type + status)
     start_time := clock_timestamp();
-    
-    PERFORM COUNT(*) FROM krai_core.documents 
-    WHERE manufacturer_id IS NOT NULL 
-      AND document_type = 'Service Manual' 
+
+    PERFORM COUNT(*) FROM krai_core.documents
+    WHERE manufacturer_id IS NOT NULL
+      AND document_type = 'Service Manual'
       AND processing_status = 'completed';
-    
+
     end_time := clock_timestamp();
     duration_ms := EXTRACT(EPOCH FROM (end_time - start_time)) * 1000;
     uses_index := duration_ms < 150;
-    
-    RETURN QUERY SELECT 
+
+    RETURN QUERY SELECT
         'Composite Index Query'::TEXT,
         duration_ms,
         uses_index,
-        CASE 
+        CASE
             WHEN duration_ms < 75 THEN '🚀 Excellent'
             WHEN duration_ms < 250 THEN '✅ Good'
             WHEN duration_ms < 750 THEN '⚠️ Fair'
@@ -1840,43 +1840,43 @@ DECLARE
 BEGIN
     -- Check if we have any embeddings to test with
     SELECT COUNT(*) INTO vector_count FROM krai_intelligence.embeddings LIMIT 1000;
-    
+
     IF vector_count = 0 THEN
-        RETURN QUERY SELECT 
+        RETURN QUERY SELECT
             'Vector Similarity Search'::TEXT,
             0,
             0,
             '⏭️ Skipped (No embeddings found)'::TEXT;
         RETURN;
     END IF;
-    
+
     -- Create a sample vector for testing (768 dimensions of zeros)
     sample_vector := '[' || repeat('0,', 767) || '0]';
-    
+
     start_time := clock_timestamp();
-    
+
     -- Test vector similarity search
-    PERFORM COUNT(*) FROM krai_intelligence.embeddings 
+    PERFORM COUNT(*) FROM krai_intelligence.embeddings
     WHERE embedding IS NOT NULL
     ORDER BY embedding <=> sample_vector::vector
     LIMIT 10;
-    
+
     end_time := clock_timestamp();
     duration_ms := EXTRACT(EPOCH FROM (end_time - start_time)) * 1000;
-    
-    RETURN QUERY SELECT 
+
+    RETURN QUERY SELECT
         'Vector Similarity Search'::TEXT,
         duration_ms,
         vector_count,
-        CASE 
+        CASE
             WHEN duration_ms < 100 THEN '🚀 Excellent (HNSW index working)'
             WHEN duration_ms < 500 THEN '✅ Good'
             WHEN duration_ms < 2000 THEN '⚠️ Fair (Consider index tuning)'
             ELSE '❌ Slow (Check HNSW index)'
         END;
-        
+
 EXCEPTION WHEN OTHERS THEN
-    RETURN QUERY SELECT 
+    RETURN QUERY SELECT
         'Vector Similarity Search'::TEXT,
         -1,
         0,
@@ -5368,4 +5368,3 @@ GRANT EXECUTE ON FUNCTION krai_intelligence.match_multimodal(query_embedding ext
 
 GRANT EXECUTE ON FUNCTION krai_intelligence.match_images_by_context(query_embedding extensions.vector(768), match_threshold double precision, match_count integer) TO authenticated;
 GRANT EXECUTE ON FUNCTION krai_intelligence.match_images_by_context(query_embedding extensions.vector(768), match_threshold double precision, match_count integer) TO anon;
-

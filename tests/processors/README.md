@@ -23,7 +23,7 @@ tests/processors/
 
 ### 1. End-to-End (E2E) Tests
 - **test_upload_e2e.py**: Complete UploadProcessor workflow testing
-- **test_document_processor_e2e.py**: Complete DocumentProcessor workflow testing  
+- **test_document_processor_e2e.py**: Complete DocumentProcessor workflow testing
 - **test_text_processor_e2e.py**: Complete OptimizedTextProcessor workflow testing
 - **test_pipeline_flow_e2e.py**: Full pipeline integration testing
 
@@ -63,7 +63,7 @@ pytest -m processor
 
 # Run specific processor tests
 pytest -m upload
-pytest -m document  
+pytest -m document
 pytest -m text
 pytest -m pipeline
 pytest -m chunking
@@ -365,5 +365,5 @@ For questions about processor tests:
 
 ---
 
-**Last Updated**: 2025-01-27  
+**Last Updated**: 2025-01-27
 **Test Coverage**: Comprehensive E2E, unit, and integration testing for all pipeline processors

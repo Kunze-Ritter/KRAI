@@ -238,6 +238,6 @@ Most scripts have been updated to use the adapter pattern. For scripts that stil
 
 ---
 
-**Last Updated:** 2024-11-18  
-**Deprecation Status:** Active (variables commented out in `.env` files)  
+**Last Updated:** 2024-11-18
+**Deprecation Status:** Active (variables commented out in `.env` files)
 **Support Status:** PostgreSQL + MinIO (Production), Supabase (Deprecated)

@@ -7,7 +7,7 @@ Multi-platform video enrichment with auto-create manufacturers, products, and th
 
 ### Modern
 - **MP4** (H.264/H.265) - Most common
-- **WebM** (VP8/VP9) - Web standard  
+- **WebM** (VP8/VP9) - Web standard
 - **MOV** (QuickTime) - Apple
 - **MKV** (Matroska) - Open source
 

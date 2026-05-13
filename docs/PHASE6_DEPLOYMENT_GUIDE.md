@@ -315,11 +315,11 @@ scrape_configs:
     static_configs:
       - targets: ['krai-backend:8000']
     metrics_path: '/metrics'
-    
+
   - job_name: 'krai-postgres'
     static_configs:
       - targets: ['postgres-exporter:9187']
-      
+
   - job_name: 'krai-ollama'
     static_configs:
       - targets: ['ollama-exporter:9090']
@@ -426,7 +426,7 @@ services:
       - ./data:/app/data
       - ./logs:/app/logs
     restart: unless-stopped
-    
+
   krai-postgres:
     image: pgvector/pgvector:pg15
     environment:
@@ -443,7 +443,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./database/migrations:/docker-entrypoint-initdb.d
     restart: unless-stopped
-    
+
   krai-ollama:
     image: ollama/ollama:latest
     environment:
@@ -460,7 +460,7 @@ services:
     volumes:
       - ollama_data:/root/.ollama
     restart: unless-stopped
-    
+
   krai-minio:
     image: cgr.dev/chainguard/minio:latest
     environment:
@@ -511,13 +511,13 @@ export OLLAMA_NUM_PARALLEL=4
 1. **Vector Search Optimization**
 ```sql
 -- Create optimized vector indexes
-CREATE INDEX CONCURRENTLY chunks_embedding_vector_idx 
-ON krai_intelligence.chunks 
-USING ivfflat (embedding vector_cosine_ops) 
+CREATE INDEX CONCURRENTLY chunks_embedding_vector_idx
+ON krai_intelligence.chunks
+USING ivfflat (embedding vector_cosine_ops)
 WITH (lists = 100);
 
 -- Create composite indexes for multimodal search
-CREATE INDEX CONCURRENTLY chunks_source_idx 
+CREATE INDEX CONCURRENTLY chunks_source_idx
 ON krai_intelligence.chunks (source_type, source_id);
 
 -- Analyze tables for better query planning
@@ -541,7 +541,7 @@ CREATE OR REPLACE FUNCTION match_multimodal_optimized(
 ) AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         e.id,
         e.content,
         e.source_type,
@@ -622,15 +622,15 @@ metrics:
   - name: phase6_processing_time
     type: histogram
     labels: [document_type, processing_stage]
-    
+
   - name: phase6_search_latency
     type: histogram
     labels: [query_type, modality]
-    
+
   - name: phase6_ai_model_usage
     type: counter
     labels: [model_name, operation]
-    
+
   - name: phase6_storage_usage
     type: gauge
     labels: [storage_type, bucket]
@@ -649,7 +649,7 @@ groups:
           severity: warning
         annotations:
           summary: "High processing latency detected"
-          
+
       - alert: AIServiceDown
         expr: up{job="krai-ollama"} == 0
         for: 1m
@@ -759,9 +759,9 @@ export OLLAMA_GPU_LAYERS=20
 2. **Database Performance**
 ```sql
 -- Check slow queries
-SELECT query, mean_time, calls 
-FROM pg_stat_statements 
-ORDER BY mean_time DESC 
+SELECT query, mean_time, calls
+FROM pg_stat_statements
+ORDER BY mean_time DESC
 LIMIT 10;
 
 -- Rebuild indexes
@@ -875,6 +875,6 @@ For additional support:
 
 ---
 
-**Last Updated**: 2025-12-08  
-**Version**: 1.0  
+**Last Updated**: 2025-12-08
+**Version**: 1.0
 **Compatible with**: KRAI Phase 6 (v3.0+)

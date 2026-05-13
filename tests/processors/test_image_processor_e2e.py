@@ -11,9 +11,8 @@ from uuid import uuid4
 
 import pytest
 
-from backend.processors.image_processor import ImageProcessor
 from backend.core.base_processor import ProcessingContext
-
+from backend.processors.image_processor import ImageProcessor
 
 pytestmark = [pytest.mark.processor, pytest.mark.image]
 
@@ -53,7 +52,7 @@ class TestImageExtractionE2E:
         assert result["success"]
         assert result["total_extracted"] >= 1
         assert result["total_filtered"] >= 1
-        
+
         # Verify queue entries via adapter
         queue_entries = await mock_database_adapter.get_image_queue_entries(document_id)
         assert len(queue_entries) >= 0
@@ -79,7 +78,7 @@ class TestImageExtractionE2E:
         result = await processor.process(ctx)
 
         assert result["success"]
-        
+
         # Verify queue entries via adapter
         queue_entries = await mock_database_adapter.get_image_queue_entries(document_id)
         assert result["storage_tasks_created"] == len(queue_entries) or result["storage_tasks_created"] == 0

@@ -51,7 +51,7 @@
                                 <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition">
                                     <td class="px-3 py-4 whitespace-nowrap">
                                         <div class="flex items-center">
-                                            <span 
+                                            <span
                                                 class="text-xs font-mono text-gray-900 dark:text-gray-100 truncate max-w-[120px]"
                                                 title="{{ $error->error_id }}"
                                             >
@@ -61,7 +61,7 @@
                                     </td>
                                     <td class="px-3 py-4 whitespace-nowrap">
                                         @if ($error->document)
-                                            <a 
+                                            <a
                                                 href="{{ \App\Filament\Resources\Documents\DocumentResource::getUrl('edit', ['record' => $error->document_id]) }}"
                                                 class="text-sm text-primary-600 dark:text-primary-400 hover:underline"
                                             >
@@ -77,7 +77,7 @@
                                         </x-filament::badge>
                                     </td>
                                     <td class="px-3 py-4 whitespace-nowrap">
-                                        <x-filament::badge 
+                                        <x-filament::badge
                                             :color="match($error->error_type) {
                                                 'validation_error' => 'warning',
                                                 'processing_error' => 'danger',
@@ -90,7 +90,7 @@
                                         </x-filament::badge>
                                     </td>
                                     <td class="px-3 py-4 whitespace-nowrap">
-                                        <x-filament::badge 
+                                        <x-filament::badge
                                             :color="\App\Filament\Resources\Monitoring\PipelineErrorResource::getStatusBadgeColor($error->status)"
                                             :icon="\App\Filament\Resources\Monitoring\PipelineErrorResource::getStatusIcon($error->status)"
                                         >
@@ -112,7 +112,7 @@
                                                     Retry
                                                 </x-filament::button>
                                             @endif
-                                            
+
                                             <x-filament::button
                                                 tag="a"
                                                 href="{{ $this->getErrorUrl($error) }}"
@@ -122,7 +122,7 @@
                                             >
                                                 View
                                             </x-filament::button>
-                                            
+
                                             <x-filament::button
                                                 size="xs"
                                                 color="gray"
@@ -145,4 +145,3 @@
             </div>
         @endif
     </x-filament::section>
-

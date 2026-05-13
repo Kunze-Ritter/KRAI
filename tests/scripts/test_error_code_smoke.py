@@ -45,9 +45,9 @@ def run_manual_validation_checks():
     print("✓ HP validation: '13.20.01' accepted")
 
     invalid_hp_errors = extractor.validate_extraction(invalid_hp)
-    assert invalid_hp_errors and any("validation regex" in err.error_message for err in invalid_hp_errors), (
-        "Expected regex validation error for HP code with wrong format"
-    )
+    assert invalid_hp_errors and any(
+        "validation regex" in err.error_message for err in invalid_hp_errors
+    ), "Expected regex validation error for HP code with wrong format"
     print("✓ HP validation: '13_20_01' rejected")
 
     # Canon validation regex (E### or ####)
@@ -68,9 +68,9 @@ def run_manual_validation_checks():
     print("✓ Canon validation: 'E826' accepted")
 
     canon_errors = extractor.validate_extraction(invalid_canon)
-    assert canon_errors and any("validation regex" in err.error_message for err in canon_errors), (
-        "Expected regex validation error for Canon code using HP format"
-    )
+    assert canon_errors and any(
+        "validation regex" in err.error_message for err in canon_errors
+    ), "Expected regex validation error for Canon code using HP format"
     print("✓ Canon validation: HP-style code rejected for Canon")
 
     # Unknown manufacturer should skip regex validation gracefully
@@ -80,9 +80,7 @@ def run_manual_validation_checks():
         error_code="999",
         extraction_method="unknown_pattern",
     )
-    assert not extractor.validate_extraction(unknown), (
-        "Unknown manufacturer should not fail due to missing regex"
-    )
+    assert not extractor.validate_extraction(unknown), "Unknown manufacturer should not fail due to missing regex"
     print("✓ Unknown manufacturer: validation skipped without errors")
 
 

@@ -727,8 +727,6 @@ curl http://localhost:11434/api/tags
 
 ---
 
-**Last Updated:** 2024-11-19  
-**Configuration Approach:** Consolidated single `.env` file  
+**Last Updated:** 2024-11-19
+**Configuration Approach:** Consolidated single `.env` file
 **Deprecated:** Legacy modular `.env.*` files
-
-

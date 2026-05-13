@@ -98,7 +98,7 @@ The clean setup scripts provide automated Docker environment reset for developme
 
 ### docker-clean-setup.sh (Linux/macOS)
 
-**Location**: `scripts/docker-clean-setup.sh` 
+**Location**: `scripts/docker-clean-setup.sh`
 
 **Usage:**
 ```bash
@@ -167,7 +167,7 @@ The script is idempotent - safe to run multiple times. Missing volumes are skipp
 
 ### docker-clean-setup.ps1 (Windows)
 
-**Location**: `scripts/docker-clean-setup.ps1` 
+**Location**: `scripts/docker-clean-setup.ps1`
 
 **Usage:**
 ```powershell
@@ -202,7 +202,7 @@ Similar to Bash version with PowerShell-style formatting and progress indicators
 
 **Issue: "Failed to remove volume (may be in use)"**
 - **Cause**: Container still running or volume mounted elsewhere
-- **Solution**: 
+- **Solution**:
   ```bash
   docker-compose down -v  # Force remove volumes
   docker volume prune -f  # Remove all unused volumes
@@ -234,7 +234,7 @@ The health check scripts validate all KRAI service components with detailed repo
 
 ### docker-health-check.sh (Linux/macOS)
 
-**Location**: `scripts/docker-health-check.sh` 
+**Location**: `scripts/docker-health-check.sh`
 
 **Usage:**
 
@@ -350,8 +350,8 @@ Exit code: 2
 
 **What it does:**
 1. Creates test manufacturer entry in PostgreSQL
-2. Stops all containers with `docker-compose down` 
-3. Restarts containers with `docker-compose up -d` 
+2. Stops all containers with `docker-compose down`
+3. Restarts containers with `docker-compose up -d`
 4. Waits 60 seconds for initialization
 5. Verifies test data persisted
 6. Validates volume mounts (postgres_data, minio_data, ollama_data)
@@ -405,7 +405,7 @@ Exit code: 0
 
 ### docker-health-check.ps1 (Windows)
 
-**Location**: `scripts/docker-health-check.ps1` 
+**Location**: `scripts/docker-health-check.ps1`
 
 **Usage:**
 
@@ -465,24 +465,24 @@ brew install jq minio-mc
 
 **Issue: "jq: command not found" (Linux/macOS)**
 - **Impact**: Health check still works but with less detailed output
-- **Solution**: Install jq (optional): `sudo apt-get install jq` or `brew install jq` 
+- **Solution**: Install jq (optional): `sudo apt-get install jq` or `brew install jq`
 
 **Issue: "MinIO bucket operations not tested"**
 - **Cause**: MinIO client (`mc`) not installed or credentials incorrect
-- **Solution**: 
+- **Solution**:
   ```bash
   # Install mc
   wget https://dl.min.io/client/mc/release/linux-amd64/mc
   chmod +x mc
   sudo mv mc /usr/local/bin/
-  
+
   # Configure credentials
   mc alias set local http://localhost:9000 minioadmin <your-secret-key>
   ```
 
 **Issue: "PostgreSQL container not found"**
 - **Cause**: Container name mismatch (script checks `krai-postgres-prod` and `krai-postgres`)
-- **Solution**: Verify container name: `docker ps | grep postgres` 
+- **Solution**: Verify container name: `docker ps | grep postgres`
 
 **Issue: "Embedding generation failed"**
 - **Cause**: Ollama model not loaded or insufficient memory
@@ -490,10 +490,10 @@ brew install jq minio-mc
   ```bash
   # Check model status
   docker exec krai-ollama ollama list
-  
+
   # Pull model if missing
   docker exec krai-ollama ollama pull nomic-embed-text
-  
+
   # Check Ollama logs
   docker logs krai-ollama --tail 50
   ```
@@ -505,7 +505,7 @@ brew install jq minio-mc
   # Check volume configuration
   docker volume ls | grep krai
   docker inspect krai-postgres | grep -A 10 Mounts
-  
+
   # Verify docker-compose.yml volume configuration
   grep -A 5 "volumes:" docker-compose.yml
   ```
@@ -520,7 +520,7 @@ Integration tests validate service-to-service connectivity and data flow across 
 
 ### docker-integration-tests.ps1 (Windows)
 
-**Location**: `scripts/docker-integration-tests.ps1` 
+**Location**: `scripts/docker-integration-tests.ps1`
 
 **Usage:**
 
@@ -556,7 +556,7 @@ $env:BACKEND_API_TOKEN = "your-jwt-token-here"
 #### 2. Backend → MinIO Integration
 
 **Tests:**
-- ✅ Upload test: Create and upload test image via `/api/v1/images/upload` 
+- ✅ Upload test: Create and upload test image via `/api/v1/images/upload`
 - ✅ Download test: Verify file accessible via public URL
 - ✅ Delete test: Remove file from storage via API
 
@@ -608,7 +608,7 @@ $env:BACKEND_API_TOKEN = "your-jwt-token-here"
 #### 5. Laravel → PostgreSQL Integration
 
 **Tests:**
-- ✅ Eloquent query test: Count manufacturers via `App\Models\Manufacturer::count()` 
+- ✅ Eloquent query test: Count manufacturers via `App\Models\Manufacturer::count()`
 - ✅ Product model test: Verify `App\Models\Product` accessible
 - ✅ User model test: Count users (expects ≥1)
 - ✅ PipelineError model test: Verify `App\Models\PipelineError` accessible
@@ -727,7 +727,7 @@ $env:BACKEND_API_TOKEN = $response.access_token
   ```powershell
   # Verify JWT service exists
   docker exec krai-laravel-admin php artisan tinker --execute="class_exists('App\Services\JwtService');"
-  
+
   # Check Laravel logs
   docker logs krai-laravel-admin --tail 50
   ```
@@ -747,10 +747,10 @@ $env:BACKEND_API_TOKEN = $response.access_token
   ```powershell
   # Check MinIO health
   Invoke-WebRequest -Uri "http://localhost:9000/minio/health/live"
-  
+
   # Verify buckets exist
   docker exec krai-minio mc ls local/
-  
+
   # Initialize MinIO if needed
   python scripts/init_minio.py
   ```
@@ -761,7 +761,7 @@ $env:BACKEND_API_TOKEN = $response.access_token
   ```powershell
   # Check Ollama status
   Invoke-RestMethod -Uri "http://localhost:11434/api/tags"
-  
+
   # Pull model if missing
   docker exec krai-ollama ollama pull nomic-embed-text
   ```
@@ -772,7 +772,7 @@ $env:BACKEND_API_TOKEN = $response.access_token
   ```powershell
   # Test database connection
   docker exec krai-laravel-admin php artisan db:show
-  
+
   # Verify models exist
   docker exec krai-laravel-admin php artisan tinker --execute="class_exists('App\Models\Manufacturer');"
   ```
@@ -809,7 +809,7 @@ sequenceDiagram
     participant Health as docker-health-check
     participant Integration as docker-integration-tests
     participant Persistency as docker-health-check --test-persistency
-    
+
     User->>Orchestrator: Execute
     Orchestrator->>Clean: Step 1: Clean Setup
     Clean-->>Orchestrator: Exit Code 0
@@ -1551,10 +1551,10 @@ FIRECRAWL_MAX_CONCURRENCY=2  # Reduzieren bei Instabilität
   ```bash
   # Force stop all containers
   docker-compose down -v
-  
+
   # Remove all volumes manually
   docker volume prune -f
-  
+
   # Restart clean setup
   ./scripts/docker-clean-setup.sh
   ```
@@ -1567,13 +1567,13 @@ FIRECRAWL_MAX_CONCURRENCY=2  # Reduzieren bei Instabilität
   ```bash
   # Check container status
   docker ps | grep postgres
-  
+
   # Check logs
   docker logs krai-postgres --tail 50
-  
+
   # Verify credentials in .env
   grep DATABASE_ .env
-  
+
   # Restart PostgreSQL
   docker-compose restart krai-postgres
   ```
@@ -1587,7 +1587,7 @@ FIRECRAWL_MAX_CONCURRENCY=2  # Reduzieren bei Instabilität
   # Generate token via Laravel
   $token = docker exec krai-laravel-admin php artisan tinker --execute="echo (new \App\Services\JwtService())->generateToken(['user_id' => 1, 'role' => 'admin']);"
   $env:BACKEND_API_TOKEN = $token.Trim()
-  
+
   # Run tests
   .\scripts\docker-integration-tests.ps1
   ```
@@ -1600,13 +1600,13 @@ FIRECRAWL_MAX_CONCURRENCY=2  # Reduzieren bei Instabilität
   ```bash
   # Check volume mounts
   docker inspect krai-postgres | grep -A 10 Mounts
-  
+
   # Verify volume exists
   docker volume ls | grep krai_postgres_data
-  
+
   # Check docker-compose.yml volume configuration
   grep -A 5 "krai_postgres_data" docker-compose.yml
-  
+
   # Recreate volume
   docker-compose down -v
   ./scripts/docker-clean-setup.sh
@@ -1620,10 +1620,10 @@ FIRECRAWL_MAX_CONCURRENCY=2  # Reduzieren bei Instabilität
   ```bash
   # Check if seed file exists
   docker exec krai-postgres ls -la /docker-entrypoint-initdb.d/030_seeds.sql
-  
+
   # Manually load seed data
   docker exec krai-postgres psql -U krai_user -d krai -f /docker-entrypoint-initdb.d/030_seeds.sql
-  
+
   # Verify manufacturers
   docker exec krai-postgres psql -U krai_user -d krai -c "SELECT COUNT(*) FROM krai_core.manufacturers;"
   ```
@@ -2059,10 +2059,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Start Docker services
         run: docker-compose up -d
-      
+
       - name: Run health check
         run: |
           ./scripts/docker-health-check.sh
@@ -2074,7 +2074,7 @@ jobs:
             echo "Warnings detected (non-blocking)"
             exit 0
           fi
-      
+
       - name: Run integration tests
         run: |
           ./scripts/docker-integration-tests.ps1
@@ -2118,7 +2118,7 @@ groups:
         annotations:
           summary: "KRAI health check failed"
           description: "Health check returned exit code 2 (critical errors)"
-      
+
       - alert: KraiHealthCheckWarning
         expr: krai_health_check_exit_code == 1
         for: 15m

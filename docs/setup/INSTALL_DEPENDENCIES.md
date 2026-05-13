@@ -93,31 +93,31 @@ def test_dependencies():
         print("✅ PyMuPDF: OK")
     except ImportError:
         print("❌ PyMuPDF: FEHLT")
-    
+
     try:
         from PIL import Image
         print("✅ Pillow: OK")
     except ImportError:
         print("❌ Pillow: FEHLT")
-    
+
     try:
         import asyncpg
         print("✅ AsyncPG: OK")
     except ImportError:
         print("❌ AsyncPG: FEHLT")
-    
+
     try:
         import psycopg2
         print("✅ Psycopg2: OK")
     except ImportError:
         print("❌ Psycopg2: FEHLT")
-    
+
     try:
         import boto3
         print("✅ Boto3: OK")
     except ImportError:
         print("❌ Boto3: FEHLT")
-    
+
     try:
         import ollama
         print("✅ Ollama: OK")
@@ -182,4 +182,3 @@ python krai_master_pipeline.py
 ---
 
 **🎯 Empfehlung: Starte mit `requirements-minimal.txt` für schnelle Installation!**
-

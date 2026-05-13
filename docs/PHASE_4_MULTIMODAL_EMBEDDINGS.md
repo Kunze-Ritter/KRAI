@@ -113,21 +113,21 @@ class EmbeddingProcessor(BaseProcessor):
     def __init__(self, ..., enable_chunk_embeddings: bool = None):
         # ... existing init ...
         self.enable_chunk_embeddings = (
-            enable_chunk_embeddings if enable_chunk_embeddings is not None 
+            enable_chunk_embeddings if enable_chunk_embeddings is not None
             else os.getenv('ENABLE_EMBEDDINGS_V2', 'false').lower() == 'true'
         )
-    
+
     async def process(self, context) -> Dict[str, Any]:
         # ... existing text processing ...
-        
+
         # NEW: Handle image and table embeddings
         if self.enable_chunk_embeddings:
             if hasattr(context, 'image_embeddings') and context.image_embeddings:
                 image_result = await self.store_embeddings_batch(context.image_embeddings)
-            
+
             if hasattr(context, 'table_embeddings') and context.table_embeddings:
                 table_result = await self.store_embeddings_batch(context.table_embeddings)
-    
+
     def _store_embedding_v2(self, source_id, source_type, embedding, ...):
         # Store in the chunks.embedding column for unified search
 ```
@@ -139,7 +139,7 @@ class EmbeddingProcessor(BaseProcessor):
 ```python
 # backend/services/postgresql_adapter.py
 async def create_embedding_v2(
-    self, source_id: str, source_type: str, 
+    self, source_id: str, source_type: str,
     embedding: List[float], model_name: str, ...
 ) -> str:
     """Create embedding in krai_intelligence.chunks.embedding column"""
@@ -195,16 +195,16 @@ self.processors = {
 async def process_single_document(...):
     # Stage 2: Text Processing
     result2 = await self.processors['text'].process(context)
-    
+
     # Stage 2b: Table Extraction (NEW)
     result2b = await self.processors['table'].process(context)
-    
+
     # Stage 3: Image Processing
     result3 = await self.processors['image'].process(context)
-    
+
     # Stage 3b: Visual Embeddings (NEW)
     result3b = await self.processors['visual_embedding'].process(context)
-    
+
     # ... continue with rest of pipeline ...
 ```
 
@@ -295,7 +295,7 @@ ENABLE_TABLE_EXTRACTION=true
 ```python
 # Query krai_intelligence.chunks table (embedding column) for unified search
 query = """
-SELECT e.*, d.filename 
+SELECT e.*, d.filename
 FROM krai_intelligence.chunks e
 JOIN krai_core.documents d ON e.metadata->>'document_id' = d.id
 WHERE e.source_type = ANY($1)

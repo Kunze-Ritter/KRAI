@@ -24,21 +24,21 @@ product_patterns:
     examples: ["ECOSYS M3145dn", "ECOSYS P3260dn"]
     series: "ECOSYS"
     type: "laser_printer"
-  
+
   # TASKalfa Series
   - pattern: '\bTASKalfa\s+\d{3,4}[a-z]{0,3}\b'
     flags: IGNORECASE
     examples: ["TASKalfa 3252ci", "TASKalfa 6053ci"]
     series: "TASKalfa"
     type: "laser_multifunction"
-  
+
   # FS Series (Legacy)
   - pattern: '\bFS-\d{4}[A-Z]{0,3}\b'
     flags: IGNORECASE
     examples: ["FS-2100DN", "FS-4200DN"]
     series: "FS Series"
     type: "laser_printer"
-  
+
   # KM Series (Legacy)
   - pattern: '\bKM-\d{4}[A-Z]{0,3}\b'
     flags: IGNORECASE
@@ -52,17 +52,17 @@ series:
     patterns: ["ECOSYS"]
     type: "laser_printer"
     description: "Kyocera ECOSYS Laser Printers"
-  
+
   - name: "TASKalfa"
     patterns: ["TASKalfa"]
     type: "laser_multifunction"
     description: "Kyocera TASKalfa Multifunction Printers"
-  
+
   - name: "FS Series"
     patterns: ["FS-\\d{4}"]
     type: "laser_printer"
     description: "Kyocera FS Series Laser Printers (Legacy)"
-  
+
   - name: "KM Series"
     patterns: ["KM-\\d{4}"]
     type: "laser_multifunction"
@@ -75,43 +75,43 @@ part_prefixes:
     type: "toner_cartridge"
     pattern: "^TK-\\d{3,4}[A-Z]?$"
     examples: ["TK-5230K", "TK-5230C", "TK-5230M", "TK-5230Y"]
-  
+
   # Drum Units
   - prefix: "DK"
     type: "drum_unit"
     pattern: "^DK-\\d{3,4}$"
     examples: ["DK-5230", "DK-5240"]
-  
+
   # Developer Units
   - prefix: "DV"
     type: "developer_unit"
     pattern: "^DV-\\d{3,4}[A-Z]?$"
     examples: ["DV-5230K", "DV-5230C"]
-  
+
   # Waste Toner Box
   - prefix: "WT"
     type: "waste_toner_box"
     pattern: "^WT-\\d{3,4}$"
     examples: ["WT-5190", "WT-5230"]
-  
+
   # Maintenance Kits
   - prefix: "MK"
     type: "maintenance_kit"
     pattern: "^MK-\\d{3,4}$"
     examples: ["MK-5205", "MK-5230"]
-  
+
   # Finishers
   - prefix: "DF"
     type: "finisher"
     pattern: "^DF-\\d{3,4}$"
     examples: ["DF-7100", "DF-7110"]
-  
+
   # Paper Trays
   - prefix: "PF"
     type: "paper_tray"
     pattern: "^PF-\\d{3,4}$"
     examples: ["PF-5120", "PF-5130"]
-  
+
   # Fax Units
   - prefix: "FAX"
     type: "fax_kit"

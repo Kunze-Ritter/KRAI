@@ -586,7 +586,7 @@ git commit --no-verify -m "Emergency fix"
 
 ---
 
-**Last Updated:** 2025-10-29  
-**Version:** 1.0  
-**Author:** KRAI Development Team  
+**Last Updated:** 2025-10-29
+**Version:** 1.0
+**Author:** KRAI Development Team
 **Maintainer:** See `scripts/install_git_hooks.py` for contact

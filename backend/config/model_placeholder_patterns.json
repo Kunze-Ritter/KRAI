@@ -14,7 +14,7 @@
             "series": "i-series"
           },
           {
-            "placeholder": "Cxx1i", 
+            "placeholder": "Cxx1i",
             "pattern": "C\\d{3}1i",
             "actual_models": ["C451i", "C551i", "C651i"],
             "manufacturer": "konica_minolta",
@@ -30,7 +30,7 @@
         ]
       },
       "letter_wildcards": {
-        "name": "Letter Wildcards", 
+        "name": "Letter Wildcards",
         "description": "Patterns where letters are replaced with 'x' or similar",
         "examples": [
           {
@@ -103,7 +103,7 @@
             "series": "i-series"
           },
           {
-            "placeholder": "Cxx1i", 
+            "placeholder": "Cxx1i",
             "meaning": "All C-series models ending with 1i",
             "regex": "C\\d{3}1i",
             "examples": ["C451i", "C551i", "C651i", "C751i"],
@@ -132,7 +132,7 @@
         ]
       },
       "lexmark": {
-        "name": "Lexmark Placeholder Patterns", 
+        "name": "Lexmark Placeholder Patterns",
         "description": "Lexmark specific placeholder handling",
         "common_patterns": [
           {
@@ -153,7 +153,7 @@
         "use_case": "When specific models are mentioned"
       },
       "placeholder_expansion": {
-        "name": "Placeholder Expansion", 
+        "name": "Placeholder Expansion",
         "description": "Expand placeholders to actual model ranges",
         "priority": 2,
         "use_case": "When placeholders like Cxx0i are used"

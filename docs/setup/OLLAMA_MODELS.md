@@ -12,8 +12,8 @@ ollama pull embeddinggemma
 - Ermöglicht semantische Suche
 - Stage 7: Embedding Processor
 
-**Größe:** ~1.5 GB  
-**Speed:** ~100 embeddings/Sekunde  
+**Größe:** ~1.5 GB
+**Speed:** ~100 embeddings/Sekunde
 **RAM:** ~2 GB
 
 ---
@@ -28,8 +28,8 @@ ollama pull qwen2.5:7b
 - Spezifikations-Parsing
 - JSON-strukturierte Antworten
 
-**Größe:** ~4.7 GB  
-**Speed:** Schnell  
+**Größe:** ~4.7 GB
+**Speed:** Schnell
 **RAM:** ~6 GB
 
 ---
@@ -46,9 +46,9 @@ ollama pull llava-phi3
 - Tabellen-Erkennung
 - Diagramm-Analyse
 
-**Größe:** ~2.9 GB  
-**Speed:** Schnell (Phi3-basiert)  
-**RAM:** ~4 GB  
+**Größe:** ~2.9 GB
+**Speed:** Schnell (Phi3-basiert)
+**RAM:** ~4 GB
 **Vorteil:** Schneller als llava:13b!
 
 ---
@@ -62,8 +62,8 @@ ollama pull llava:13b
 - Bessere Qualität als llava-phi3
 - Komplexe Tabellen
 
-**Größe:** ~8 GB  
-**Speed:** Langsamer  
+**Größe:** ~8 GB
+**Speed:** Langsamer
 **RAM:** ~12 GB
 
 ---

@@ -815,6 +815,6 @@ For issues or questions about the Monitoring API:
 
 ---
 
-**Last Updated:** 2025-11-02  
-**API Version:** 1.0  
+**Last Updated:** 2025-11-02
+**API Version:** 1.0
 **Status:** Production Ready

@@ -2,9 +2,9 @@
 Tests that verify KRAIAgent and create_tools accept ai_service and reranking_service params.
 Uses AST parsing to avoid importing the module (which has heavy dependencies like langgraph).
 """
+
 import ast
 from pathlib import Path
-
 
 AGENT_API_PATH = Path(__file__).parent.parent / "api" / "agent_api.py"
 

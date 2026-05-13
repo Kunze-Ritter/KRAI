@@ -29,11 +29,12 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from backend.processors.env_loader import load_all_env_files
+
 load_all_env_files(PROJECT_ROOT)
 
+from backend.core.base_processor import ProcessingContext
 from backend.processors.logger import get_logger
 from backend.services.database_factory import create_database_adapter
-from backend.core.base_processor import ProcessingContext
 
 logger = get_logger(__name__)
 
@@ -41,9 +42,11 @@ logger = get_logger(__name__)
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 async def get_affected_documents(db) -> list[dict]:
     """Return documents that have svg_processor marker but no vector_graphic images."""
-    rows = await db.fetch_all("""
+    rows = await db.fetch_all(
+        """
         SELECT d.id, d.filename, d.storage_path, d.storage_url
         FROM krai_core.documents d
         JOIN krai_system.stage_completion_markers scm
@@ -53,7 +56,8 @@ async def get_affected_documents(db) -> list[dict]:
             WHERE i.document_id = d.id AND i.image_type = 'vector_graphic'
         )
         ORDER BY d.filename
-    """)
+    """
+    )
     return [dict(r) for r in rows]
 
 
@@ -129,7 +133,10 @@ async def drain_svg_queue_for_document(db, document_id: str, dry_run: bool) -> i
         if dry_run:
             logger.info(
                 "  [DRY RUN] Would create image record: doc=%s page=%s file=%s url=%s",
-                document_id, page_number, filename, effective_url,
+                document_id,
+                page_number,
+                filename,
+                effective_url,
             )
             created += 1
             continue
@@ -161,15 +168,15 @@ async def drain_svg_queue_for_document(db, document_id: str, dry_run: bool) -> i
                     document_id,
                     filename,
                     filename,
-                    effective_url,           # storage_path
-                    effective_url,           # storage_url
+                    effective_url,  # storage_path
+                    effective_url,  # storage_url
                     svg_size,
-                    svg_storage_url or None, # svg_storage_url (null if no MinIO)
+                    svg_storage_url or None,  # svg_storage_url (null if no MinIO)
                     original_svg_content,
                     has_png,
                     page_number,
-                    0,                       # image_index (unknown)
-                    None,                    # file_hash
+                    0,  # image_index (unknown)
+                    None,  # file_hash
                 ],
             )
             # Mark queue entry as completed
@@ -226,7 +233,9 @@ async def run_svg_processor_for_document(
     extracted = result.data.get("svgs_extracted", 0) if result.success else 0
     logger.info(
         "  SVGProcessor done: extracted=%s queued=%s success=%s",
-        extracted, queued, result.success,
+        extracted,
+        queued,
+        result.success,
     )
     if not result.success:
         logger.error("  SVGProcessor error: %s", result.error)
@@ -251,6 +260,7 @@ async def clear_svg_stage_marker(db, document_id: str, dry_run: bool) -> None:
 # Main
 # ---------------------------------------------------------------------------
 
+
 async def main(dry_run: bool, doc_id_filter: str | None) -> None:
     logger.info("=== SVG Image Repair Script ===")
     if dry_run:
@@ -261,6 +271,7 @@ async def main(dry_run: bool, doc_id_filter: str | None) -> None:
 
     # Import services
     from backend.services.object_storage_service import ObjectStorageService
+
     try:
         storage_service = ObjectStorageService(
             access_key_id=os.getenv("OBJECT_STORAGE_ACCESS_KEY", ""),
@@ -316,9 +327,7 @@ async def main(dry_run: bool, doc_id_filter: str | None) -> None:
             await clear_svg_stage_marker(db, doc_id, dry_run)
 
             # Step 2: Run SVG processor (re-extracts SVGs, creates queue entries)
-            queued = await run_svg_processor_for_document(
-                db, storage_service, ai_service, doc_id, pdf_path, dry_run
-            )
+            queued = await run_svg_processor_for_document(db, storage_service, ai_service, doc_id, pdf_path, dry_run)
             total_queued += queued
 
             # Step 3: Drain queue entries → krai_content.images
@@ -327,12 +336,15 @@ async def main(dry_run: bool, doc_id_filter: str | None) -> None:
 
             logger.info(
                 "  Document %s done: queued=%d, images_created=%d",
-                filename, queued, created,
+                filename,
+                queued,
+                created,
             )
 
         logger.info(
             "\n=== Repair complete: %d queue entries created, %d image records written ===",
-            total_queued, total_created,
+            total_queued,
+            total_created,
         )
 
     finally:

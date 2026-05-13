@@ -1,20 +1,16 @@
 """
 Product API models for CRUD operations and batch processing.
 """
+
 from __future__ import annotations
 
 from datetime import date, datetime
 from enum import Enum
-from math import ceil
-from typing import ClassVar, Dict, List, Optional, Union
+from typing import ClassVar
 
 from pydantic import BaseModel, Field, HttpUrl, root_validator, validator
 
-from models.validators import (
-    validate_uuid,
-    validate_no_sql_injection,
-    sanitize_string,
-)
+from models.validators import sanitize_string, validate_no_sql_injection, validate_uuid
 
 
 class SortOrder(str, Enum):
@@ -32,30 +28,30 @@ class ProductCreateRequest(BaseModel):
     model_number: str = Field(..., min_length=1, max_length=100)
     model_name: str = Field(..., min_length=1, max_length=255)
     product_type: str = Field(..., min_length=1, max_length=100)
-    launch_date: Optional[date] = None
-    end_of_life_date: Optional[date] = None
-    msrp_usd: Optional[float] = Field(None, ge=0)
-    weight_kg: Optional[float] = Field(None, ge=0)
-    dimensions_mm: Optional[Dict[str, Union[int, float]]] = None
-    color_options: Optional[List[str]] = None
-    connectivity_options: Optional[List[str]] = None
-    print_technology: Optional[str] = Field(None, max_length=100)
-    max_print_speed_ppm: Optional[int] = Field(None, ge=0)
-    max_resolution_dpi: Optional[int] = Field(None, ge=0)
-    max_paper_size: Optional[str] = Field(None, max_length=50)
-    duplex_capable: Optional[bool] = None
-    network_capable: Optional[bool] = None
-    mobile_print_support: Optional[bool] = None
-    supported_languages: Optional[List[str]] = None
-    energy_star_certified: Optional[bool] = None
-    warranty_months: Optional[int] = Field(None, ge=0)
-    service_manual_url: Optional[HttpUrl] = None
-    parts_catalog_url: Optional[HttpUrl] = None
-    driver_download_url: Optional[HttpUrl] = None
-    firmware_version: Optional[str] = Field(None, max_length=100)
-    option_dependencies: Optional[Dict[str, List[str]]] = None
-    replacement_parts: Optional[Dict[str, List[str]]] = None
-    common_issues: Optional[Dict[str, str]] = None
+    launch_date: date | None = None
+    end_of_life_date: date | None = None
+    msrp_usd: float | None = Field(None, ge=0)
+    weight_kg: float | None = Field(None, ge=0)
+    dimensions_mm: dict[str, int | float] | None = None
+    color_options: list[str] | None = None
+    connectivity_options: list[str] | None = None
+    print_technology: str | None = Field(None, max_length=100)
+    max_print_speed_ppm: int | None = Field(None, ge=0)
+    max_resolution_dpi: int | None = Field(None, ge=0)
+    max_paper_size: str | None = Field(None, max_length=50)
+    duplex_capable: bool | None = None
+    network_capable: bool | None = None
+    mobile_print_support: bool | None = None
+    supported_languages: list[str] | None = None
+    energy_star_certified: bool | None = None
+    warranty_months: int | None = Field(None, ge=0)
+    service_manual_url: HttpUrl | None = None
+    parts_catalog_url: HttpUrl | None = None
+    driver_download_url: HttpUrl | None = None
+    firmware_version: str | None = Field(None, max_length=100)
+    option_dependencies: dict[str, list[str]] | None = None
+    replacement_parts: dict[str, list[str]] | None = None
+    common_issues: dict[str, str] | None = None
 
     class Config:
         json_schema_extra = {
@@ -75,7 +71,7 @@ class ProductCreateRequest(BaseModel):
                 "driver_download_url": "https://example.com/drivers/cs920",
                 "option_dependencies": {"finisher": ["duplex_module"]},
                 "replacement_parts": {"fuser": ["40X7702"]},
-                "common_issues": {"900.01": "Controller board reset"}
+                "common_issues": {"900.01": "Controller board reset"},
             }
         }
 
@@ -83,16 +79,16 @@ class ProductCreateRequest(BaseModel):
     def validate_required_ids(cls, value: str) -> str:
         return validate_uuid(value)
 
-    @validator("model_number", "model_name", "product_type", "print_technology", "max_paper_size", "firmware_version", pre=True)
-    def sanitize_strings(cls, value: Optional[str]) -> Optional[str]:
+    @validator(
+        "model_number", "model_name", "product_type", "print_technology", "max_paper_size", "firmware_version", pre=True
+    )
+    def sanitize_strings(cls, value: str | None) -> str | None:
         if value is None:
             return value
         return sanitize_string(value)
 
     @validator("color_options", "connectivity_options", "supported_languages")
-    def validate_non_empty_lists(
-        cls, value: Optional[List[str]]
-    ) -> Optional[List[str]]:
+    def validate_non_empty_lists(cls, value: list[str] | None) -> list[str] | None:
         if value is None:
             return value
         if not value:
@@ -102,24 +98,20 @@ class ProductCreateRequest(BaseModel):
         return value
 
     @validator("dimensions_mm")
-    def validate_dimensions(cls, value: Optional[Dict[str, Union[int, float]]]):
+    def validate_dimensions(cls, value: dict[str, int | float] | None):
         if value is None:
             return value
         if not value:
             raise ValueError("dimensions_mm cannot be empty when provided")
         for key, number in value.items():
             if number is None or float(number) <= 0:
-                raise ValueError(
-                    "dimensions_mm values must be positive numbers"
-                )
+                raise ValueError("dimensions_mm values must be positive numbers")
             if key not in {"width", "height", "depth"}:
-                raise ValueError(
-                    "dimensions_mm keys must be one of: width, height, depth"
-                )
+                raise ValueError("dimensions_mm keys must be one of: width, height, depth")
         return value
 
     @root_validator(skip_on_failure=True)
-    def validate_dates(cls, values: Dict[str, object]) -> Dict[str, object]:
+    def validate_dates(cls, values: dict[str, object]) -> dict[str, object]:
         launch_date = values.get("launch_date")
         end_of_life = values.get("end_of_life_date")
         if launch_date and end_of_life and launch_date > end_of_life:
@@ -130,35 +122,35 @@ class ProductCreateRequest(BaseModel):
 class ProductUpdateRequest(BaseModel):
     """Payload used to update an existing product."""
 
-    manufacturer_id: Optional[str] = None
-    series_id: Optional[str] = None
-    model_number: Optional[str] = Field(None, min_length=1, max_length=100)
-    model_name: Optional[str] = Field(None, min_length=1, max_length=255)
-    product_type: Optional[str] = Field(None, min_length=1, max_length=100)
-    launch_date: Optional[date] = None
-    end_of_life_date: Optional[date] = None
-    msrp_usd: Optional[float] = Field(None, ge=0)
-    weight_kg: Optional[float] = Field(None, ge=0)
-    dimensions_mm: Optional[Dict[str, Union[int, float]]] = None
-    color_options: Optional[List[str]] = None
-    connectivity_options: Optional[List[str]] = None
-    print_technology: Optional[str] = Field(None, max_length=100)
-    max_print_speed_ppm: Optional[int] = Field(None, ge=0)
-    max_resolution_dpi: Optional[int] = Field(None, ge=0)
-    max_paper_size: Optional[str] = Field(None, max_length=50)
-    duplex_capable: Optional[bool] = None
-    network_capable: Optional[bool] = None
-    mobile_print_support: Optional[bool] = None
-    supported_languages: Optional[List[str]] = None
-    energy_star_certified: Optional[bool] = None
-    warranty_months: Optional[int] = Field(None, ge=0)
-    service_manual_url: Optional[HttpUrl] = None
-    parts_catalog_url: Optional[HttpUrl] = None
-    driver_download_url: Optional[HttpUrl] = None
-    firmware_version: Optional[str] = Field(None, max_length=100)
-    option_dependencies: Optional[Dict[str, List[str]]] = None
-    replacement_parts: Optional[Dict[str, List[str]]] = None
-    common_issues: Optional[Dict[str, str]] = None
+    manufacturer_id: str | None = None
+    series_id: str | None = None
+    model_number: str | None = Field(None, min_length=1, max_length=100)
+    model_name: str | None = Field(None, min_length=1, max_length=255)
+    product_type: str | None = Field(None, min_length=1, max_length=100)
+    launch_date: date | None = None
+    end_of_life_date: date | None = None
+    msrp_usd: float | None = Field(None, ge=0)
+    weight_kg: float | None = Field(None, ge=0)
+    dimensions_mm: dict[str, int | float] | None = None
+    color_options: list[str] | None = None
+    connectivity_options: list[str] | None = None
+    print_technology: str | None = Field(None, max_length=100)
+    max_print_speed_ppm: int | None = Field(None, ge=0)
+    max_resolution_dpi: int | None = Field(None, ge=0)
+    max_paper_size: str | None = Field(None, max_length=50)
+    duplex_capable: bool | None = None
+    network_capable: bool | None = None
+    mobile_print_support: bool | None = None
+    supported_languages: list[str] | None = None
+    energy_star_certified: bool | None = None
+    warranty_months: int | None = Field(None, ge=0)
+    service_manual_url: HttpUrl | None = None
+    parts_catalog_url: HttpUrl | None = None
+    driver_download_url: HttpUrl | None = None
+    firmware_version: str | None = Field(None, max_length=100)
+    option_dependencies: dict[str, list[str]] | None = None
+    replacement_parts: dict[str, list[str]] | None = None
+    common_issues: dict[str, str] | None = None
 
     class Config:
         json_schema_extra = {
@@ -172,7 +164,7 @@ class ProductUpdateRequest(BaseModel):
         }
 
     @validator("manufacturer_id", "series_id", pre=True)
-    def validate_optional_ids(cls, value: Optional[str]) -> Optional[str]:
+    def validate_optional_ids(cls, value: str | None) -> str | None:
         if value is None:
             return value
         return validate_uuid(value)
@@ -186,15 +178,13 @@ class ProductUpdateRequest(BaseModel):
         "firmware_version",
         pre=True,
     )
-    def sanitize_optional_strings(cls, value: Optional[str]) -> Optional[str]:
+    def sanitize_optional_strings(cls, value: str | None) -> str | None:
         if value is None:
             return value
         return sanitize_string(value)
 
     @validator("color_options", "connectivity_options", "supported_languages")
-    def validate_non_empty_lists(
-        cls, value: Optional[List[str]]
-    ) -> Optional[List[str]]:
+    def validate_non_empty_lists(cls, value: list[str] | None) -> list[str] | None:
         if value is None:
             return value
         if not value:
@@ -204,24 +194,20 @@ class ProductUpdateRequest(BaseModel):
         return value
 
     @validator("dimensions_mm")
-    def validate_dimensions(cls, value: Optional[Dict[str, Union[int, float]]]):
+    def validate_dimensions(cls, value: dict[str, int | float] | None):
         if value is None:
             return value
         if not value:
             raise ValueError("dimensions_mm cannot be empty when provided")
         for key, number in value.items():
             if number is None or float(number) <= 0:
-                raise ValueError(
-                    "dimensions_mm values must be positive numbers"
-                )
+                raise ValueError("dimensions_mm values must be positive numbers")
             if key not in {"width", "height", "depth"}:
-                raise ValueError(
-                    "dimensions_mm keys must be one of: width, height, depth"
-                )
+                raise ValueError("dimensions_mm keys must be one of: width, height, depth")
         return value
 
     @root_validator(skip_on_failure=True)
-    def validate_dates(cls, values: Dict[str, object]) -> Dict[str, object]:
+    def validate_dates(cls, values: dict[str, object]) -> dict[str, object]:
         launch_date = values.get("launch_date")
         end_of_life = values.get("end_of_life_date")
         if launch_date and end_of_life and launch_date > end_of_life:
@@ -232,18 +218,18 @@ class ProductUpdateRequest(BaseModel):
 class ProductFilterParams(BaseModel):
     """Query parameters used to filter products in list view."""
 
-    manufacturer_id: Optional[str] = None
-    series_id: Optional[str] = None
-    product_type: Optional[str] = None
-    launch_date_from: Optional[date] = None
-    launch_date_to: Optional[date] = None
-    end_of_life_date_from: Optional[date] = None
-    end_of_life_date_to: Optional[date] = None
-    min_price: Optional[float] = Field(None, ge=0)
-    max_price: Optional[float] = Field(None, ge=0)
-    print_technology: Optional[str] = None
-    network_capable: Optional[bool] = None
-    search: Optional[str] = None
+    manufacturer_id: str | None = None
+    series_id: str | None = None
+    product_type: str | None = None
+    launch_date_from: date | None = None
+    launch_date_to: date | None = None
+    end_of_life_date_from: date | None = None
+    end_of_life_date_to: date | None = None
+    min_price: float | None = Field(None, ge=0)
+    max_price: float | None = Field(None, ge=0)
+    print_technology: str | None = None
+    network_capable: bool | None = None
+    search: str | None = None
 
     class Config:
         json_schema_extra = {
@@ -260,19 +246,19 @@ class ProductFilterParams(BaseModel):
         }
 
     @validator("manufacturer_id", "series_id")
-    def validate_filter_ids(cls, value: Optional[str]) -> Optional[str]:
+    def validate_filter_ids(cls, value: str | None) -> str | None:
         if value is None:
             return value
         return validate_uuid(value)
 
     @validator("product_type", pre=True)
-    def sanitize_filter_product_type(cls, value: Optional[str]) -> Optional[str]:
+    def sanitize_filter_product_type(cls, value: str | None) -> str | None:
         if value is None:
             return value
         return sanitize_string(value)
 
     @validator("search")
-    def validate_search(cls, value: Optional[str]) -> Optional[str]:
+    def validate_search(cls, value: str | None) -> str | None:
         if value is None:
             return value
         if len(value) > 100:
@@ -281,7 +267,7 @@ class ProductFilterParams(BaseModel):
         return value
 
     @root_validator(skip_on_failure=True)
-    def validate_ranges(cls, values: Dict[str, object]) -> Dict[str, object]:
+    def validate_ranges(cls, values: dict[str, object]) -> dict[str, object]:
         launch_from = values.get("launch_date_from")
         launch_to = values.get("launch_date_to")
         if launch_from and launch_to and launch_from > launch_to:
@@ -290,15 +276,11 @@ class ProductFilterParams(BaseModel):
         eol_from = values.get("end_of_life_date_from")
         eol_to = values.get("end_of_life_date_to")
         if eol_from and eol_to and eol_from > eol_to:
-            raise ValueError(
-                "end_of_life_date_from must be before end_of_life_date_to"
-            )
+            raise ValueError("end_of_life_date_from must be before end_of_life_date_to")
 
         min_price = values.get("min_price")
         max_price = values.get("max_price")
-        if (min_price is not None and max_price is not None) and (
-            min_price > max_price
-        ):
+        if (min_price is not None and max_price is not None) and (min_price > max_price):
             raise ValueError("min_price cannot exceed max_price")
 
         return values
@@ -308,9 +290,7 @@ class ProductSortParams(BaseModel):
     """Sorting parameters for product listings."""
 
     sort_by: str = Field("created_at", description="Field name to sort by")
-    sort_order: SortOrder = Field(
-        SortOrder.DESC, description="Sort order: asc or desc"
-    )
+    sort_order: SortOrder = Field(SortOrder.DESC, description="Sort order: asc or desc")
 
     ALLOWED_SORT_FIELDS: ClassVar[set[str]] = {
         "created_at",
@@ -338,7 +318,7 @@ class ProductSortParams(BaseModel):
         return value
 
     @validator("sort_order", pre=True)
-    def validate_sort_order(cls, value: Union[str, SortOrder]) -> SortOrder:
+    def validate_sort_order(cls, value: str | SortOrder) -> SortOrder:
         try:
             return SortOrder(value)
         except ValueError as exc:
@@ -350,36 +330,36 @@ class ProductResponse(BaseModel):
     """Product representation used in API responses."""
 
     id: str
-    parent_id: Optional[str] = None
+    parent_id: str | None = None
     manufacturer_id: str
     series_id: str
     model_number: str
     model_name: str
     product_type: str
-    launch_date: Optional[date] = None
-    end_of_life_date: Optional[date] = None
-    msrp_usd: Optional[float] = None
-    weight_kg: Optional[float] = None
-    dimensions_mm: Optional[Dict[str, Union[int, float]]] = None
-    color_options: Optional[List[str]] = None
-    connectivity_options: Optional[List[str]] = None
-    print_technology: Optional[str] = None
-    max_print_speed_ppm: Optional[int] = None
-    max_resolution_dpi: Optional[int] = None
-    max_paper_size: Optional[str] = None
-    duplex_capable: Optional[bool] = None
-    network_capable: Optional[bool] = None
-    mobile_print_support: Optional[bool] = None
-    supported_languages: Optional[List[str]] = None
-    energy_star_certified: Optional[bool] = None
-    warranty_months: Optional[int] = None
-    service_manual_url: Optional[HttpUrl] = None
-    parts_catalog_url: Optional[HttpUrl] = None
-    driver_download_url: Optional[HttpUrl] = None
-    firmware_version: Optional[str] = None
-    option_dependencies: Optional[Dict[str, List[str]]] = None
-    replacement_parts: Optional[Dict[str, List[str]]] = None
-    common_issues: Optional[Dict[str, str]] = None
+    launch_date: date | None = None
+    end_of_life_date: date | None = None
+    msrp_usd: float | None = None
+    weight_kg: float | None = None
+    dimensions_mm: dict[str, int | float] | None = None
+    color_options: list[str] | None = None
+    connectivity_options: list[str] | None = None
+    print_technology: str | None = None
+    max_print_speed_ppm: int | None = None
+    max_resolution_dpi: int | None = None
+    max_paper_size: str | None = None
+    duplex_capable: bool | None = None
+    network_capable: bool | None = None
+    mobile_print_support: bool | None = None
+    supported_languages: list[str] | None = None
+    energy_star_certified: bool | None = None
+    warranty_months: int | None = None
+    service_manual_url: HttpUrl | None = None
+    parts_catalog_url: HttpUrl | None = None
+    driver_download_url: HttpUrl | None = None
+    firmware_version: str | None = None
+    option_dependencies: dict[str, list[str]] | None = None
+    replacement_parts: dict[str, list[str]] | None = None
+    common_issues: dict[str, str] | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -408,7 +388,7 @@ class ProductSeriesResponse(BaseModel):
     id: str
     manufacturer_id: str
     name: str
-    description: Optional[str] = None
+    description: str | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -429,9 +409,9 @@ class ProductSeriesResponse(BaseModel):
 class ProductWithRelationsResponse(ProductResponse):
     """Product response enriched with related entities."""
 
-    manufacturer: Optional["ManufacturerResponse"] = None
-    series: Optional[ProductSeriesResponse] = None
-    parent_product: Optional[ProductResponse] = None
+    manufacturer: ManufacturerResponse | None = None
+    series: ProductSeriesResponse | None = None
+    parent_product: ProductResponse | None = None
 
     class Config(ProductResponse.Config):
         json_schema_extra = {
@@ -453,7 +433,7 @@ class ProductWithRelationsResponse(ProductResponse):
 class ProductListResponse(BaseModel):
     """Paginated list response for products."""
 
-    products: List[ProductResponse]
+    products: list[ProductResponse]
     total: int
     page: int
     page_size: int
@@ -475,8 +455,8 @@ class ProductStatsResponse(BaseModel):
     """Aggregated statistics about products."""
 
     total_products: int
-    by_type: Dict[str, int]
-    by_manufacturer: Dict[str, int]
+    by_type: dict[str, int]
+    by_manufacturer: dict[str, int]
     active_products: int
     discontinued_products: int
 
@@ -495,10 +475,10 @@ class ProductStatsResponse(BaseModel):
 class ProductBatchCreateRequest(BaseModel):
     """Batch creation payload for products."""
 
-    products: List[ProductCreateRequest] = Field(..., max_items=100)
+    products: list[ProductCreateRequest] = Field(..., max_items=100)
 
     @validator("products")
-    def validate_batch_size(cls, value: List[ProductCreateRequest]) -> List[ProductCreateRequest]:
+    def validate_batch_size(cls, value: list[ProductCreateRequest]) -> list[ProductCreateRequest]:
         if len(value) > 100:
             raise ValueError("Maximum 100 products per batch")
         return value
@@ -523,9 +503,7 @@ class ProductBatchUpdateItem(BaseModel):
         json_schema_extra = {
             "example": {
                 "id": "f214ab9d-6727-406d-bf4e-8e1f0346a123",
-                "update_data": ProductUpdateRequest.Config.json_schema_extra[
-                    "example"
-                ],
+                "update_data": ProductUpdateRequest.Config.json_schema_extra["example"],
             }
         }
 
@@ -537,29 +515,25 @@ class ProductBatchUpdateItem(BaseModel):
 class ProductBatchUpdateRequest(BaseModel):
     """Batch update payload for products."""
 
-    updates: List[ProductBatchUpdateItem] = Field(..., max_items=100)
+    updates: list[ProductBatchUpdateItem] = Field(..., max_items=100)
 
     @validator("updates")
-    def validate_batch_size(cls, value: List[ProductBatchUpdateItem]) -> List[ProductBatchUpdateItem]:
+    def validate_batch_size(cls, value: list[ProductBatchUpdateItem]) -> list[ProductBatchUpdateItem]:
         if len(value) > 100:
             raise ValueError("Maximum 100 updates per batch")
         return value
 
     class Config:
-        json_schema_extra = {
-            "example": {
-                "updates": [ProductBatchUpdateItem.Config.json_schema_extra["example"]]
-            }
-        }
+        json_schema_extra = {"example": {"updates": [ProductBatchUpdateItem.Config.json_schema_extra["example"]]}}
 
 
 class ProductBatchDeleteRequest(BaseModel):
     """Batch delete payload for products."""
 
-    product_ids: List[str] = Field(..., max_items=100)
+    product_ids: list[str] = Field(..., max_items=100)
 
     @validator("product_ids")
-    def validate_ids(cls, value: List[str]) -> List[str]:
+    def validate_ids(cls, value: list[str]) -> list[str]:
         if len(value) > 100:
             raise ValueError("Maximum 100 products per batch")
         cleaned = []
@@ -583,9 +557,9 @@ class ProductBatchDeleteRequest(BaseModel):
 class ProductBatchResult(BaseModel):
     """Individual result entry for batch responses."""
 
-    id: Optional[str]
+    id: str | None
     status: str
-    error: Optional[str] = None
+    error: str | None = None
 
     class Config:
         json_schema_extra = {
@@ -604,7 +578,7 @@ class ProductBatchResponse(BaseModel):
     total: int
     successful: int
     failed: int
-    results: List[ProductBatchResult]
+    results: list[ProductBatchResult]
 
     class Config:
         json_schema_extra = {

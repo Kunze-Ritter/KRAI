@@ -61,7 +61,7 @@ pip install firecrawl-py
    ```bash
    # Check if Firecrawl is running
    curl http://localhost:3002/health
-   
+
    # Expected response: {"status":"healthy"}
    ```
 
@@ -430,7 +430,7 @@ Default Max Pages: 100
 ### Supported Manufacturers
 
 - **Konica Minolta**: bizhub, accurio series
-- **HP**: LaserJet, OfficeJet series  
+- **HP**: LaserJet, OfficeJet series
 - **Canon**: imageRUNNER, imageCLASS series
 - **Lexmark**: Various printer series
 

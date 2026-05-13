@@ -10,14 +10,14 @@ Fujifilm ist der **Xerox-Nachfolger in Asien/Japan** (ehemals Fuji Xerox). Die P
 
 #### Revoria Press (High-End Production)
 - **Pattern**: `REVORIA PRESS [SEMP]C\d{3,4}(S)?`
-- **Beispiele**: 
+- **Beispiele**:
   - Revoria Press SC285, SC285(S)
   - Revoria Press EC2100, EC2100(S)
   - Revoria Press PC1120, PC1120(S)
   - Revoria Press MC (weitere Modelle)
 - **Beschreibung**: High-End Production Color Systems
 - **Product Type**: `production_printer`
-- **Prefixe**: 
+- **Prefixe**:
   - **SC** = Standard Color
   - **EC** = Enhanced Color
   - **PC** = Premium Color
@@ -36,7 +36,7 @@ Fujifilm ist der **Xerox-Nachfolger in Asien/Japan** (ehemals Fuji Xerox). Die P
 
 #### ApeosPro C Series
 - **Pattern**: `APEOSPRO C\d{3}`
-- **Beispiele**: 
+- **Beispiele**:
   - ApeosPro C810
   - ApeosPro C750
   - ApeosPro C650
@@ -62,7 +62,7 @@ Fujifilm ist der **Xerox-Nachfolger in Asien/Japan** (ehemals Fuji Xerox). Die P
 
 #### Apeos (Compact)
 - **Pattern**: `APEOS C\d{4}`
-- **Beispiele**: 
+- **Beispiele**:
   - Apeos C3060
   - Apeos C3070
 - **Beschreibung**: Compact Color MFPs
@@ -74,7 +74,7 @@ Fujifilm ist der **Xerox-Nachfolger in Asien/Japan** (ehemals Fuji Xerox). Die P
 
 #### ApeosPrint C Series
 - **Pattern**: `APEOSPRINT C\d{3,4}`
-- **Beispiele**: 
+- **Beispiele**:
   - ApeosPrint C325
   - ApeosPrint C4030
 - **Beschreibung**: Color Laser Printers (Single Function)

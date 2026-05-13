@@ -10,7 +10,7 @@ Vollständige Pattern-Erkennung für alle HP-Produktserien: Tintenstrahl, Laser,
 
 #### HP Indigo Digital Press
 - **Pattern**: `INDIGO \d+K?|HD|\d+ HD`
-- **Beispiele**: 
+- **Beispiele**:
   - Indigo 12000 HD
   - Indigo 7900 Digital Press
   - Indigo 7K, 6K, 100K
@@ -18,7 +18,7 @@ Vollständige Pattern-Erkennung für alle HP-Produktserien: Tintenstrahl, Laser,
 
 #### HP Latex Production
 - **Pattern**: `LATEX [RF]?S?\d{2,3}`
-- **Beispiele**: 
+- **Beispiele**:
   - Latex 115, 315, 335, 365
   - Latex 570, 800
   - Latex 630, 730, 830
@@ -27,7 +27,7 @@ Vollständige Pattern-Erkennung für alle HP-Produktserien: Tintenstrahl, Laser,
 
 #### HP DesignJet Large Format
 - **Pattern**: `DESIGNJET [TZ]\d+\+?`
-- **Beispiele**: 
+- **Beispiele**:
   - DesignJet T650, T730
   - DesignJet Z6, Z9+
 - **Beschreibung**: Großformat-Plotter für CAD/Grafik
@@ -38,14 +38,14 @@ Vollständige Pattern-Erkennung für alle HP-Produktserien: Tintenstrahl, Laser,
 
 #### DeskJet / DeskJet Plus
 - **Pattern**: `DESKJET( PLUS)? \d{4}`
-- **Beispiele**: 
+- **Beispiele**:
   - DeskJet 3760
   - DeskJet Plus 4120
 - **Beschreibung**: Einstiegs-Tintenstrahldrucker für Privatanwender
 
 #### ENVY / ENVY Inspire / ENVY Photo
 - **Pattern**: `ENVY( INSPIRE| PHOTO)? \d{4}e?`
-- **Beispiele**: 
+- **Beispiele**:
   - ENVY 6020
   - ENVY Inspire 7920e
   - ENVY Photo 6230
@@ -53,14 +53,14 @@ Vollständige Pattern-Erkennung für alle HP-Produktserien: Tintenstrahl, Laser,
 
 #### Smart Tank / Smart Tank Plus
 - **Pattern**: `SMART TANK( PLUS)? \d{3,4}`
-- **Beispiele**: 
+- **Beispiele**:
   - Smart Tank 5105
   - Smart Tank Plus 570, 615
 - **Beschreibung**: Nachfüllbare Tintentank-Drucker
 
 #### OfficeJet / OfficeJet Pro
 - **Pattern**: `(OFFICEJET )?PRO \d{4}( WIDE FORMAT)?` oder `OFFICEJET \d{4}`
-- **Beispiele**: 
+- **Beispiele**:
   - OfficeJet 6950
   - OfficeJet Pro 9020
   - Pro 7740, Pro 7740 Wide Format
@@ -68,7 +68,7 @@ Vollständige Pattern-Erkennung für alle HP-Produktserien: Tintenstrahl, Laser,
 
 #### PageWide / PageWide Pro
 - **Pattern**: `PAGEWIDE( PRO)? \d{3,4}[a-z]{0,3}`
-- **Beispiele**: 
+- **Beispiele**:
   - PageWide 352dw
   - PageWide Pro 477dw, 577dw, 7740
 - **Beschreibung**: Hochgeschwindigkeits-Business-Inkjet
@@ -79,14 +79,14 @@ Vollständige Pattern-Erkennung für alle HP-Produktserien: Tintenstrahl, Laser,
 
 #### LaserJet Enterprise MFP
 - **Pattern**: `(LASERJET )?ENTERPRISE MFP M\d{3,4}[a-z]?`
-- **Beispiele**: 
+- **Beispiele**:
   - Enterprise MFP M634h
   - LaserJet Enterprise MFP M725
 - **Beschreibung**: Enterprise-Multifunktionsdrucker
 
 #### LaserJet Enterprise (Single Function)
 - **Pattern**: `(LASERJET )?ENTERPRISE M\d{3}`
-- **Beispiele**: 
+- **Beispiele**:
   - Enterprise M506
   - LaserJet Enterprise M607, M611, M632, M635
 - **Beschreibung**: Enterprise-Laserdrucker
@@ -97,7 +97,7 @@ Vollständige Pattern-Erkennung für alle HP-Produktserien: Tintenstrahl, Laser,
 
 #### Color LaserJet Pro MFP
 - **Pattern**: `(COLOR LASERJET PRO )?MFP M\d{3,4}[a-z]{0,5}`
-- **Beispiele**: 
+- **Beispiele**:
   - Color LaserJet Pro MFP M255dw
   - MFP M283fdw, M452nw, M454dn
   - MFP M479fdn, M479fdw, M281fdw
@@ -110,7 +110,7 @@ Vollständige Pattern-Erkennung für alle HP-Produktserien: Tintenstrahl, Laser,
 
 #### LaserJet Pro MFP
 - **Pattern**: `(LASERJET PRO )?MFP M\d{2,4}[a-z]{0,5}`
-- **Beispiele**: 
+- **Beispiele**:
   - MFP M28w, M130fn, M148fdw
   - MFP M2727nf
   - MFP M428fdn, M428fdw, M429fdn
@@ -122,7 +122,7 @@ Vollständige Pattern-Erkennung für alle HP-Produktserien: Tintenstrahl, Laser,
 
 #### Laser MFP
 - **Pattern**: `LASER MFP 1\d{2}[a-z]{0,5}`
-- **Beispiele**: 
+- **Beispiele**:
   - Laser MFP 131, 133, 135, 137
   - Laser MFP 135a, 137fnw
 - **Beschreibung**: Kompakte Laser-Multifunktionsdrucker
@@ -133,7 +133,7 @@ Vollständige Pattern-Erkennung für alle HP-Produktserien: Tintenstrahl, Laser,
 
 #### LaserJet Pro
 - **Pattern**: `(LASERJET PRO )?M\d{2,3}[a-z]{0,5}`
-- **Beispiele**: 
+- **Beispiele**:
   - LaserJet Pro M15w, M28w
   - M102w, M130fn
   - M404dn, M428fdw, M521dn

@@ -525,14 +525,14 @@ docker logs krai-engine | grep "stage=embedding"
 ```bash
 # Check document status
 psql -h localhost -U krai_user -d krai -c "
-SELECT id, filename, stage_status 
-FROM krai_core.documents 
+SELECT id, filename, stage_status
+FROM krai_core.documents
 WHERE id = 'uuid';
 "
 
 # Check processing statistics
 psql -h localhost -U krai_user -d krai -c "
-SELECT 
+SELECT
     stage_status->>'status' as status,
     COUNT(*) as count
 FROM krai_core.documents, jsonb_each(stage_status)
@@ -550,7 +550,7 @@ nvidia-smi
 
 # Check database performance
 docker exec krai-postgres psql -U krai_user -d krai -c "
-SELECT 
+SELECT
     schemaname,
     tablename,
     n_tup_ins,

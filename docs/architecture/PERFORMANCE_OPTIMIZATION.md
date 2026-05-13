@@ -38,7 +38,7 @@ cpu_count = mp.cpu_count()
 self.max_concurrent = max(4, int(cpu_count * 0.75))  # ✅ 16 auf 22-Core System
 ```
 
-**Impact:** 
+**Impact:**
 - 22-Core System: 8 → 16 concurrent documents (**2x Speedup**)
 - 12-Core System: 8 → 9 concurrent documents
 - 8-Core System: 6 concurrent documents (sicher)
@@ -68,7 +68,7 @@ self.parallel_processor = ParallelChunkingProcessor(max_workers=chunk_workers)
 ### **3. Database Error Fix**
 **Datei:** `backend/services/database_service.py` (Zeile 424-428)
 
-**Problem:** 
+**Problem:**
 ```
 column images.image_hash does not exist
 ```

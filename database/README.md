@@ -1,6 +1,6 @@
 # KRAI PostgreSQL Database Setup
 
-**Version:** 1.0 (PostgreSQL-only)  
+**Version:** 1.0 (PostgreSQL-only)
 **Last Updated:** 2026-03-25
 **Database:** PostgreSQL 15+ with pgvector extension
 
@@ -117,13 +117,13 @@ Ein `database/migrations/archive/`-Verzeichnis gibt es im aktuellen Repo nicht.
 ```sql
 -- Embeddings abfragen
 SELECT id, text_chunk, embedding
-FROM krai_intelligence.chunks 
-WHERE embedding IS NOT NULL 
+FROM krai_intelligence.chunks
+WHERE embedding IS NOT NULL
 LIMIT 10;
 
 -- Oder via View
 SELECT id, text_chunk, embedding
-FROM public.vw_embeddings 
+FROM public.vw_embeddings
 LIMIT 10;
 ```
 
@@ -201,7 +201,7 @@ WHERE schemaname LIKE 'krai_%'
 ORDER BY idx_scan DESC;
 
 -- Cache Hit Ratio
-SELECT 
+SELECT
     sum(heap_blks_read) as heap_read,
     sum(heap_blks_hit) as heap_hit,
     sum(heap_blks_hit) / (sum(heap_blks_hit) + sum(heap_blks_read)) as ratio
@@ -267,8 +267,8 @@ docker exec -it krai-postgres-prod psql -U postgres -d krai_db -c "CREATE EXTENS
 
 ```sql
 DROP INDEX IF EXISTS idx_chunks_embedding;
-CREATE INDEX idx_chunks_embedding ON krai_intelligence.chunks 
-    USING hnsw (embedding vector_cosine_ops) 
+CREATE INDEX idx_chunks_embedding ON krai_intelligence.chunks
+    USING hnsw (embedding vector_cosine_ops)
     WITH (m = 32, ef_construction = 128);
 ```
 

@@ -58,12 +58,12 @@ Das Tool gibt bereits die perfekte Antwort - nutze sie EXAKT!
 - Product ist optional aber verbessert Ergebnisse
 
 **Beispiele:**
-- User: "HP X580 Fehler 30.03.30" 
+- User: "HP X580 Fehler 30.03.30"
   → `{"error_code": "30.03.30", "manufacturer": "HP", "product": "X580"}`
-  
+
 - User: "Was bedeutet Error 31.03.30 bei HP?"
   → `{"error_code": "31.03.30", "manufacturer": "HP"}`
-  
+
 - User: "Canon E826"
   → `{"error_code": "E826", "manufacturer": "Canon"}`
 

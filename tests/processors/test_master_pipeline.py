@@ -13,14 +13,13 @@ integration modules; these tests stay fast and rely only on the shared
 `mock_master_pipeline` + `mock_database_adapter` fixtures.
 """
 
-from typing import Any, Dict, List
-
-import pytest
+from typing import Any
 from unittest.mock import AsyncMock
 
-from backend.pipeline.master_pipeline import KRMasterPipeline
-from backend.core.base_processor import Stage
+import pytest
 
+from backend.core.base_processor import Stage
+from backend.pipeline.master_pipeline import KRMasterPipeline
 
 pytestmark = [pytest.mark.master_pipeline, pytest.mark.unit]
 
@@ -139,18 +138,20 @@ class TestMasterPipelineProcessors:
         }
 
         # Replace embedding processor with an async stub
-        calls: Dict[str, Any] = {"contexts": []}
+        calls: dict[str, Any] = {"contexts": []}
 
         async def _fake_process(context):  # type: ignore[override]
             calls["contexts"].append(context)
+
             # Mimic a ProcessingResult-like object
             class _Result:
                 success = True
-                data: Dict[str, Any] = {"embeddings_created": 0}
+                data: dict[str, Any] = {"embeddings_created": 0}
 
             return _Result()
 
         stub = AsyncMock(side_effect=_fake_process)
+
         # The processor object only needs a .process coroutine
         class _Processor:
             async def process(self, context):  # type: ignore[override]
@@ -184,7 +185,7 @@ class TestMasterPipelineStageExecution:
         pipeline.force_continue_on_errors = False
 
         # Stub run_single_stage to simulate success -> failure -> success
-        async def _run_single_stage(document_id: str, stage: Any) -> Dict[str, Any]:
+        async def _run_single_stage(document_id: str, stage: Any) -> dict[str, Any]:
             if stage == "ok-1":
                 return {"success": True, "stage": "ok-1"}
             if stage == "fail":
@@ -193,7 +194,7 @@ class TestMasterPipelineStageExecution:
 
         pipeline.run_single_stage = _run_single_stage  # type: ignore[assignment]
 
-        stages: List[Any] = ["ok-1", "fail", "ok-2"]
+        stages: list[Any] = ["ok-1", "fail", "ok-2"]
         results = await pipeline.run_stages("doc-1", stages)
 
         assert results["total_stages"] == 3
@@ -212,12 +213,12 @@ class TestMasterPipelineStageExecution:
         pipeline = mock_master_pipeline
         pipeline.force_continue_on_errors = True
 
-        async def _run_single_stage(document_id: str, stage: Any) -> Dict[str, Any]:
+        async def _run_single_stage(document_id: str, stage: Any) -> dict[str, Any]:
             return {"success": stage != "fail", "stage": stage}
 
         pipeline.run_single_stage = _run_single_stage  # type: ignore[assignment]
 
-        stages: List[Any] = ["ok-1", "fail", "ok-2"]
+        stages: list[Any] = ["ok-1", "fail", "ok-2"]
         results = await pipeline.run_stages("doc-1", stages)
 
         assert results["total_stages"] == 3
@@ -244,4 +245,3 @@ class TestMasterPipelineStageExecution:
         assert status["document_id"] == "non-existent-doc"
         assert status["stage_status"] == {}
         assert status["found"] is False
-

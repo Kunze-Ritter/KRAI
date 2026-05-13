@@ -4,43 +4,43 @@ GPU Utilities for KRAI
 Automatic GPU/CPU detection and configuration for OpenCV and ML models.
 """
 
-import os
 import logging
-from typing import Optional
+import os
 
 logger = logging.getLogger(__name__)
 
 
 class GPUManager:
     """Manage GPU/CPU usage based on environment variables"""
-    
+
     def __init__(self):
         self.use_gpu = os.getenv("USE_GPU", "false").lower() == "true"
         self.cuda_device = os.getenv("CUDA_VISIBLE_DEVICES", "0")
         self._gpu_available = None
         self._opencv_cuda_available = None
-        
+
         logger.info(f"GPU Manager initialized: USE_GPU={self.use_gpu}, CUDA_VISIBLE_DEVICES={self.cuda_device}")
-    
+
     def is_gpu_available(self) -> bool:
         """Check if GPU is available for general use"""
         if self._gpu_available is not None:
             return self._gpu_available
-        
+
         if not self.use_gpu:
             self._gpu_available = False
             logger.info("GPU disabled via USE_GPU=false")
             return False
-        
+
         # Try to detect CUDA
         try:
             import torch
+
             cuda_visible = os.getenv("CUDA_VISIBLE_DEVICES", self.cuda_device)
             logger.debug(f"Checking CUDA availability (CUDA_VISIBLE_DEVICES={cuda_visible})")
 
             # Respect CUDA_VISIBLE_DEVICES by setting active device
             try:
-                selected_index = int(cuda_visible.split(',')[0])
+                selected_index = int(cuda_visible.split(",")[0])
             except (ValueError, TypeError):
                 selected_index = 0
 
@@ -61,7 +61,7 @@ class GPUManager:
             if self._gpu_available:
                 props = torch.cuda.get_device_properties(selected_index)
                 compute_capability = f"{getattr(props, 'major', '?')}.{getattr(props, 'minor', '?')}"
-                total_memory_gb = props.total_memory / (1024 ** 3)
+                total_memory_gb = props.total_memory / (1024**3)
 
                 logger.info(
                     "CUDA GPU ready -> device %s: %s (compute capability %s, %.1f GB total)",
@@ -91,20 +91,21 @@ class GPUManager:
         except ImportError:
             logger.warning("PyTorch not installed, cannot detect CUDA")
             self._gpu_available = False
-        
+
         return self._gpu_available
-    
+
     def is_opencv_cuda_available(self) -> bool:
         """Check if OpenCV was built with CUDA support"""
         if self._opencv_cuda_available is not None:
             return self._opencv_cuda_available
-        
+
         if not self.use_gpu:
             self._opencv_cuda_available = False
             return False
-        
+
         try:
             import cv2
+
             self._opencv_cuda_available = cv2.cuda.getCudaEnabledDeviceCount() > 0
             if self._opencv_cuda_available:
                 logger.info(f"OpenCV CUDA available: {cv2.cuda.getCudaEnabledDeviceCount()} devices")
@@ -113,22 +114,22 @@ class GPUManager:
         except Exception as e:
             logger.warning(f"OpenCV CUDA check failed: {e}")
             self._opencv_cuda_available = False
-        
+
         return self._opencv_cuda_available
-    
+
     def get_device(self) -> str:
         """Get device string for ML frameworks (cuda or cpu)"""
         return "cuda" if self.is_gpu_available() else "cpu"
-    
+
     def get_opencv_backend(self) -> str:
         """Get OpenCV backend (CUDA or CPU)"""
         return "cuda" if self.is_opencv_cuda_available() else "cpu"
-    
+
     def configure_opencv(self):
         """Configure OpenCV for optimal performance"""
         try:
             import cv2
-            
+
             if self.is_opencv_cuda_available():
                 logger.info("Configuring OpenCV for CUDA")
                 cv2.cuda.setDevice(int(self.cuda_device))
@@ -138,7 +139,7 @@ class GPUManager:
                 cv2.setNumThreads(os.cpu_count() or 4)
         except Exception as e:
             logger.error(f"Failed to configure OpenCV: {e}")
-    
+
     def get_info(self) -> dict:
         """Get GPU/CPU configuration info"""
         info = {
@@ -146,18 +147,19 @@ class GPUManager:
             "gpu_available": self.is_gpu_available(),
             "opencv_cuda_available": self.is_opencv_cuda_available(),
             "device": self.get_device(),
-            "opencv_backend": self.get_opencv_backend()
+            "opencv_backend": self.get_opencv_backend(),
         }
-        
+
         if self.is_gpu_available():
             try:
                 import torch
+
                 active_index = torch.cuda.current_device()
                 info["cuda_visible_devices"] = os.getenv("CUDA_VISIBLE_DEVICES", self.cuda_device)
                 info["cuda_device_index"] = active_index
                 info["cuda_device_name"] = torch.cuda.get_device_name(active_index)
                 props = torch.cuda.get_device_properties(active_index)
-                info["cuda_memory_total_gb"] = round(props.total_memory / (1024 ** 3), 2)
+                info["cuda_memory_total_gb"] = round(props.total_memory / (1024**3), 2)
                 info["cuda_compute_capability"] = f"{props.major}.{props.minor}"
                 info["cuda_version"] = torch.version.cuda
             except:
@@ -167,7 +169,7 @@ class GPUManager:
 
 
 # Global GPU manager instance
-_gpu_manager: Optional[GPUManager] = None
+_gpu_manager: GPUManager | None = None
 
 
 def get_gpu_manager() -> GPUManager:
@@ -192,13 +194,13 @@ def get_device() -> str:
 # Example usage
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    
+
     manager = get_gpu_manager()
     info = manager.get_info()
-    
-    print("\n" + "="*60)
+
+    print("\n" + "=" * 60)
     print("GPU/CPU Configuration")
-    print("="*60)
+    print("=" * 60)
     for key, value in info.items():
         print(f"{key:25s}: {value}")
-    print("="*60)
+    print("=" * 60)

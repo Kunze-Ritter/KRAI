@@ -55,17 +55,17 @@
 
 ```sql
 -- Alle Chunks mit Embeddings (NEU: embedding Spalte direkt in chunks!)
-SELECT id, text_chunk, embedding FROM krai_intelligence.chunks 
+SELECT id, text_chunk, embedding FROM krai_intelligence.chunks
 WHERE embedding IS NOT NULL LIMIT 10;
 
 -- Videos mit Fehler (metadata JSONB)
-SELECT id, title, metadata->>'enrichment_error' as error 
-FROM krai_content.videos 
+SELECT id, title, metadata->>'enrichment_error' as error
+FROM krai_content.videos
 WHERE metadata->>'enrichment_error' IS NOT NULL;
 
 -- Error Code Hierarchy (ab Migration 018)
-SELECT error_code, error_description, parent_code, is_category 
-FROM krai_intelligence.error_codes 
+SELECT error_code, error_description, parent_code, is_category
+FROM krai_intelligence.error_codes
 WHERE parent_code = '13.B9' ORDER BY error_code;
 ```
 

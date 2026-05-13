@@ -61,7 +61,7 @@ INSERT INTO products (model_number) VALUES ('FK-513');
 
 -- 2x Kompatibilitätseinträge:
 INSERT INTO product_accessories (product_id, accessory_id, mounting_position, slot_number)
-VALUES 
+VALUES
   ('C257i', 'FK-513', 'internal', 1),
   ('C257i', 'FK-513', 'internal', 2);
 ```
@@ -92,7 +92,7 @@ python scripts/import_foliant_to_db.py
 ```sql
 -- User fragt: "Kann ich C257i mit FS-539 + DF-633 + PC-418 konfigurieren?"
 
-SELECT 
+SELECT
   pa.accessory_id,
   pa.mounting_position,
   pa.max_quantity
@@ -116,7 +116,7 @@ WHERE pa.product_id = 'C257i'
 -- User hat: C257i + FS-539
 -- Frage: "Was kann ich noch hinzufügen?"
 
-SELECT 
+SELECT
   pa.accessory_id,
   pa.mounting_position,
   p.product_type
@@ -140,8 +140,8 @@ ORDER BY pa.mounting_position;
 ```sql
 -- In product_accessories:
 INSERT INTO product_accessories (
-  product_id, 
-  accessory_id, 
+  product_id,
+  accessory_id,
   mounting_position,
   requires_accessory_id,  -- NEU!
   notes
@@ -159,7 +159,7 @@ INSERT INTO product_accessories (
 -- User wählt: FS-539
 -- Frage: "Was wird noch benötigt?"
 
-SELECT 
+SELECT
   pa.requires_accessory_id,
   p.model_number,
   p.product_type
@@ -180,7 +180,7 @@ WHERE pa.product_id = 'C257i'
 2. **Backend verarbeitet:**
    ```python
    from scripts.import_foliant_to_db import extract_foliant_data, import_to_database
-   
+
    data = extract_foliant_data(pdf_path)
    success = import_to_database(data)
    ```
@@ -203,15 +203,15 @@ async def upload_foliant_pdf(file: UploadFile):
     pdf_path = f"uploads/foliant/{file.filename}"
     with open(pdf_path, "wb") as f:
         f.write(await file.read())
-    
+
     # Process
     data = extract_foliant_data(pdf_path)
     success = import_to_database(data)
-    
+
     # Move to processed
     if success:
         shutil.move(pdf_path, f"uploads/foliant/processed/{file.filename}")
-    
+
     return {
         "success": success,
         "stats": {

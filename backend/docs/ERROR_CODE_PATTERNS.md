@@ -1,6 +1,6 @@
 # Error Code Pattern Configuration Guide
 
-**Version:** 2.0  
+**Version:** 2.0
 **Last Updated:** 2025-10-06
 
 ---
@@ -329,11 +329,11 @@ Fix: Add context keywords, improve description extraction
   "min_confidence": 0.75,           // Minimum confidence to accept
   "max_codes_per_page": 15,         // Max codes per page (prevent spam)
   "context_window_chars": 200,      // Context size for validation
-  
+
   "require_context_keywords": [     // Must have at least one
     "error", "code", "fault", "trouble", "troubleshooting"
   ],
-  
+
   "exclude_if_near": [               // Reject if these nearby
     "page", "figure", "table", "section"
   ]
@@ -487,5 +487,5 @@ print(f"Has keyword: {has_keyword}")
 
 ---
 
-**Last Updated:** 2025-10-06  
+**Last Updated:** 2025-10-06
 **Version:** 2.0

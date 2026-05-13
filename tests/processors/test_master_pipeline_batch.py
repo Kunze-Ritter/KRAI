@@ -12,12 +12,11 @@ Covered scenarios:
 
 import asyncio
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import pytest
 
 from backend.pipeline.master_pipeline import KRMasterPipeline
-
 
 pytestmark = [
     pytest.mark.master_pipeline,
@@ -40,9 +39,9 @@ class TestBatchHardwareWakerSuccess:
         for f in files:
             f.write_text("dummy")
 
-        calls: List[Dict[str, Any]] = []
+        calls: list[dict[str, Any]] = []
 
-        async def fake_single(file_path: str, doc_index: int, total_docs: int) -> Dict[str, Any]:
+        async def fake_single(file_path: str, doc_index: int, total_docs: int) -> dict[str, Any]:
             calls.append(
                 {
                     "file_path": file_path,
@@ -98,7 +97,7 @@ class TestBatchHardwareWakerConcurrency:
         max_active = 0
         lock = asyncio.Lock()
 
-        async def fake_single(file_path: str, doc_index: int, total_docs: int) -> Dict[str, Any]:
+        async def fake_single(file_path: str, doc_index: int, total_docs: int) -> dict[str, Any]:
             nonlocal active, max_active
             async with lock:
                 active += 1
@@ -143,7 +142,7 @@ class TestBatchHardwareWakerFailures:
         for f in files:
             f.write_text("x")
 
-        async def fake_single(file_path: str, doc_index: int, total_docs: int) -> Dict[str, Any]:
+        async def fake_single(file_path: str, doc_index: int, total_docs: int) -> dict[str, Any]:
             # 1 and 4 succeed, 2 returns failure dict, 3 raises exception
             if doc_index == 2:
                 return {

@@ -16,31 +16,31 @@ and AI services.
 
 ## Test Files
 
-- **`test_table_processor_unit.py`**  
+- **`test_table_processor_unit.py`**
   Unit tests for `TableProcessor` internals: table detection, validation,
   markdown generation, type detection, context extraction, and embedding
   generation via the mock embedding service.
 
-- **`test_table_processor_e2e.py`**  
+- **`test_table_processor_e2e.py`**
   End-to-end tests for `TableProcessor`: extraction from PDFs, storage into
   `krai_intelligence.structured_tables` via `MockDatabaseAdapter`, and
   embedding creation in `krai_intelligence.chunks.embedding`.
 
-- **`test_svg_processor_e2e.py`**  
+- **`test_svg_processor_e2e.py`**
   E2E tests for `SVGProcessor`: SVG extraction from PDFs, conversion to PNG
   (svglib + reportlab), and queueing of images into the processing queue
   using a lightweight database shim.
 
-- **`test_image_processor_e2e.py`**  
+- **`test_image_processor_e2e.py`**
   E2E tests for `ImageProcessor`: image extraction, basic filtering, and
   storage queueing using mock storage and AI services.
 
-- **`test_visual_embedding_processor_e2e.py`**  
+- **`test_visual_embedding_processor_e2e.py`**
   E2E tests for `VisualEmbeddingProcessor`: batch image embedding and
   storage of embeddings via `MockDatabaseAdapter`. Tests are tolerant of
   missing `colpali-engine` or heavy model loading, skipping where needed.
 
-- **`test_multimodal_integration.py`**  
+- **`test_multimodal_integration.py`**
   Integration tests for multi-modal processing: running table, SVG, image,
   and visual embedding processors together on a synthetic multimodal PDF and
   verifying that processors can operate in sequence without failures.
@@ -116,56 +116,56 @@ pytest tests/processors/ --cov=backend/processors --cov-report=html
 
 Key fixtures defined in `tests/processors/conftest.py` that support these tests:
 
-- **`mock_database_adapter`**  
+- **`mock_database_adapter`**
   Mock `DatabaseAdapter` with in-memory stores for documents, chunks,
   structured tables (`structured_tables`) and `krai_intelligence.chunks.embedding`. Provides
   helper methods like `create_structured_table` and
   `create_embedding_v2` used by the processors.
 
-- **`mock_embedding_service`**  
+- **`mock_embedding_service`**
   Deterministic, in-memory embedding service used by `TableProcessor` unit
   and E2E tests. Exposes `_generate_embedding(text)` which returns a
   768‑dimensional vector based on a SHA‑256 hash of the input text.
 
-- **`mock_storage_service`**  
+- **`mock_storage_service`**
   Lightweight mock of `ObjectStorageService` that stores uploaded image
   content in memory and returns predictable metadata for test assertions.
 
-- **`mock_ai_service`**  
+- **`mock_ai_service`**
   Simplified AI service for Vision/OCR‑style operations. Provides
   `analyze_image(image, description)` and `generate_embeddings(text)` with
   deterministic outputs suitable for tests without external dependencies.
 
-- **`sample_pdf_files`**  
+- **`sample_pdf_files`**
   General PDF samples (valid, corrupted, empty, large, OCR‑like, multi‑lang).
   Used primarily by Upload/Text/Document tests but also helpful for
   negative paths here.
 
-- **`sample_pdf_with_tables`**  
+- **`sample_pdf_with_tables`**
   Synthetic multi‑page PDF containing specification, parts list, and error
   code tables, built with PyMuPDF where available.
 
-- **`sample_pdf_with_images`**  
+- **`sample_pdf_with_images`**
   Synthetic PDF with several embedded raster images of varying aspect
   ratios and sizes.
 
-- **`sample_pdf_with_svgs`**  
+- **`sample_pdf_with_svgs`**
   Synthetic PDF with basic vector graphics suitable for exercising
   `SVGProcessor` extraction and conversion.
 
-- **`sample_pdf_multimodal`**  
+- **`sample_pdf_multimodal`**
   Synthetic PDF containing a mix of tables, images, and vector drawings on
   multiple pages, used by the multi-modal integration tests.
 
-- **`create_test_image`**  
+- **`create_test_image`**
   Factory for generating small in‑memory Pillow images with configurable
   dimensions and colours.
 
-- **`create_test_table_data`**  
+- **`create_test_table_data`**
   Factory that returns a `pandas.DataFrame` with synthetic content for
   testing table‑related helpers.
 
-- **`create_test_svg`**  
+- **`create_test_svg`**
   Factory that returns a simple SVG string containing configurable shapes
   (rectangles, circles, etc.).
 
@@ -175,31 +175,31 @@ Key fixtures defined in `tests/processors/conftest.py` that support these tests:
 
 Common patterns used across the structured data test suite:
 
-- **Async tests**  
+- **Async tests**
   Many processor APIs are async. Tests use `@pytest.mark.asyncio` and
   await `processor.process(context)` directly or helper methods such as
   `process_document` where appropriate.
 
-- **ProcessingContext construction**  
+- **ProcessingContext construction**
   Tests construct `ProcessingContext` with at least `document_id`,
   `file_path`, and `document_type`. Additional fields like `pdf_path`,
   `page_texts`, or `images` are populated by processors or fixtures.
 
-- **Mock services**  
+- **Mock services**
   Processors are initialised with mock services (database, embedding,
   storage, AI) to avoid network/IO and to allow deterministic assertions.
 
-- **Database assertions**  
+- **Database assertions**
   E2E tests verify that processors actually write to the mock adapter’s
   in‑memory stores (e.g. `structured_tables`, `krai_intelligence.chunks.embedding`) and that
   record counts line up with the `ProcessingResult` metadata.
 
-- **Error handling paths**  
+- **Error handling paths**
   Negative tests deliberately provide invalid or missing inputs (e.g.
   missing `pdf_path`, non‑existent files) and assert that the processors
   return unsuccessful results without raising.
 
-- **Stage tracking**  
+- **Stage tracking**
   Where practical, `mock_stage_tracker` is attached to processors and
   tests assert that successes and failures do not raise when stage
   tracking is in place.
@@ -208,27 +208,27 @@ Common patterns used across the structured data test suite:
 
 ## Test Categories
 
-- **Unit Tests**  
+- **Unit Tests**
   `test_table_processor_unit.py` focuses on small helper methods and
   internal logic of `TableProcessor`.
 
-- **E2E Tests**  
+- **E2E Tests**
   `test_table_processor_e2e.py`, `test_svg_processor_e2e.py`,
   `test_image_processor_e2e.py`, and
   `test_visual_embedding_processor_e2e.py` exercise real PDF parsing and
   end‑to‑end flows from context to storage.
 
-- **Integration Tests**  
+- **Integration Tests**
   `test_multimodal_integration.py` composes multiple processors together
   on the same input document and verifies that contexts and storage
   behaviour are compatible.
 
-- **Error Handling Tests**  
+- **Error Handling Tests**
   Each file includes negative tests for missing inputs, invalid PDFs, or
   dependency issues (such as missing models), asserting graceful failure
   instead of uncaught exceptions.
 
-- **Performance / Slow Tests**  
+- **Performance / Slow Tests**
   Heavy tests that might be slow in CI can be marked with `@pytest.mark.slow`
   and filtered with `-m slow` or `-m "not slow"`. The current suite uses
   this sparingly to keep pipeline time reasonable.
@@ -276,10 +276,10 @@ this subset of tests locally.
 
 ## Troubleshooting
 
-- **`ModuleNotFoundError: No module named 'fitz'`**  
+- **`ModuleNotFoundError: No module named 'fitz'`**
   Install PyMuPDF: `pip install pymupdf`.
 
-- **`ImportError: cannot import name 'ColQwen2_5'`**  
+- **`ImportError: cannot import name 'ColQwen2_5'`**
   Install `colpali-engine` or skip the `visual_embedding` marker:
 
   ```bash
@@ -288,17 +288,17 @@ this subset of tests locally.
   pytest tests/processors/ -m "not visual_embedding" -v
   ```
 
-- **`pytesseract.TesseractNotFoundError`**  
+- **`pytesseract.TesseractNotFoundError`**
   Install Tesseract OCR binary and ensure it is on the system PATH, or
   disable OCR‑dependent tests by using markers or configuration
   variables.
 
-- **File‑not‑found or permission errors**  
+- **File‑not‑found or permission errors**
   The synthetic PDFs are written to temporary directories using
   `tempfile.mkdtemp`. Ensure the process has permission to write to the
   system temp directory on your platform.
 
-- **Slow test execution**  
+- **Slow test execution**
   Use `-n auto` for parallel execution and/or skip slow categories with
   markers as described above.
 
@@ -311,41 +311,41 @@ paths and basic negative paths** for the Phase 4 multi‑modal embedding
 architecture, without reproducing every scenario from the high‑level
 design documents.
 
-- **TableProcessor scenarios**  
+- **TableProcessor scenarios**
   Current tests cover realistic extraction, type detection, context
   JSON, and embedding/storage via:
-  `test_table_processor_unit.py` and `test_table_processor_e2e.py`.  
+  `test_table_processor_unit.py` and `test_table_processor_e2e.py`.
   **Deferred:** Very large or extremely wide tables, multi‑page tables,
   and performance/throughput benchmarks are intentionally left to the
   full pipeline and performance tests described in
   `docs/TESTING_GUIDE_PHASES_1_6.md` and `docs/PHASE_4_MULTIMODAL_EMBEDDINGS.md`.
 
-- **SVGProcessor scenarios**  
+- **SVGProcessor scenarios**
   `test_svg_processor_e2e.py` validates extraction and PNG conversion on
-  clean synthetic PDFs plus basic error handling for missing PDFs.  
+  clean synthetic PDFs plus basic error handling for missing PDFs.
   **Deferred:** Explicit failure paths for SVG‑>PNG conversion (e.g.
   missing `svglib`/`reportlab`, corrupted vector content) are treated as
   pipeline‑level concerns and are not duplicated here to keep runtime
   and dependency surface reasonable.
 
-- **ImageProcessor and OCR/vision guardrails**  
+- **ImageProcessor and OCR/vision guardrails**
   `test_image_processor_e2e.py` focuses on raster image extraction,
   basic filtering and storage queueing with `enable_ocr=False` and
-  `enable_vision=False` for determinism.  
+  `enable_vision=False` for determinism.
   **Deferred:** Heavy OCR and Vision AI scenarios (e.g. fully scanned
   PDFs, OCR fallbacks, and quality thresholds) are covered by higher‑
   level pipeline and search tests rather than this focused suite.
 
-- **VisualEmbeddingProcessor GPU/CPU behavior**  
+- **VisualEmbeddingProcessor GPU/CPU behavior**
   `test_visual_embedding_processor_e2e.py` runs the processor in CPU
   mode on small synthetic images and asserts on basic embedding/storage
   behavior, skipping cleanly when `colpali‑engine` or the model cannot
-  be loaded.  
+  be loaded.
   **Deferred:** GPU‑specific behaviour, out‑of‑memory handling, and
   adaptive batching are validated via manual runs and broader Phase 4
   integration testing, not per‑processor unit/E2E tests.
 
-- **Multi‑modal pipeline integration depth**  
+- **Multi‑modal pipeline integration depth**
   `test_multimodal_integration.py` composes table, SVG, image, and
   visual embedding processors on the `sample_pdf_multimodal` fixture
   using a minimal `ProcessingContext`. It deliberately **does not** run

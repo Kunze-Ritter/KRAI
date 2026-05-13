@@ -1,17 +1,15 @@
 """
 Manufacturer API models for CRUD operations and related statistics.
 """
+
 from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from math import ceil
-from typing import ClassVar, Dict, Optional, Union
+from typing import ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, HttpUrl, root_validator, validator
-
-from models.product import ProductListResponse, ProductWithRelationsResponse
 
 
 class SortOrder(str, Enum):
@@ -25,20 +23,20 @@ class ManufacturerCreateRequest(BaseModel):
     """Payload for creating a manufacturer."""
 
     name: str = Field(..., min_length=1, max_length=255)
-    short_name: Optional[str] = Field(None, max_length=10)
-    country: Optional[str] = Field(None, max_length=100)
-    founded_year: Optional[int] = Field(None, ge=1800)
-    website: Optional[HttpUrl] = None
-    support_email: Optional[EmailStr] = None
-    support_phone: Optional[str] = Field(None, max_length=50)
-    logo_url: Optional[HttpUrl] = None
+    short_name: str | None = Field(None, max_length=10)
+    country: str | None = Field(None, max_length=100)
+    founded_year: int | None = Field(None, ge=1800)
+    website: HttpUrl | None = None
+    support_email: EmailStr | None = None
+    support_phone: str | None = Field(None, max_length=50)
+    logo_url: HttpUrl | None = None
     is_competitor: bool = Field(default=False)
-    market_share_percent: Optional[float] = Field(None, ge=0.0, le=100.0)
-    annual_revenue_usd: Optional[float] = Field(None, ge=0.0)
-    employee_count: Optional[int] = Field(None, ge=0)
-    headquarters_address: Optional[str] = Field(None, max_length=255)
-    stock_symbol: Optional[str] = Field(None, max_length=20)
-    primary_business_segment: Optional[str] = Field(None, max_length=100)
+    market_share_percent: float | None = Field(None, ge=0.0, le=100.0)
+    annual_revenue_usd: float | None = Field(None, ge=0.0)
+    employee_count: int | None = Field(None, ge=0)
+    headquarters_address: str | None = Field(None, max_length=255)
+    stock_symbol: str | None = Field(None, max_length=20)
+    primary_business_segment: str | None = Field(None, max_length=100)
 
     class Config:
         json_schema_extra = {
@@ -62,35 +60,33 @@ class ManufacturerCreateRequest(BaseModel):
         }
 
     @validator("founded_year")
-    def validate_founded_year(cls, value: Optional[int]) -> Optional[int]:
+    def validate_founded_year(cls, value: int | None) -> int | None:
         if value is None:
             return value
         current_year = datetime.utcnow().year
         if value < 1800 or value > current_year:
-            raise ValueError(
-                f"founded_year must be between 1800 and {current_year}"
-            )
+            raise ValueError(f"founded_year must be between 1800 and {current_year}")
         return value
 
 
 class ManufacturerUpdateRequest(BaseModel):
     """Payload for updating a manufacturer."""
 
-    name: Optional[str] = Field(None, min_length=1, max_length=255)
-    short_name: Optional[str] = Field(None, max_length=10)
-    country: Optional[str] = Field(None, max_length=100)
-    founded_year: Optional[int] = Field(None, ge=1800)
-    website: Optional[HttpUrl] = None
-    support_email: Optional[EmailStr] = None
-    support_phone: Optional[str] = Field(None, max_length=50)
-    logo_url: Optional[HttpUrl] = None
-    is_competitor: Optional[bool] = None
-    market_share_percent: Optional[float] = Field(None, ge=0.0, le=100.0)
-    annual_revenue_usd: Optional[float] = Field(None, ge=0.0)
-    employee_count: Optional[int] = Field(None, ge=0)
-    headquarters_address: Optional[str] = Field(None, max_length=255)
-    stock_symbol: Optional[str] = Field(None, max_length=20)
-    primary_business_segment: Optional[str] = Field(None, max_length=100)
+    name: str | None = Field(None, min_length=1, max_length=255)
+    short_name: str | None = Field(None, max_length=10)
+    country: str | None = Field(None, max_length=100)
+    founded_year: int | None = Field(None, ge=1800)
+    website: HttpUrl | None = None
+    support_email: EmailStr | None = None
+    support_phone: str | None = Field(None, max_length=50)
+    logo_url: HttpUrl | None = None
+    is_competitor: bool | None = None
+    market_share_percent: float | None = Field(None, ge=0.0, le=100.0)
+    annual_revenue_usd: float | None = Field(None, ge=0.0)
+    employee_count: int | None = Field(None, ge=0)
+    headquarters_address: str | None = Field(None, max_length=255)
+    stock_symbol: str | None = Field(None, max_length=20)
+    primary_business_segment: str | None = Field(None, max_length=100)
 
     class Config:
         json_schema_extra = {
@@ -103,25 +99,23 @@ class ManufacturerUpdateRequest(BaseModel):
         }
 
     @validator("founded_year")
-    def validate_founded_year(cls, value: Optional[int]) -> Optional[int]:
+    def validate_founded_year(cls, value: int | None) -> int | None:
         if value is None:
             return value
         current_year = datetime.utcnow().year
         if value < 1800 or value > current_year:
-            raise ValueError(
-                f"founded_year must be between 1800 and {current_year}"
-            )
+            raise ValueError(f"founded_year must be between 1800 and {current_year}")
         return value
 
 
 class ManufacturerFilterParams(BaseModel):
     """Query parameters for filtering manufacturers."""
 
-    country: Optional[str] = None
-    is_competitor: Optional[bool] = None
-    founded_year_from: Optional[int] = Field(None, ge=1800)
-    founded_year_to: Optional[int] = Field(None, ge=1800)
-    search: Optional[str] = None
+    country: str | None = None
+    is_competitor: bool | None = None
+    founded_year_from: int | None = Field(None, ge=1800)
+    founded_year_to: int | None = Field(None, ge=1800)
+    search: str | None = None
 
     class Config:
         json_schema_extra = {
@@ -135,13 +129,11 @@ class ManufacturerFilterParams(BaseModel):
         }
 
     @root_validator(skip_on_failure=True)
-    def validate_year_range(cls, values: Dict[str, Optional[int]]) -> Dict[str, Optional[int]]:
+    def validate_year_range(cls, values: dict[str, int | None]) -> dict[str, int | None]:
         year_from = values.get("founded_year_from")
         year_to = values.get("founded_year_to")
         if year_from and year_to and year_from > year_to:
-            raise ValueError(
-                "founded_year_from must be less than or equal to founded_year_to"
-            )
+            raise ValueError("founded_year_from must be less than or equal to founded_year_to")
         return values
 
 
@@ -149,9 +141,7 @@ class ManufacturerSortParams(BaseModel):
     """Sorting parameters for manufacturers."""
 
     sort_by: str = Field("name", description="Field name to sort by")
-    sort_order: SortOrder = Field(
-        SortOrder.ASC, description="Sort order: asc or desc"
-    )
+    sort_order: SortOrder = Field(SortOrder.ASC, description="Sort order: asc or desc")
 
     ALLOWED_SORT_FIELDS: ClassVar[set[str]] = {
         "name",
@@ -177,7 +167,7 @@ class ManufacturerSortParams(BaseModel):
         return value
 
     @validator("sort_order", pre=True)
-    def validate_sort_order(cls, value: Union[str, SortOrder]) -> SortOrder:
+    def validate_sort_order(cls, value: str | SortOrder) -> SortOrder:
         try:
             return SortOrder(value)
         except ValueError as exc:
@@ -190,20 +180,20 @@ class ManufacturerResponse(BaseModel):
 
     id: UUID
     name: str
-    short_name: Optional[str] = None
-    country: Optional[str] = None
-    founded_year: Optional[int] = None
-    website: Optional[HttpUrl] = None
-    support_email: Optional[EmailStr] = None
-    support_phone: Optional[str] = None
-    logo_url: Optional[HttpUrl] = None
+    short_name: str | None = None
+    country: str | None = None
+    founded_year: int | None = None
+    website: HttpUrl | None = None
+    support_email: EmailStr | None = None
+    support_phone: str | None = None
+    logo_url: HttpUrl | None = None
     is_competitor: bool
-    market_share_percent: Optional[float] = None
-    annual_revenue_usd: Optional[float] = None
-    employee_count: Optional[int] = None
-    headquarters_address: Optional[str] = None
-    stock_symbol: Optional[str] = None
-    primary_business_segment: Optional[str] = None
+    market_share_percent: float | None = None
+    annual_revenue_usd: float | None = None
+    employee_count: int | None = None
+    headquarters_address: str | None = None
+    stock_symbol: str | None = None
+    primary_business_segment: str | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -263,9 +253,7 @@ class ManufacturerListResponse(BaseModel):
     class Config:
         json_schema_extra = {
             "example": {
-                "manufacturers": [
-                    ManufacturerResponse.Config.json_schema_extra["example"]
-                ],
+                "manufacturers": [ManufacturerResponse.Config.json_schema_extra["example"]],
                 "total": 30,
                 "page": 1,
                 "page_size": 10,
@@ -278,7 +266,7 @@ class ManufacturerStatsResponse(BaseModel):
     """Aggregate statistics for manufacturers."""
 
     total_manufacturers: int
-    by_country: Dict[str, int]
+    by_country: dict[str, int]
     competitors_count: int
     total_market_share: float
 

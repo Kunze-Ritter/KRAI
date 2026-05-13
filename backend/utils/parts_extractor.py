@@ -4,11 +4,9 @@ Extracts part numbers from error code solutions and descriptions.
 Uses manufacturer-specific patterns from config/parts_patterns.json
 """
 
-import re
 import json
+import re
 from pathlib import Path
-from typing import List, Optional, Dict
-
 
 # Load parts patterns config
 CONFIG_PATH = Path(__file__).parent.parent / "config" / "parts_patterns.json"
@@ -21,18 +19,19 @@ MANUFACTURER_ALIASES = {
     "minolta": "konica_minolta",
 }
 
+
 def _load_config():
     """Load parts patterns configuration"""
     global PARTS_CONFIG
     if PARTS_CONFIG is None:
-        with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
+        with open(CONFIG_PATH, encoding="utf-8") as f:
             PARTS_CONFIG = json.load(f)
     return PARTS_CONFIG
 
 
-def _valid_manufacturer_keys(config: Dict) -> List[str]:
+def _valid_manufacturer_keys(config: dict) -> list[str]:
     """Return manufacturer keys with a usable patterns list."""
-    keys: List[str] = []
+    keys: list[str] = []
     for key, value in config.items():
         if not isinstance(value, dict):
             continue
@@ -42,7 +41,7 @@ def _valid_manufacturer_keys(config: Dict) -> List[str]:
     return keys
 
 
-def _resolve_manufacturer_key(manufacturer_key: Optional[str], config: Dict) -> Optional[str]:
+def _resolve_manufacturer_key(manufacturer_key: str | None, config: dict) -> str | None:
     """Normalize manufacturer aliases to config keys."""
     if not manufacturer_key:
         return None
@@ -52,85 +51,85 @@ def _resolve_manufacturer_key(manufacturer_key: Optional[str], config: Dict) -> 
     return MANUFACTURER_ALIASES.get(normalized)
 
 
-def extract_parts_by_manufacturer(text: str, manufacturer_key: str) -> Optional[str]:
+def extract_parts_by_manufacturer(text: str, manufacturer_key: str) -> str | None:
     """
     Extract parts using manufacturer-specific patterns from config
-    
+
     Args:
         text: Text to extract from
         manufacturer_key: Manufacturer key (e.g., 'hp', 'canon', 'konica_minolta')
-        
+
     Returns:
         Comma-separated list of part numbers or None
     """
     if not text:
         return None
-    
+
     config = _load_config()
-    
+
     # Get manufacturer patterns
     resolved_key = _resolve_manufacturer_key(manufacturer_key, config)
     if not resolved_key or resolved_key not in config:
-        manufacturer_key = 'generic'
+        manufacturer_key = "generic"
     else:
         manufacturer_key = resolved_key
 
     manufacturer_config = config.get(manufacturer_key, {})
-    patterns = manufacturer_config.get('patterns', [])
-    
+    patterns = manufacturer_config.get("patterns", [])
+
     if not patterns:
         return None
-    
+
     parts = []
-    min_confidence = config.get('extraction_rules', {}).get('min_confidence', 0.70)
-    
+    min_confidence = config.get("extraction_rules", {}).get("min_confidence", 0.70)
+
     # Extract using all patterns for this manufacturer
     for pattern_config in patterns:
         if isinstance(pattern_config, str):
             pattern = pattern_config
             confidence = 0.8
         else:
-            pattern = pattern_config.get('pattern')
-            confidence = pattern_config.get('confidence', 0.5)
-        
+            pattern = pattern_config.get("pattern")
+            confidence = pattern_config.get("confidence", 0.5)
+
         if confidence < min_confidence:
             continue
-        
+
         try:
             matches = re.findall(pattern, text)
             parts.extend(matches)
         except re.error:
             continue
-    
+
     # Deduplicate
     parts = list(set(parts))
-    
+
     # Filter out false positives
     parts = _filter_false_positives(parts, config)
-    
+
     if not parts:
         return None
-    
+
     parts.sort()
-    return ', '.join(parts)
+    return ", ".join(parts)
 
 
-def _filter_false_positives(parts: List[str], config: Dict) -> List[str]:
+def _filter_false_positives(parts: list[str], config: dict) -> list[str]:
     """Filter out common false positives"""
-    rules = config.get('extraction_rules', {})
-    exclude_near = rules.get('exclude_if_near', [])
-    
+    rules = config.get("extraction_rules", {})
+    exclude_near = rules.get("exclude_if_near", [])
+
     # Filter by length
     parts = [p for p in parts if 5 <= len(p) <= 25]
-    
+
     # Filter common false positives
-    false_positives = {'ERROR', 'CODE', 'PAGE', 'STEP', 'NOTE', 'FIG', 'TABLE', 'SECTION'}
+    false_positives = {"ERROR", "CODE", "PAGE", "STEP", "NOTE", "FIG", "TABLE", "SECTION"}
     parts = [p for p in parts if p.upper() not in false_positives]
-    
+
     return parts
 
 
-def _has_any_keyword(text: str, keywords: List[str]) -> bool:
+def _has_any_keyword(text: str, keywords: list[str]) -> bool:
     """Case-insensitive keyword lookup."""
     if not text:
         return False
@@ -173,7 +172,7 @@ def _looks_like_table_row_context(context: str, part: str) -> bool:
     )
 
 
-def _is_context_noise_for_part(context: str, part: str, rules: Dict, manufacturer_key: str, pattern_name: str) -> bool:
+def _is_context_noise_for_part(context: str, part: str, rules: dict, manufacturer_key: str, pattern_name: str) -> bool:
     """
     Determine whether a match is likely not a spare part reference.
 
@@ -223,10 +222,7 @@ def _is_context_noise_for_part(context: str, part: str, rules: Dict, manufacture
         "order",
         "replacement part",
     ]
-    has_part_signal = (
-        _has_any_keyword(context_l, indicators)
-        or _has_any_keyword(context_l, strong_part_terms)
-    )
+    has_part_signal = _has_any_keyword(context_l, indicators) or _has_any_keyword(context_l, strong_part_terms)
     has_table_signal = _looks_like_table_row_context(context, part)
     has_soft_exclusion = _has_any_keyword(context_l, exclusion_terms)
 
@@ -243,10 +239,10 @@ def _is_context_noise_for_part(context: str, part: str, rules: Dict, manufacture
     return has_soft_exclusion or _has_any_keyword(context_l, hard_noise_terms)
 
 
-def extract_parts(text: str) -> Optional[str]:
+def extract_parts(text: str) -> str | None:
     """
     Extract part numbers from text
-    
+
     Supports multiple formats:
     - 6QN29-67005
     - RM1-1234-000
@@ -254,114 +250,114 @@ def extract_parts(text: str) -> Optional[str]:
     - Q7553X
     - Part: ABC123
     - Part Number: XYZ-456
-    
+
     Args:
         text: Text to extract parts from
-        
+
     Returns:
         Comma-separated list of part numbers or None
     """
     if not text:
         return None
-    
+
     parts = []
-    
+
     # Pattern 1: HP style (6QN29-67005, RM1-1234-000)
-    hp_pattern = r'\b([A-Z0-9]{3,6}-[A-Z0-9]{3,6}(?:-[A-Z0-9]{3})?)\b'
+    hp_pattern = r"\b([A-Z0-9]{3,6}-[A-Z0-9]{3,6}(?:-[A-Z0-9]{3})?)\b"
     parts.extend(re.findall(hp_pattern, text))
-    
+
     # Pattern 2: Toner/Consumable codes (CE285A, Q7553X, CF283A)
-    consumable_pattern = r'\b([A-Z]{2}\d{3,4}[A-Z]{0,2})\b'
+    consumable_pattern = r"\b([A-Z]{2}\d{3,4}[A-Z]{0,2})\b"
     parts.extend(re.findall(consumable_pattern, text))
-    
+
     # Pattern 3: "Part:" or "Part Number:" followed by code
-    part_label_pattern = r'(?:part(?:\s+number)?|p/n|part\s*#)\s*[:=]?\s*([A-Z0-9][-A-Z0-9]{4,20})'
+    part_label_pattern = r"(?:part(?:\s+number)?|p/n|part\s*#)\s*[:=]?\s*([A-Z0-9][-A-Z0-9]{4,20})"
     parts.extend(re.findall(part_label_pattern, text, re.IGNORECASE))
-    
+
     # Pattern 4: Konica Minolta style (A1DU-R750-00, 4062-R750-01)
-    km_pattern = r'\b([A-Z0-9]{4}-[A-Z0-9]{4}-\d{2})\b'
+    km_pattern = r"\b([A-Z0-9]{4}-[A-Z0-9]{4}-\d{2})\b"
     parts.extend(re.findall(km_pattern, text))
-    
+
     # Pattern 5: Canon style (FM3-5945-000, QY6-0073-000)
-    canon_pattern = r'\b([A-Z]{2}\d-\d{4}-\d{3})\b'
+    canon_pattern = r"\b([A-Z]{2}\d-\d{4}-\d{3})\b"
     parts.extend(re.findall(canon_pattern, text))
-    
+
     # Pattern 6: Lexmark style (40X5852, 40X7743)
-    lexmark_pattern = r'\b(\d{2}X\d{4})\b'
+    lexmark_pattern = r"\b(\d{2}X\d{4})\b"
     parts.extend(re.findall(lexmark_pattern, text))
-    
+
     # Deduplicate and clean
     parts = list(set(parts))
-    
+
     # Filter out common false positives
-    false_positives = {'ERROR', 'CODE', 'PAGE', 'STEP', 'NOTE', 'FIG', 'TABLE'}
+    false_positives = {"ERROR", "CODE", "PAGE", "STEP", "NOTE", "FIG", "TABLE"}
     parts = [p for p in parts if p.upper() not in false_positives]
-    
+
     # Filter out too short or too long
     parts = [p for p in parts if 5 <= len(p) <= 25]
-    
+
     if not parts:
         return None
-    
+
     # Sort and return
     parts.sort()
-    return ', '.join(parts)
+    return ", ".join(parts)
 
 
-def extract_parts_with_context(text: str, manufacturer_key: str = None, max_parts: int = 20) -> List[dict]:
+def extract_parts_with_context(text: str, manufacturer_key: str = None, max_parts: int = 20) -> list[dict]:
     """
     Extract parts with surrounding context using config patterns
-    
+
     Args:
         text: Text to extract from
         manufacturer_key: Manufacturer key for specific patterns
         max_parts: Maximum number of parts to return
-        
+
     Returns:
         List of dicts with 'part', 'context', 'pattern_name', and 'confidence' keys
     """
     if not text:
         return []
-    
+
     config = _load_config()
-    context_window = config.get('extraction_rules', {}).get('context_window_chars', 200)
-    min_confidence = config.get('extraction_rules', {}).get('min_confidence', 0.70)
-    extraction_rules = config.get('extraction_rules', {}) or {}
-    
+    context_window = config.get("extraction_rules", {}).get("context_window_chars", 200)
+    min_confidence = config.get("extraction_rules", {}).get("min_confidence", 0.70)
+    extraction_rules = config.get("extraction_rules", {}) or {}
+
     parts_with_context = []
-    
+
     # Determine which manufacturers to use
-    manufacturers_to_check: List[str] = []
+    manufacturers_to_check: list[str] = []
     resolved_key = _resolve_manufacturer_key(manufacturer_key, config)
     if resolved_key and resolved_key in config:
         manufacturers_to_check.append(resolved_key)
     else:
         # Try all configured manufacturers if no specific one given
         manufacturers_to_check = _valid_manufacturer_keys(config)
-    
+
     # Extract from each manufacturer's patterns
     for mfr_key in manufacturers_to_check:
         mfr_config = config.get(mfr_key, {})
         if not isinstance(mfr_config, dict):
             continue
-        patterns = mfr_config.get('patterns', [])
-        
+        patterns = mfr_config.get("patterns", [])
+
         for pattern_config in patterns:
             # Backward-compatible handling: patterns can be dicts or plain regex strings.
             if isinstance(pattern_config, str):
                 pattern = pattern_config
                 confidence = 0.8
-                pattern_name = 'legacy_pattern'
+                pattern_name = "legacy_pattern"
             else:
-                pattern = pattern_config.get('pattern')
-                confidence = pattern_config.get('confidence', 0.5)
-                pattern_name = pattern_config.get('name', 'unknown')
-            
+                pattern = pattern_config.get("pattern")
+                confidence = pattern_config.get("confidence", 0.5)
+                pattern_name = pattern_config.get("name", "unknown")
+
             if confidence < min_confidence:
                 continue
             if not pattern:
                 continue
-            
+
             try:
                 for match in re.finditer(pattern, text):
                     part = match.group(0)
@@ -373,7 +369,7 @@ def extract_parts_with_context(text: str, manufacturer_key: str = None, max_part
                     # Expand to nearby line boundaries first, then to word boundaries,
                     # so we avoid clipped tokens like "oner" instead of "Toner".
                     start = raw_start
-                    prev_nl = text.rfind('\n', max(0, raw_start - 120), raw_start + 1)
+                    prev_nl = text.rfind("\n", max(0, raw_start - 120), raw_start + 1)
                     if prev_nl != -1:
                         start = prev_nl + 1
                     else:
@@ -381,7 +377,7 @@ def extract_parts_with_context(text: str, manufacturer_key: str = None, max_part
                             start -= 1
 
                     end = raw_end
-                    next_nl = text.find('\n', raw_end, min(len(text), raw_end + 120))
+                    next_nl = text.find("\n", raw_end, min(len(text), raw_end + 120))
                     if next_nl != -1:
                         end = next_nl
                     else:
@@ -398,45 +394,47 @@ def extract_parts_with_context(text: str, manufacturer_key: str = None, max_part
                         pattern_name=pattern_name,
                     ):
                         continue
-                    
-                    parts_with_context.append({
-                        'part': part,
-                        'context': context,
-                        'pattern_name': pattern_name,
-                        'confidence': confidence,
-                        'manufacturer': mfr_key
-                    })
+
+                    parts_with_context.append(
+                        {
+                            "part": part,
+                            "context": context,
+                            "pattern_name": pattern_name,
+                            "confidence": confidence,
+                            "manufacturer": mfr_key,
+                        }
+                    )
             except re.error:
                 continue
-    
+
     # Deduplicate by part number (keep highest confidence)
     seen = {}
     for item in parts_with_context:
-        part = item['part']
-        if part not in seen or item['confidence'] > seen[part]['confidence']:
+        part = item["part"]
+        if part not in seen or item["confidence"] > seen[part]["confidence"]:
             seen[part] = item
-    
+
     unique_parts = list(seen.values())
-    
+
     # Sort by confidence
-    unique_parts.sort(key=lambda x: x['confidence'], reverse=True)
-    
+    unique_parts.sort(key=lambda x: x["confidence"], reverse=True)
+
     return unique_parts[:max_parts]
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Test
     test_text = """
     Replace the flatbed scanner assembly.
     Flatbed scanner - 6QN29-67005
-    
+
     If error persists, replace toner cartridge CE285A.
     Part Number: RM1-1234-000
     """
-    
+
     parts = extract_parts(test_text)
     print(f"Parts found: {parts}")
-    
+
     parts_ctx = extract_parts_with_context(test_text)
     for item in parts_ctx:
         print(f"Part: {item['part']}")

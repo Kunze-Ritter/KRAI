@@ -56,7 +56,7 @@ KRAI-minimal/
 Alle Scripts suchen automatisch nach der `.env` Datei:
 
 1. **Root-Verzeichnis** (`.env`) - **PRIORITÄT 1**
-2. **Parent-Verzeichnis** (`../.env`) - **PRIORITÄT 2** 
+2. **Parent-Verzeichnis** (`../.env`) - **PRIORITÄT 2**
 3. **Lokales Verzeichnis** (`.env`) - **PRIORITÄT 3**
 
 ### **Beispiel-Log:**
@@ -190,9 +190,5 @@ type .env | findstr OBJECT_STORAGE_
 
 ---
 
-**Bei Fragen:** Siehe KRAI Development Team Lead  
+**Bei Fragen:** Siehe KRAI Development Team Lead
 **Version:** 1.0 (Oktober 2025)
-
-
-
-

@@ -5,10 +5,9 @@ import glob
 import json
 import logging
 import os
-import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 from uuid import uuid4
 
 from rich.console import Console
@@ -21,7 +20,7 @@ from scripts.report_generator import ReportGenerator
 
 
 class DocumentProcessingError(Exception):
-    def __init__(self, message: str, context: Dict[str, Any]):
+    def __init__(self, message: str, context: dict[str, Any]):
         super().__init__(message)
         self.context = context
 
@@ -31,9 +30,9 @@ class ProductionTestOrchestrator:
         self,
         pipeline: KRMasterPipeline,
         thresholds_path: str,
-        threshold_overrides: Dict[str, Any],
-        output_dir: Optional[str] = None,
-        pdf_dir: Optional[str] = None,
+        threshold_overrides: dict[str, Any],
+        output_dir: str | None = None,
+        pdf_dir: str | None = None,
         validate_dashboard: bool = False,
     ):
         self.console = Console()
@@ -44,9 +43,9 @@ class ProductionTestOrchestrator:
         self.validate_dashboard = validate_dashboard
         self.test_run_id = f"test_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
-        self.document_ids: List[str] = []
-        self.start_time: Optional[datetime] = None
-        self.end_time: Optional[datetime] = None
+        self.document_ids: list[str] = []
+        self.start_time: datetime | None = None
+        self.end_time: datetime | None = None
 
     async def run(self) -> int:
         try:
@@ -68,9 +67,7 @@ class ProductionTestOrchestrator:
 
             quality_failed = quality_results.get("status") != "PASS"
             dashboard_failed = (
-                self.validate_dashboard
-                and dashboard_results is not None
-                and dashboard_results.get("status") == "FAIL"
+                self.validate_dashboard and dashboard_results is not None and dashboard_results.get("status") == "FAIL"
             )
 
             return 1 if (quality_failed or dashboard_failed) else 0
@@ -94,9 +91,7 @@ class ProductionTestOrchestrator:
     def _validate_environment(self):
         upload_images_to_storage = os.getenv("UPLOAD_IMAGES_TO_STORAGE", "").lower()
         if upload_images_to_storage != "true":
-            raise RuntimeError(
-                "UPLOAD_IMAGES_TO_STORAGE must be set to 'true' for production test (MinIO required)."
-            )
+            raise RuntimeError("UPLOAD_IMAGES_TO_STORAGE must be set to 'true' for production test (MinIO required).")
 
         # Backend startup already blocks legacy storage credentials, but we keep a belt-and-suspenders guard here.
         legacy_storage_vars = ["R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY"]
@@ -107,7 +102,7 @@ class ProductionTestOrchestrator:
 
         self.console.print("[green]Environment validation passed.[/green]")
 
-    def _load_thresholds(self, thresholds_path: str, overrides: Dict[str, Any]) -> Dict[str, Any]:
+    def _load_thresholds(self, thresholds_path: str, overrides: dict[str, Any]) -> dict[str, Any]:
         defaults = {
             "min_chunks": 100,
             "min_images": 10,
@@ -119,7 +114,7 @@ class ProductionTestOrchestrator:
 
         loaded = {}
         try:
-            with open(thresholds_path, "r", encoding="utf-8") as f:
+            with open(thresholds_path, encoding="utf-8") as f:
                 loaded = json.load(f)
         except FileNotFoundError:
             loaded = defaults.copy()
@@ -129,7 +124,7 @@ class ProductionTestOrchestrator:
         merged.update(overrides or {})
         return merged
 
-    def _detect_output_dir(self, output_dir: Optional[str]) -> str:
+    def _detect_output_dir(self, output_dir: str | None) -> str:
         if output_dir:
             target = Path(output_dir)
         elif os.getenv("GITHUB_WORKSPACE"):
@@ -140,8 +135,8 @@ class ProductionTestOrchestrator:
         target.mkdir(parents=True, exist_ok=True)
         return str(target.resolve())
 
-    def _detect_pdf_paths(self, pdf_dir: Optional[str]) -> List[str]:
-        matches: List[str] = []
+    def _detect_pdf_paths(self, pdf_dir: str | None) -> list[str]:
+        matches: list[str] = []
 
         if pdf_dir:
             matches = glob.glob(os.path.join(pdf_dir, "HP*.pdf"))
@@ -156,11 +151,11 @@ class ProductionTestOrchestrator:
                 "/firmwares/HP/*.pdf",
             ]
 
-            windows_matches: List[str] = []
+            windows_matches: list[str] = []
             for pattern in windows_patterns:
                 windows_matches.extend(glob.glob(pattern))
 
-            container_matches: List[str] = []
+            container_matches: list[str] = []
             for pattern in container_patterns:
                 container_matches.extend(glob.glob(pattern))
 
@@ -173,10 +168,7 @@ class ProductionTestOrchestrator:
         if len(matches) < 2:
             raise RuntimeError("Production test requires 2 PDF files (HP_E877_SM.pdf and HP_E877_CPMD.pdf).")
 
-        preferred = [
-            path for path in matches
-            if Path(path).name in ("HP_E877_SM.pdf", "HP_E877_CPMD.pdf")
-        ]
+        preferred = [path for path in matches if Path(path).name in ("HP_E877_SM.pdf", "HP_E877_CPMD.pdf")]
 
         if len(preferred) == 2:
             return preferred
@@ -185,9 +177,7 @@ class ProductionTestOrchestrator:
     async def _is_safe_cleanup_target(self) -> bool:
         force_cleanup = os.getenv("PRODUCTION_TEST_FORCE_CLEANUP", "").lower() in ("1", "true", "yes")
         if force_cleanup:
-            self.console.print(
-                "[yellow]Cleanup safety bypassed with PRODUCTION_TEST_FORCE_CLEANUP.[/yellow]"
-            )
+            self.console.print("[yellow]Cleanup safety bypassed with PRODUCTION_TEST_FORCE_CLEANUP.[/yellow]")
             return True
 
         try:
@@ -254,10 +244,12 @@ class ProductionTestOrchestrator:
         except Exception as error:
             self.console.print(f"[yellow]Cleanup warning:[/yellow] {error}")
 
-    async def _process_single_document(self, pdf_path: str, progress_instance: Progress, task_id: int, pdf_index: int) -> str:
+    async def _process_single_document(
+        self, pdf_path: str, progress_instance: Progress, task_id: int, pdf_index: int
+    ) -> str:
         logger = logging.getLogger("krai.production_test")
         current_stage = Stage.UPLOAD.value
-        document_id: Optional[str] = None
+        document_id: str | None = None
 
         running_loop = asyncio.get_running_loop()
         if running_loop.is_closed() or not running_loop.is_running():
@@ -372,10 +364,10 @@ class ProductionTestOrchestrator:
                     pdf_path,
                 )
 
-    async def _process_documents(self) -> List[str]:
+    async def _process_documents(self) -> list[str]:
         stages = list(Stage)
         total_steps = len(self.pdf_paths) * len(stages)
-        document_ids: List[str] = []
+        document_ids: list[str] = []
 
         progress = Progress(
             SpinnerColumn(),
@@ -392,9 +384,7 @@ class ProductionTestOrchestrator:
             )
 
             tasks = [
-                asyncio.create_task(
-                    self._process_single_document(pdf, progress_instance, task_id, i)
-                )
+                asyncio.create_task(self._process_single_document(pdf, progress_instance, task_id, i))
                 for i, pdf in enumerate(self.pdf_paths)
             ]
 
@@ -418,7 +408,7 @@ class ProductionTestOrchestrator:
 
         return document_ids
 
-    async def _validate_quality(self, document_ids: List[str]) -> Dict[str, Any]:
+    async def _validate_quality(self, document_ids: list[str]) -> dict[str, Any]:
         validator = QualityValidator(self.pipeline.database_service, self.thresholds)
         return await validator.validate(document_ids)
 
@@ -427,7 +417,7 @@ class ProductionTestOrchestrator:
         ci_vars = ["GITHUB_ACTIONS", "CI", "GITHUB_WORKSPACE"]
         return any(bool(os.getenv(var)) for var in ci_vars)
 
-    async def _run_dashboard_validation(self, document_ids: List[str]) -> Optional[Dict[str, Any]]:
+    async def _run_dashboard_validation(self, document_ids: list[str]) -> dict[str, Any] | None:
         if not self.validate_dashboard:
             return None
 
@@ -448,8 +438,8 @@ class ProductionTestOrchestrator:
 
     def _generate_report(
         self,
-        quality_results: Dict[str, Any],
-        dashboard_results: Optional[Dict[str, Any]] = None,
+        quality_results: dict[str, Any],
+        dashboard_results: dict[str, Any] | None = None,
     ) -> str:
         generator = ReportGenerator(self.output_dir)
         test_results = {
@@ -465,7 +455,7 @@ class ProductionTestOrchestrator:
         }
         return generator.generate(test_results)
 
-    def _generate_error_report(self, error: Exception, context: Dict[str, Any] = None):
+    def _generate_error_report(self, error: Exception, context: dict[str, Any] = None):
         generator = ReportGenerator(self.output_dir)
         error_path = generator._generate_error_report(error, context or {})
         self.console.print(f"[red]Error report generated:[/red] {error_path}")

@@ -1,24 +1,21 @@
 """Error code CRUD and search API routes."""
+
 from __future__ import annotations
 
+import json
 import logging
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from math import ceil
-from typing import Any, Dict, List, Optional
+from typing import Any
 
+import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel
-from api.dependencies.database import get_database_pool, get_database_adapter
-import asyncpg
-import json
+
+from api.dependencies.database import get_database_adapter, get_database_pool
 from api.middleware.auth_middleware import require_permission
-from api.middleware.rate_limit_middleware import (
-    limiter,
-    rate_limit_search,
-    rate_limit_standard,
-    rate_limit_upload,
-)
+from api.middleware.rate_limit_middleware import limiter, rate_limit_search, rate_limit_standard, rate_limit_upload
 from api.routes.response_models import ErrorResponse, SuccessResponse
 from models.document import DocumentResponse, PaginationParams, SortOrder
 from models.error_code import (
@@ -51,9 +48,9 @@ ALLOWED_SEARCH_FIELDS = {"error_code", "error_description", "solution_text"}
 
 def _error_response(
     error: str,
-    detail: Optional[str] = None,
-    error_code: Optional[str] = None,
-) -> Dict[str, Optional[str]]:
+    detail: str | None = None,
+    error_code: str | None = None,
+) -> dict[str, str | None]:
     return ErrorResponse(error=error, detail=detail, error_code=error_code).dict()
 
 
@@ -62,7 +59,7 @@ def _log_and_raise(
     message: str,
     *,
     error: str = "Error",
-    error_code: Optional[str] = None,
+    error_code: str | None = None,
 ) -> None:
     LOGGER.error(message)
     raise HTTPException(
@@ -77,41 +74,32 @@ def _calculate_total_pages(total: int, page_size: int) -> int:
     return ceil(total / page_size)
 
 
-async def _fetch_document(pool: asyncpg.Pool, document_id: Optional[str]) -> Optional[DocumentResponse]:
+async def _fetch_document(pool: asyncpg.Pool, document_id: str | None) -> DocumentResponse | None:
     if not document_id:
         return None
     async with pool.acquire() as conn:
-        result = await conn.fetchrow(
-            "SELECT * FROM krai_core.documents WHERE id = $1 LIMIT 1",
-            document_id
-        )
+        result = await conn.fetchrow("SELECT * FROM krai_core.documents WHERE id = $1 LIMIT 1", document_id)
     if not result:
         return None
     return DocumentResponse(**dict(result))
 
 
-async def _fetch_manufacturer(
-    pool: asyncpg.Pool, manufacturer_id: Optional[str]
-) -> Optional[ManufacturerResponse]:
+async def _fetch_manufacturer(pool: asyncpg.Pool, manufacturer_id: str | None) -> ManufacturerResponse | None:
     if not manufacturer_id:
         return None
     async with pool.acquire() as conn:
-        result = await conn.fetchrow(
-            "SELECT * FROM krai_core.manufacturers WHERE id = $1 LIMIT 1",
-            manufacturer_id
-        )
+        result = await conn.fetchrow("SELECT * FROM krai_core.manufacturers WHERE id = $1 LIMIT 1", manufacturer_id)
     if not result:
         return None
     return ManufacturerResponse(**dict(result))
 
 
-async def _fetch_chunk(pool: asyncpg.Pool, chunk_id: Optional[str]) -> Optional[ChunkExcerpt]:
+async def _fetch_chunk(pool: asyncpg.Pool, chunk_id: str | None) -> ChunkExcerpt | None:
     if not chunk_id:
         return None
     async with pool.acquire() as conn:
         result = await conn.fetchrow(
-            "SELECT text_chunk,page_start,page_end FROM krai_intelligence.chunks WHERE id = $1 LIMIT 1",
-            chunk_id
+            "SELECT text_chunk,page_start,page_end FROM krai_intelligence.chunks WHERE id = $1 LIMIT 1", chunk_id
         )
     if not result:
         return None
@@ -121,16 +109,13 @@ async def _fetch_chunk(pool: asyncpg.Pool, chunk_id: Optional[str]) -> Optional[
 async def _validate_foreign_keys(
     pool: asyncpg.Pool,
     *,
-    chunk_id: Optional[str] = None,
-    document_id: Optional[str] = None,
-    manufacturer_id: Optional[str] = None,
+    chunk_id: str | None = None,
+    document_id: str | None = None,
+    manufacturer_id: str | None = None,
 ) -> None:
     if chunk_id:
         async with pool.acquire() as conn:
-            chunk = await conn.fetchrow(
-                "SELECT id FROM krai_intelligence.chunks WHERE id = $1 LIMIT 1",
-                chunk_id
-            )
+            chunk = await conn.fetchrow("SELECT id FROM krai_intelligence.chunks WHERE id = $1 LIMIT 1", chunk_id)
         if not chunk:
             _log_and_raise(
                 status.HTTP_400_BAD_REQUEST,
@@ -140,10 +125,7 @@ async def _validate_foreign_keys(
             )
     if document_id:
         async with pool.acquire() as conn:
-            document = await conn.fetchrow(
-                "SELECT id FROM krai_core.documents WHERE id = $1 LIMIT 1",
-                document_id
-            )
+            document = await conn.fetchrow("SELECT id FROM krai_core.documents WHERE id = $1 LIMIT 1", document_id)
         if not document:
             _log_and_raise(
                 status.HTTP_400_BAD_REQUEST,
@@ -154,8 +136,7 @@ async def _validate_foreign_keys(
     if manufacturer_id:
         async with pool.acquire() as conn:
             manufacturer = await conn.fetchrow(
-                "SELECT id FROM krai_core.manufacturers WHERE id = $1 LIMIT 1",
-                manufacturer_id
+                "SELECT id FROM krai_core.manufacturers WHERE id = $1 LIMIT 1", manufacturer_id
             )
         if not manufacturer:
             _log_and_raise(
@@ -167,7 +148,7 @@ async def _validate_foreign_keys(
 
 
 async def _build_relations(
-    pool: asyncpg.Pool, record: Dict[str, Any], include_relations: bool
+    pool: asyncpg.Pool, record: dict[str, Any], include_relations: bool
 ) -> ErrorCodeWithRelationsResponse:
     error_code = ErrorCodeResponse(**record)
     if not include_relations:
@@ -186,9 +167,9 @@ async def _insert_audit_log(
     *,
     record_id: str,
     operation: str,
-    changed_by: Optional[str],
-    new_values: Optional[Dict[str, Any]] = None,
-    old_values: Optional[Dict[str, Any]] = None,
+    changed_by: str | None,
+    new_values: dict[str, Any] | None = None,
+    old_values: dict[str, Any] | None = None,
 ) -> None:
     try:
         async with pool.acquire() as conn:
@@ -199,7 +180,7 @@ async def _insert_audit_log(
                 operation,
                 changed_by,
                 json.dumps(new_values) if new_values else None,
-                json.dumps(old_values) if old_values else None
+                json.dumps(old_values) if old_values else None,
             )
     except Exception as audit_exc:  # pragma: no cover - defensive
         LOGGER.warning("Audit log insert failed for error_code %s: %s", record_id, audit_exc)
@@ -212,7 +193,7 @@ async def list_error_codes(
     pagination: PaginationParams = Depends(),
     filters: ErrorCodeFilterParams = Depends(),
     sort: ErrorCodeSortParams = Depends(),
-    current_user: Dict[str, Any] = Depends(require_permission("error_codes:read")),
+    current_user: dict[str, Any] = Depends(require_permission("error_codes:read")),
     adapter: DatabaseAdapter = Depends(get_database_adapter),
 ) -> SuccessResponse[ErrorCodeListResponse]:
     try:
@@ -220,47 +201,49 @@ async def list_error_codes(
         where_clauses = []
         params = []
         param_count = 0
-        
+
         # Apply filters
         if filters.manufacturer_id:
             param_count += 1
             where_clauses.append(f"manufacturer_id = ${param_count}")
             params.append(filters.manufacturer_id)
-        
+
         if filters.document_id:
             param_count += 1
             where_clauses.append(f"document_id = ${param_count}")
             params.append(filters.document_id)
-        
+
         if filters.chunk_id:
             param_count += 1
             where_clauses.append(f"chunk_id = ${param_count}")
             params.append(filters.chunk_id)
-        
+
         if filters.error_code:
             param_count += 1
             where_clauses.append(f"error_code ILIKE ${param_count}")
             params.append(f"%{filters.error_code}%")
-        
+
         if filters.severity_level:
             param_count += 1
             where_clauses.append(f"severity_level = ${param_count}")
             params.append(filters.severity_level.value)
-        
+
         if filters.requires_technician is not None:
             param_count += 1
             where_clauses.append(f"requires_technician = ${param_count}")
             params.append(filters.requires_technician)
-        
+
         if filters.requires_parts is not None:
             param_count += 1
             where_clauses.append(f"requires_parts = ${param_count}")
             params.append(filters.requires_parts)
-        
+
         if filters.search:
             search_term = f"%{filters.search}%"
             n1, n2, n3 = param_count + 1, param_count + 2, param_count + 3
-            where_clauses.append(f"(error_code ILIKE ${n1} OR error_description ILIKE ${n2} OR solution_text ILIKE ${n3})")
+            where_clauses.append(
+                f"(error_code ILIKE ${n1} OR error_description ILIKE ${n2} OR solution_text ILIKE ${n3})"
+            )
             params.extend([search_term, search_term, search_term])
             param_count += 3
 
@@ -288,12 +271,12 @@ async def list_error_codes(
         # Get total count from first row or execute separate count query
         total = 0
         if result:
-            total = result[0].get('total_count', len(result))
+            total = result[0].get("total_count", len(result))
         else:
             # Fallback count query
             count_query = f"SELECT COUNT(*) as count FROM krai_intelligence.error_codes{where_clause}"
             count_result = await adapter.execute_query(count_query, params)
-            total = count_result[0].get('count', 0) if count_result else 0
+            total = count_result[0].get("count", 0) if count_result else 0
 
         LOGGER.info(
             "Listed error codes page=%s size=%s total=%s",
@@ -325,21 +308,18 @@ async def get_error_code(
     request: Request,
     error_code_id: str,
     include_relations: bool = Query(False, description="Include related entities when true."),
-    current_user: Dict[str, Any] = Depends(require_permission("error_codes:read")),
+    current_user: dict[str, Any] = Depends(require_permission("error_codes:read")),
     pool: asyncpg.Pool = Depends(get_database_pool),
 ) -> SuccessResponse[ErrorCodeWithRelationsResponse]:
     try:
         async with pool.acquire() as conn:
             result = await conn.fetchrow(
-                "SELECT * FROM krai_intelligence.error_codes WHERE id = $1 LIMIT 1",
-                error_code_id
+                "SELECT * FROM krai_intelligence.error_codes WHERE id = $1 LIMIT 1", error_code_id
             )
         if not result:
             raise HTTPException(
                 status.HTTP_404_NOT_FOUND,
-                detail=_error_response(
-                    "Not Found", "Error code not found", "ERROR_CODE_NOT_FOUND"
-                ),
+                detail=_error_response("Not Found", "Error code not found", "ERROR_CODE_NOT_FOUND"),
             )
 
         record = dict(result)
@@ -361,7 +341,7 @@ async def get_error_code(
 async def create_error_code(
     request: Request,
     payload: ErrorCodeCreateRequest,
-    current_user: Dict[str, Any] = Depends(require_permission("error_codes:write")),
+    current_user: dict[str, Any] = Depends(require_permission("error_codes:write")),
     pool: asyncpg.Pool = Depends(get_database_pool),
 ) -> SuccessResponse[ErrorCodeResponse]:
     try:
@@ -377,7 +357,7 @@ async def create_error_code(
             duplicate_check = await conn.fetchrow(
                 "SELECT id FROM krai_intelligence.error_codes WHERE error_code = $1 AND document_id = $2 LIMIT 1",
                 payload.error_code,
-                payload.document_id if payload.document_id else None
+                payload.document_id if payload.document_id else None,
             )
         if duplicate_check:
             raise HTTPException(
@@ -389,7 +369,7 @@ async def create_error_code(
                 ),
             )
 
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         record_dict = payload.model_dump(exclude_none=True)
         record_dict["created_at"] = now
         record_dict["updated_at"] = now
@@ -407,9 +387,9 @@ async def create_error_code(
                 record_dict.get("document_id"),
                 record_dict.get("chunk_id"),
                 record_dict.get("created_at"),
-                record_dict.get("updated_at")
+                record_dict.get("updated_at"),
             )
-        
+
         if not result:
             raise HTTPException(
                 status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -442,21 +422,18 @@ async def update_error_code(
     request: Request,
     error_code_id: str,
     payload: ErrorCodeUpdateRequest,
-    current_user: Dict[str, Any] = Depends(require_permission("error_codes:write")),
+    current_user: dict[str, Any] = Depends(require_permission("error_codes:write")),
     pool: asyncpg.Pool = Depends(get_database_pool),
 ) -> SuccessResponse[ErrorCodeResponse]:
     try:
         async with pool.acquire() as conn:
             existing = await conn.fetchrow(
-                "SELECT * FROM krai_intelligence.error_codes WHERE id = $1 LIMIT 1",
-                error_code_id
+                "SELECT * FROM krai_intelligence.error_codes WHERE id = $1 LIMIT 1", error_code_id
             )
         if not existing:
             raise HTTPException(
                 status.HTTP_404_NOT_FOUND,
-                detail=_error_response(
-                    "Not Found", "Error code not found", "ERROR_CODE_NOT_FOUND"
-                ),
+                detail=_error_response("Not Found", "Error code not found", "ERROR_CODE_NOT_FOUND"),
             )
 
         existing_dict = dict(existing)
@@ -471,27 +448,27 @@ async def update_error_code(
             manufacturer_id=update_payload.get("manufacturer_id"),
         )
 
-        update_payload["updated_at"] = datetime.now(timezone.utc).isoformat()
+        update_payload["updated_at"] = datetime.now(UTC).isoformat()
 
         # Build dynamic UPDATE query
         set_clauses = []
         params = []
         param_count = 0
-        
+
         for key, value in update_payload.items():
             param_count += 1
             set_clauses.append(f"{key} = ${param_count}")
             params.append(value)
-        
+
         param_count += 1
         params.append(error_code_id)
-        
+
         async with pool.acquire() as conn:
             result = await conn.fetchrow(
                 f"UPDATE krai_intelligence.error_codes SET {', '.join(set_clauses)} WHERE id = ${param_count} RETURNING *",
-                *params
+                *params,
             )
-        
+
         if not result:
             raise HTTPException(
                 status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -523,28 +500,22 @@ async def update_error_code(
 async def delete_error_code(
     request: Request,
     error_code_id: str,
-    current_user: Dict[str, Any] = Depends(require_permission("error_codes:delete")),
+    current_user: dict[str, Any] = Depends(require_permission("error_codes:delete")),
     pool: asyncpg.Pool = Depends(get_database_pool),
 ) -> SuccessResponse[MessagePayload]:
     try:
         async with pool.acquire() as conn:
             existing = await conn.fetchrow(
-                "SELECT * FROM krai_intelligence.error_codes WHERE id = $1 LIMIT 1",
-                error_code_id
+                "SELECT * FROM krai_intelligence.error_codes WHERE id = $1 LIMIT 1", error_code_id
             )
         if not existing:
             raise HTTPException(
                 status.HTTP_404_NOT_FOUND,
-                detail=_error_response(
-                    "Not Found", "Error code not found", "ERROR_CODE_NOT_FOUND"
-                ),
+                detail=_error_response("Not Found", "Error code not found", "ERROR_CODE_NOT_FOUND"),
             )
 
         async with pool.acquire() as conn:
-            await conn.execute(
-                "DELETE FROM krai_intelligence.error_codes WHERE id = $1",
-                error_code_id
-            )
+            await conn.execute("DELETE FROM krai_intelligence.error_codes WHERE id = $1", error_code_id)
         LOGGER.info("Deleted error code %s", error_code_id)
         await _insert_audit_log(
             pool,
@@ -568,7 +539,7 @@ async def delete_error_code(
 async def search_error_codes(
     request: Request,
     payload: ErrorCodeSearchRequest,
-    current_user: Dict[str, Any] = Depends(require_permission("error_codes:read")),
+    current_user: dict[str, Any] = Depends(require_permission("error_codes:read")),
     pool: asyncpg.Pool = Depends(get_database_pool),
 ) -> SuccessResponse[ErrorCodeSearchResponse]:
     try:
@@ -584,43 +555,43 @@ async def search_error_codes(
             )
 
         start_time = time.perf_counter()
-        
+
         # Build search query
         where_clauses = []
         params = []
         param_count = 0
-        
+
         # Add search conditions
         search_conditions = []
         for field in search_fields:
             param_count += 1
             search_conditions.append(f"{field} ILIKE ${param_count}")
             params.append(f"%{payload.query}%")
-        
+
         where_clauses.append(f"({' OR '.join(search_conditions)})")
-        
+
         # Add manufacturer filter
         if payload.manufacturer_id:
             param_count += 1
             where_clauses.append(f"manufacturer_id = ${param_count}")
             params.append(payload.manufacturer_id)
-        
+
         # Add severity level filter
         if payload.severity_level:
             param_count += 1
             where_clauses.append(f"severity_level = ${param_count}")
             params.append(payload.severity_level.value)
-        
+
         where_clause = f" WHERE {' AND '.join(where_clauses)}"
         limit_clause = f" LIMIT {payload.limit}"
-        
+
         query = f"SELECT * FROM krai_intelligence.error_codes{where_clause}{limit_clause}"
-        
+
         async with pool.acquire() as conn:
             result = await conn.fetch(query, *params)
         duration_ms = int((time.perf_counter() - start_time) * 1000)
 
-        results: List[ErrorCodeWithRelationsResponse] = []
+        results: list[ErrorCodeWithRelationsResponse] = []
         for record in result or []:
             results.append(await _build_relations(pool, dict(record), include_relations=True))
 
@@ -655,13 +626,13 @@ async def get_error_codes_by_document(
     document_id: str,
     pagination: PaginationParams = Depends(),
     sort: ErrorCodeSortParams = Depends(),
-    current_user: Dict[str, Any] = Depends(require_permission("error_codes:read")),
+    current_user: dict[str, Any] = Depends(require_permission("error_codes:read")),
     adapter: DatabaseAdapter = Depends(get_database_adapter),
 ) -> SuccessResponse[ErrorCodeListResponse]:
     try:
         # Build base query
         base_query = """
-            SELECT 
+            SELECT
                 ec.id,
                 ec.code,
                 ec.description,
@@ -681,22 +652,22 @@ async def get_error_codes_by_document(
             LEFT JOIN krai_core.manufacturers m ON ec.manufacturer_id = m.id
             WHERE ec.document_id = $1
         """
-        
+
         params = [document_id]
-        
+
         # Add sorting
         order_by = "ORDER BY " + sort.sort_by + (" DESC" if sort.sort_order == "desc" else " ASC")
-        
+
         # Add pagination
         limit_clause = f"LIMIT {pagination.limit} OFFSET {(pagination.page - 1) * pagination.limit}"
-        
+
         full_query = f"{base_query} {order_by} {limit_clause}"
-        
+
         result = await adapter.execute_query(full_query, params)
-        
+
         # Extract total count from first row
         total_count = result[0]["total_count"] if result else 0
-        
+
         error_codes = []
         for row in result:
             error_code_data = {
@@ -710,26 +681,25 @@ async def get_error_codes_by_document(
                 "manufacturer_id": row["manufacturer_id"],
                 "created_at": row["created_at"],
                 "updated_at": row["updated_at"],
-                "document": {
-                    "id": row["document_id"],
-                    "title": row["document_title"],
-                    "document_type": row["document_type"]
-                } if row["document_id"] else None,
-                "manufacturer": {
-                    "id": row["manufacturer_id"],
-                    "name": row["manufacturer_name"]
-                } if row["manufacturer_id"] else None,
+                "document": (
+                    {"id": row["document_id"], "title": row["document_title"], "document_type": row["document_type"]}
+                    if row["document_id"]
+                    else None
+                ),
+                "manufacturer": (
+                    {"id": row["manufacturer_id"], "name": row["manufacturer_name"]} if row["manufacturer_id"] else None
+                ),
             }
             error_codes.append(ErrorCode(**error_code_data))
-        
+
         response_data = ErrorCodeListResponse(
             items=error_codes,
             total=total_count,
             page=pagination.page,
             limit=pagination.limit,
-            total_pages=(total_count + pagination.limit - 1) // pagination.limit
+            total_pages=(total_count + pagination.limit - 1) // pagination.limit,
         )
-        
+
         return SuccessResponse(data=response_data)
     except HTTPException:
         raise
@@ -745,13 +715,13 @@ async def get_error_codes_by_manufacturer(
     manufacturer_id: str,
     pagination: PaginationParams = Depends(),
     sort: ErrorCodeSortParams = Depends(),
-    current_user: Dict[str, Any] = Depends(require_permission("error_codes:read")),
+    current_user: dict[str, Any] = Depends(require_permission("error_codes:read")),
     adapter: DatabaseAdapter = Depends(get_database_adapter),
 ) -> SuccessResponse[ErrorCodeListResponse]:
     try:
         # Build base query
         base_query = """
-            SELECT 
+            SELECT
                 ec.id,
                 ec.code,
                 ec.description,
@@ -771,22 +741,22 @@ async def get_error_codes_by_manufacturer(
             LEFT JOIN krai_core.manufacturers m ON ec.manufacturer_id = m.id
             WHERE ec.manufacturer_id = $1
         """
-        
+
         params = [manufacturer_id]
-        
+
         # Add sorting
         order_by = "ORDER BY " + sort.sort_by + (" DESC" if sort.sort_order == "desc" else " ASC")
-        
+
         # Add pagination
         limit_clause = f"LIMIT {pagination.limit} OFFSET {(pagination.page - 1) * pagination.limit}"
-        
+
         full_query = f"{base_query} {order_by} {limit_clause}"
-        
+
         result = await adapter.execute_query(full_query, params)
-        
+
         # Extract total count from first row
         total_count = result[0]["total_count"] if result else 0
-        
+
         error_codes = []
         for row in result:
             error_code_data = {
@@ -800,26 +770,25 @@ async def get_error_codes_by_manufacturer(
                 "manufacturer_id": row["manufacturer_id"],
                 "created_at": row["created_at"],
                 "updated_at": row["updated_at"],
-                "document": {
-                    "id": row["document_id"],
-                    "title": row["document_title"],
-                    "document_type": row["document_type"]
-                } if row["document_id"] else None,
-                "manufacturer": {
-                    "id": row["manufacturer_id"],
-                    "name": row["manufacturer_name"]
-                } if row["manufacturer_id"] else None,
+                "document": (
+                    {"id": row["document_id"], "title": row["document_title"], "document_type": row["document_type"]}
+                    if row["document_id"]
+                    else None
+                ),
+                "manufacturer": (
+                    {"id": row["manufacturer_id"], "name": row["manufacturer_name"]} if row["manufacturer_id"] else None
+                ),
             }
             error_codes.append(ErrorCode(**error_code_data))
-        
+
         response_data = ErrorCodeListResponse(
             items=error_codes,
             total=total_count,
             page=pagination.page,
             limit=pagination.limit,
-            total_pages=(total_count + pagination.limit - 1) // pagination.limit
+            total_pages=(total_count + pagination.limit - 1) // pagination.limit,
         )
-        
+
         return SuccessResponse(data=response_data)
     except HTTPException:
         raise

@@ -62,7 +62,7 @@ $script:PersistencyTimestamp = ""
 # Helper functions
 function Write-Header {
     param([string]$Title)
-    
+
     Write-Host ""
     Write-Host "╔═══════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
     Write-Host "║  $Title" -ForegroundColor Cyan
@@ -75,9 +75,9 @@ function Write-StepStatus {
         [string]$Status,
         [string]$Message
     )
-    
+
     $timestamp = Get-Timestamp
-    
+
     switch ($Status) {
         "success" {
             Write-Host "[$timestamp] " -NoNewline
@@ -108,7 +108,7 @@ function Get-Timestamp {
 
 function Update-ExitCode {
     param([int]$NewCode)
-    
+
     if ($NewCode -gt $script:OverallExitCode) {
         $script:OverallExitCode = $NewCode
     }
@@ -119,9 +119,9 @@ function Write-LogStep {
         [string]$StepNum,
         [string]$StepName
     )
-    
+
     $timestamp = Get-Timestamp
-    
+
     Write-Host ""
     Write-Host "[$timestamp] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
     Write-StepStatus "info" "Step $StepNum/4: $StepName..."
@@ -131,10 +131,10 @@ function Write-LogStep {
 
 function Format-Duration {
     param([TimeSpan]$Duration)
-    
+
     $minutes = [Math]::Floor($Duration.TotalMinutes)
     $seconds = $Duration.Seconds
-    
+
     if ($minutes -gt 0) {
         return "${minutes}m ${seconds}s"
     } else {
@@ -157,16 +157,16 @@ if (-not $SkipClean) {
     Write-LogStep "1" "Running Clean Setup"
     $script:CleanStartTime = Get-Date
     $script:CleanTimestamp = Get-Timestamp
-    
+
     & .\scripts\docker-clean-setup.ps1
     $script:CleanExitCode = $LASTEXITCODE
-    
+
     $cleanEndTime = Get-Date
     $script:CleanDuration = Format-Duration ($cleanEndTime - $script:CleanStartTime)
-    
+
     Write-Host ""
     Write-Host "[$(Get-Timestamp)] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
-    
+
     if ($script:CleanExitCode -eq 0) {
         Write-StepStatus "success" "Step 1 completed (Duration: $($script:CleanDuration), Exit Code: 0)"
     } elseif ($script:CleanExitCode -eq 1) {
@@ -175,13 +175,13 @@ if (-not $SkipClean) {
     } else {
         Write-StepStatus "error" "Step 1 failed (Duration: $($script:CleanDuration), Exit Code: $($script:CleanExitCode))"
         Update-ExitCode $script:CleanExitCode
-        
+
         if ($script:CleanExitCode -eq 2) {
             Write-StepStatus "error" "Critical error in clean setup. Continuing to final report."
             $script:OverallExitCode = 2
         }
     }
-    
+
     Write-Host "[$(Get-Timestamp)] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
 } else {
     Write-StepStatus "info" "Skipping Step 1: Clean Setup (-SkipClean flag)"
@@ -212,7 +212,7 @@ if ($script:HealthExitCode -eq 0) {
 } else {
     Write-StepStatus "error" "Step 2 failed (Duration: $($script:HealthDuration), Exit Code: $($script:HealthExitCode))"
     Update-ExitCode $script:HealthExitCode
-    
+
     if ($script:HealthExitCode -eq 2) {
         Write-StepStatus "error" "Critical health check failure. System may not be functional."
         Write-StepStatus "error" "Recommendation: Review health check logs and fix critical issues before proceeding."
@@ -227,21 +227,21 @@ if (-not $SkipIntegration) {
     Write-LogStep "3" "Running Integration Tests"
     $script:IntegrationStartTime = Get-Date
     $script:IntegrationTimestamp = Get-Timestamp
-    
+
     # Check for BACKEND_API_TOKEN
     if (-not $env:BACKEND_API_TOKEN) {
         Write-StepStatus "warning" "BACKEND_API_TOKEN not set. Some write tests may be skipped."
     }
-    
+
     & .\scripts\docker-integration-tests.ps1
     $script:IntegrationExitCode = $LASTEXITCODE
-    
+
     $integrationEndTime = Get-Date
     $script:IntegrationDuration = Format-Duration ($integrationEndTime - $script:IntegrationStartTime)
-    
+
     Write-Host ""
     Write-Host "[$(Get-Timestamp)] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
-    
+
     if ($script:IntegrationExitCode -eq 0) {
         Write-StepStatus "success" "Step 3 completed (Duration: $($script:IntegrationDuration), Exit Code: 0)"
     } elseif ($script:IntegrationExitCode -eq 1) {
@@ -251,7 +251,7 @@ if (-not $SkipIntegration) {
         Write-StepStatus "error" "Step 3 failed (Duration: $($script:IntegrationDuration), Exit Code: $($script:IntegrationExitCode))"
         Update-ExitCode $script:IntegrationExitCode
     }
-    
+
     Write-Host "[$(Get-Timestamp)] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
 } else {
     Write-StepStatus "info" "Skipping Step 3: Integration Tests (-SkipIntegration flag)"

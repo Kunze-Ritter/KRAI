@@ -8,6 +8,7 @@ Usage:
 Requires: pip install ragas  (requirements-dev.txt)
 Requires: running KRAI backend
 """
+
 import argparse
 import asyncio
 import json
@@ -20,7 +21,6 @@ import httpx
 from datasets import Dataset
 from ragas import evaluate
 from ragas.metrics import answer_relevancy, context_precision, faithfulness
-
 
 DATASET_PATH = Path(__file__).parent / "eval_dataset.json"
 DEFAULT_BACKEND = os.getenv("KRAI_BACKEND_URL", "http://localhost:8000")
@@ -65,12 +65,14 @@ async def collect_samples(backend: str, dataset: list) -> list[dict]:
                     get_answer(client, backend, question, scope_doc_id),
                     get_contexts(client, backend, question, scope_doc_id),
                 )
-                samples.append({
-                    "question": question,
-                    "answer": answer,
-                    "contexts": contexts,
-                    "ground_truth": ground_truth,
-                })
+                samples.append(
+                    {
+                        "question": question,
+                        "answer": answer,
+                        "contexts": contexts,
+                        "ground_truth": ground_truth,
+                    }
+                )
             except Exception as e:
                 print(f"  Warning Failed: {e}", flush=True)
     return samples
@@ -101,22 +103,26 @@ def main():
     ds = Dataset.from_list(samples)
     result = evaluate(ds, metrics=[faithfulness, answer_relevancy, context_precision])
 
-    print("\n" + "="*50)
+    print("\n" + "=" * 50)
     print("RAG EVALUATION RESULTS")
-    print("="*50)
+    print("=" * 50)
     print(result)
 
     Path(args.output).mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M")
     out_path = Path(args.output) / f"{timestamp}.json"
     with open(out_path, "w") as f:
-        json.dump({
-            "timestamp": timestamp,
-            "backend": args.backend,
-            "sample_count": len(samples),
-            "metrics": {k: (float(v) if v == v else None) for k, v in result.items()},
-            "samples": samples,
-        }, f, indent=2)
+        json.dump(
+            {
+                "timestamp": timestamp,
+                "backend": args.backend,
+                "sample_count": len(samples),
+                "metrics": {k: (float(v) if v == v else None) for k, v in result.items()},
+                "samples": samples,
+            },
+            f,
+            indent=2,
+        )
     print(f"\nReport saved to: {out_path}")
 
 

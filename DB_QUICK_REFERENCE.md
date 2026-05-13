@@ -75,6 +75,6 @@ SELECT id, status, current_stage FROM krai_system.processing_queue;
 SELECT id, text_chunk FROM krai_intelligence.chunks WHERE embedding IS NULL;
 
 -- Error Codes mit Hierarchy
-SELECT error_code, parent_code, is_category FROM krai_intelligence.error_codes 
+SELECT error_code, parent_code, is_category FROM krai_intelligence.error_codes
 WHERE parent_code IS NOT NULL ORDER BY parent_code, error_code;
 ```

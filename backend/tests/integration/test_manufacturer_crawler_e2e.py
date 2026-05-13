@@ -9,10 +9,10 @@ skipped when the backend is unavailable.
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Dict, Optional
+from datetime import UTC
+from typing import Any
 
 import pytest
-
 
 pytestmark = [pytest.mark.integration, pytest.mark.database]
 
@@ -41,8 +41,8 @@ async def create_test_schedule(
     crawl_type: str = "full_site",
     max_depth: int = 1,
     max_pages: int = 5,
-    schedule_cron: Optional[str] = None,
-) -> Optional[str]:
+    schedule_cron: str | None = None,
+) -> str | None:
     """Helper to create a schedule via crawler API."""
     return await crawler.create_crawl_schedule(
         manufacturer_id=manufacturer_id,
@@ -57,7 +57,7 @@ async def create_test_schedule(
     )
 
 
-async def wait_for_job_completion(crawler, job_id: str, timeout: float = 15.0) -> Dict[str, Any]:
+async def wait_for_job_completion(crawler, job_id: str, timeout: float = 15.0) -> dict[str, Any]:
     """
     Poll job status until completion or timeout.
 
@@ -316,11 +316,11 @@ class TestManufacturerCrawlerFirecrawlSmoke:
 
         # Wait for completion (with timeout)
         job = await wait_for_job_completion(real_manufacturer_crawler, job_id, timeout=30.0)
-        
+
         # Verify job completion
         assert job, "Job should exist"
         assert job.get("status") in {"completed", "failed"}, f"Job should complete, got: {job.get('status')}"
-        
+
         # If successful, verify pages were crawled
         if job.get("status") == "completed":
             assert job.get("pages_crawled", 0) > 0, "Should have crawled at least 1 page"
@@ -350,7 +350,7 @@ class TestManufacturerCrawlerFirecrawlSmoke:
 
         # Start job
         job_id = await real_manufacturer_crawler.start_crawl_job(schedule_id)
-        
+
         # Verify job in DB
         rows = await test_database.execute_query(
             """
@@ -389,10 +389,10 @@ class TestManufacturerCrawlerFirecrawlSmoke:
             max_pages=1,
         )
         job_id = await real_manufacturer_crawler.start_crawl_job(schedule_id)
-        
+
         # Wait for completion
         job = await wait_for_job_completion(real_manufacturer_crawler, job_id, timeout=30.0)
-        
+
         if job.get("status") == "completed":
             # Check for crawled pages
             rows = await test_database.execute_query(
@@ -413,46 +413,27 @@ class TestManufacturerCrawlerFirecrawlSmoke:
         """Test crawl configuration validation."""
         # Test valid configurations
         valid_configs = [
+            {"crawl_type": "support_pages", "start_url": "http://example.com/support", "max_pages": 50, "max_depth": 0},
             {
-                'crawl_type': 'support_pages',
-                'start_url': 'http://example.com/support',
-                'max_pages': 50,
-                'max_depth': 0
+                "crawl_type": "product_catalog",
+                "start_url": "https://example.com/products",
+                "max_pages": 100,
+                "max_depth": 5,
             },
-            {
-                'crawl_type': 'product_catalog',
-                'start_url': 'https://example.com/products',
-                'max_pages': 100,
-                'max_depth': 5
-            }
         ]
-        
+
         for config in valid_configs:
             result = manufacturer_crawler._validate_crawl_config(config)
             assert result is True
-        
+
         # Test invalid configurations
         invalid_configs = [
-            {
-                'crawl_type': 'invalid_type',
-                'start_url': 'http://example.com'
-            },
-            {
-                'crawl_type': 'support_pages',
-                'start_url': 'not-a-url'
-            },
-            {
-                'crawl_type': 'support_pages',
-                'start_url': 'http://example.com',
-                'max_pages': -1
-            },
-            {
-                'crawl_type': 'support_pages',
-                'start_url': 'http://example.com',
-                'max_depth': -1
-            }
+            {"crawl_type": "invalid_type", "start_url": "http://example.com"},
+            {"crawl_type": "support_pages", "start_url": "not-a-url"},
+            {"crawl_type": "support_pages", "start_url": "http://example.com", "max_pages": -1},
+            {"crawl_type": "support_pages", "start_url": "http://example.com", "max_depth": -1},
         ]
-        
+
         for config in invalid_configs:
             result = manufacturer_crawler._validate_crawl_config(config)
             assert result is False
@@ -461,73 +442,67 @@ class TestManufacturerCrawlerFirecrawlSmoke:
         """Test crawl time calculation for various cron expressions."""
         # Test valid cron expressions
         cron_expressions = [
-            '0 2 * * *',      # Daily at 2 AM
-            '0 0 * * 1',      # Weekly on Monday
-            '0 0 1 * *',      # Monthly on 1st
-            '*/15 * * * *'    # Every 15 minutes
+            "0 2 * * *",  # Daily at 2 AM
+            "0 0 * * 1",  # Weekly on Monday
+            "0 0 1 * *",  # Monthly on 1st
+            "*/15 * * * *",  # Every 15 minutes
         ]
-        
+
         for cron_expr in cron_expressions:
             next_run = manufacturer_crawler._calculate_next_run_time(cron_expr)
             assert next_run is not None
             assert next_run > datetime.now(timezone.utc)
-        
+
         # Test invalid cron expression
-        invalid_cron = 'invalid-cron-expression'
+        invalid_cron = "invalid-cron-expression"
         next_run = manufacturer_crawler._calculate_next_run_time(invalid_cron)
         assert next_run is None
 
     @pytest.mark.asyncio
-    async def test_crawl_performance_monitoring(self, manufacturer_crawler, mock_db_client, mock_scraper,
-                                              sample_crawl_job):
+    async def test_crawl_performance_monitoring(
+        self, manufacturer_crawler, mock_db_client, mock_scraper, sample_crawl_job
+    ):
         """Test crawl performance monitoring capabilities."""
         import time
-        
+
         # Setup database responses
         mock_db_client.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value = MagicMock(
             data=[sample_crawl_job]
         )
-        mock_db_client.table.return_value.insert.return_value.execute.return_value = MagicMock(
-            data=[{'id': 'page-id'}]
-        )
-        
+        mock_db_client.table.return_value.insert.return_value.execute.return_value = MagicMock(data=[{"id": "page-id"}])
+
         # Setup slower crawl to test performance
         async def slow_crawl(*args, **kwargs):
             await asyncio.sleep(0.1)  # Simulate slow crawl
-            return {
-                'success': True,
-                'backend': 'firecrawl',
-                'total': 0,
-                'pages': []
-            }
-        
+            return {"success": True, "backend": "firecrawl", "total": 0, "pages": []}
+
         mock_scraper.crawl_site.side_effect = slow_crawl
-        
+
         # Execute crawl with timing
         start_time = time.time()
-        result = await manufacturer_crawler.execute_crawl_job('job-0')
+        result = await manufacturer_crawler.execute_crawl_job("job-0")
         end_time = time.time()
-        
+
         # Verify performance characteristics
-        assert result['success'] is True
+        assert result["success"] is True
         assert end_time - start_time < 30.0  # Should complete within timeout
-        assert 'duration' in result or 'backend' in result  # Performance metrics
+        assert "duration" in result or "backend" in result  # Performance metrics
 
     def test_crawler_status_and_health(self, manufacturer_crawler):
         """Test crawler status and health checks."""
         # Test enabled status
         manufacturer_crawler._enabled = True
         assert manufacturer_crawler.is_crawler_enabled() is True
-        
+
         # Test disabled status
         manufacturer_crawler._enabled = False
         assert manufacturer_crawler.is_crawler_enabled() is False
-        
+
         # Test configuration health
         config = manufacturer_crawler._config
-        assert config['crawler_max_concurrent_jobs'] > 0
-        assert config['crawler_default_max_pages'] > 0
-        assert config['crawler_default_max_depth'] >= 0
+        assert config["crawler_max_concurrent_jobs"] > 0
+        assert config["crawler_default_max_pages"] > 0
+        assert config["crawler_default_max_depth"] >= 0
 
 
 class TestManufacturerCrawlerExtendedE2E:
@@ -602,9 +577,7 @@ class TestManufacturerCrawlerExtendedE2E:
         await wait_for_job_completion(real_manufacturer_crawler, job_id_2, timeout=30.0)
 
         # Detect changes
-        changes = await real_manufacturer_crawler.detect_content_changes(
-            test_manufacturer_data["manufacturer_id"]
-        )
+        changes = await real_manufacturer_crawler.detect_content_changes(test_manufacturer_data["manufacturer_id"])
 
         # Changes list may be empty if content is identical, which is expected
         assert isinstance(changes, list)
@@ -622,8 +595,8 @@ class TestManufacturerCrawlerExtendedE2E:
             pytest.skip("krai_system.manufacturer_crawl_schedules missing in test DB")
 
         # Create schedule with next_run_at in the past
-        from datetime import datetime, timezone, timedelta
-        
+        from datetime import datetime, timedelta
+
         schedule_id = await create_test_schedule(
             real_manufacturer_crawler,
             manufacturer_id=test_manufacturer_data["manufacturer_id"],
@@ -632,7 +605,7 @@ class TestManufacturerCrawlerExtendedE2E:
         )
 
         # Manually set next_run_at to past
-        past_time = datetime.now(timezone.utc) - timedelta(hours=1)
+        past_time = datetime.now(UTC) - timedelta(hours=1)
         await test_database.execute_query(
             """
             UPDATE krai_system.manufacturer_crawl_schedules

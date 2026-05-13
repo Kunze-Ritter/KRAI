@@ -37,13 +37,13 @@ async def get_stages(
 ):
     # get_legacy_supabase_client() ist eine Funktion, kein Dependency
     legacy_client = get_legacy_supabase_client()
-    
+
     if not legacy_client:
         raise HTTPException(
             status_code=501,
             detail="Stage tracking requires Supabase (not available in PostgreSQL-only mode)"
         )
-    
+
     tracker = StageTracker(legacy_client)
     return tracker.get_stage_status(document_id)
 ```
@@ -79,10 +79,10 @@ await adapter.update_document(doc_id, {
 ```python
 # SELECT-Query
 query = """
-    SELECT id, filename, processing_status 
-    FROM krai.documents 
-    WHERE manufacturer_id = %s 
-    ORDER BY created_at DESC 
+    SELECT id, filename, processing_status
+    FROM krai.documents
+    WHERE manufacturer_id = %s
+    ORDER BY created_at DESC
     LIMIT %s
 """
 results = await adapter.execute_query(query, [manufacturer_id, 10])
@@ -94,7 +94,7 @@ query = """
     RETURNING id
 """
 result = await adapter.execute_query(
-    query, 
+    query,
     ["document", doc_id, "created", user_id]
 )
 log_id = result[0]['id']
@@ -190,14 +190,14 @@ async def test_document_crud(adapter):
     # Create
     doc_model = DocumentModel(...)
     doc_id = await adapter.create_document(doc_model)
-    
+
     # Read
     doc = await adapter.get_document(doc_id)
     assert doc is not None
-    
+
     # Update
     await adapter.update_document(doc_id, {'status': 'completed'})
-    
+
     # Verify
     updated_doc = await adapter.get_document(doc_id)
     assert updated_doc['status'] == 'completed'

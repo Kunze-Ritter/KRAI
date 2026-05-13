@@ -1,22 +1,17 @@
 """
 Document API models for CRUD operations.
 """
+
 from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from math import ceil
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from pydantic import BaseModel, Field, validator
 
 from core.data_models import DocumentType, ProcessingStatus
-from models.validators import (
-    validate_filename,
-    validate_file_hash,
-    validate_uuid,
-    validate_no_sql_injection,
-)
+from models.validators import validate_file_hash, validate_filename, validate_no_sql_injection, validate_uuid
 
 
 class PaginationParams(BaseModel):
@@ -51,15 +46,27 @@ ALLOWED_DOCUMENT_SORT_FIELDS = {"created_at", "updated_at", "filename", "documen
 
 # Canonical stage names for document processing pipeline
 CANONICAL_STAGES = [
-    "upload", "text_extraction", "table_extraction", "svg_processing",
-    "image_processing", "visual_embedding", "link_extraction",
-    "chunk_prep", "classification", "metadata_extraction",
-    "parts_extraction", "series_detection", "storage", "embedding", "search_indexing"
+    "upload",
+    "text_extraction",
+    "table_extraction",
+    "svg_processing",
+    "image_processing",
+    "visual_embedding",
+    "link_extraction",
+    "chunk_prep",
+    "classification",
+    "metadata_extraction",
+    "parts_extraction",
+    "series_detection",
+    "storage",
+    "embedding",
+    "search_indexing",
 ]
 
 
 class StageStatus(str, Enum):
     """Stage processing status."""
+
     PENDING = "pending"
     PROCESSING = "processing"
     COMPLETED = "completed"
@@ -69,13 +76,14 @@ class StageStatus(str, Enum):
 
 class DocumentStageDetail(BaseModel):
     """Detailed status for a single processing stage."""
+
     status: StageStatus
-    started_at: Optional[str] = None
-    completed_at: Optional[str] = None
-    duration_seconds: Optional[float] = None
+    started_at: str | None = None
+    completed_at: str | None = None
+    duration_seconds: float | None = None
     progress: int = Field(0, ge=0, le=100, description="Progress percentage (0-100)")
-    error: Optional[str] = None
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    error: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
     class Config:
         json_schema_extra = {
@@ -86,18 +94,19 @@ class DocumentStageDetail(BaseModel):
                 "duration_seconds": 15.3,
                 "progress": 100,
                 "error": None,
-                "metadata": {"chunks_created": 42}
+                "metadata": {"chunks_created": 42},
             }
         }
 
 
 class DocumentStageStatusResponse(BaseModel):
     """Complete stage-level processing status for a document."""
+
     document_id: str
     filename: str
     overall_progress: float = Field(..., ge=0, le=100, description="Overall progress percentage (0-100)")
     current_stage: str
-    stages: Dict[str, DocumentStageDetail] = Field(..., description="Stage name -> stage detail mapping")
+    stages: dict[str, DocumentStageDetail] = Field(..., description="Stage name -> stage detail mapping")
     can_retry: bool = Field(..., description="Whether any failed stages can be retried")
     last_updated: str
 
@@ -113,7 +122,7 @@ class DocumentStageStatusResponse(BaseModel):
                     "text_extraction": DocumentStageDetail.Config.json_schema_extra["example"],
                 },
                 "can_retry": False,
-                "last_updated": "2025-12-07T14:20:15Z"
+                "last_updated": "2025-12-07T14:20:15Z",
             }
         }
 
@@ -129,10 +138,10 @@ class DocumentCreateRequest(BaseModel):
     storage_url: str = Field(..., min_length=1, max_length=1024)
     document_type: DocumentType
     language: str = Field(..., min_length=2, max_length=10)
-    manufacturer: Optional[str] = Field(None, max_length=255)
-    series: Optional[str] = Field(None, max_length=255)
-    models: List[str] = Field(default_factory=list)
-    version: Optional[str] = Field(None, max_length=50)
+    manufacturer: str | None = Field(None, max_length=255)
+    series: str | None = Field(None, max_length=255)
+    models: list[str] = Field(default_factory=list)
+    version: str | None = Field(None, max_length=50)
 
     class Config:
         json_schema_extra = {
@@ -170,16 +179,16 @@ class DocumentCreateRequest(BaseModel):
 class DocumentUpdateRequest(BaseModel):
     """Payload for document updates."""
 
-    document_type: Optional[DocumentType] = None
-    language: Optional[str] = Field(None, min_length=2, max_length=10)
-    manufacturer: Optional[str] = Field(None, max_length=255)
-    series: Optional[str] = Field(None, max_length=255)
-    models: Optional[List[str]] = None
-    version: Optional[str] = Field(None, max_length=50)
-    processing_status: Optional[ProcessingStatus] = None
-    confidence_score: Optional[float] = Field(None, ge=0.0, le=1.0)
-    manual_review_required: Optional[bool] = None
-    manual_review_notes: Optional[str] = Field(None, max_length=2000)
+    document_type: DocumentType | None = None
+    language: str | None = Field(None, min_length=2, max_length=10)
+    manufacturer: str | None = Field(None, max_length=255)
+    series: str | None = Field(None, max_length=255)
+    models: list[str] | None = None
+    version: str | None = Field(None, max_length=50)
+    processing_status: ProcessingStatus | None = None
+    confidence_score: float | None = Field(None, ge=0.0, le=1.0)
+    manual_review_required: bool | None = None
+    manual_review_notes: str | None = Field(None, max_length=2000)
 
     class Config:
         json_schema_extra = {
@@ -195,7 +204,7 @@ class DocumentUpdateRequest(BaseModel):
         }
 
     @validator("models")
-    def validate_models(cls, value: Optional[List[str]]) -> Optional[List[str]]:
+    def validate_models(cls, value: list[str] | None) -> list[str] | None:
         if value is None:
             return value
         if not value:
@@ -205,31 +214,29 @@ class DocumentUpdateRequest(BaseModel):
         return value
 
     @validator("document_type", "language", "manufacturer", "series", "version", pre=True, always=True)
-    def sanitize_strings(cls, value: Optional[str]) -> Optional[str]:
+    def sanitize_strings(cls, value: str | None) -> str | None:
         if isinstance(value, str):
             return value.strip()
         return value
 
     @validator("processing_status")
-    def validate_status(cls, value: Optional[ProcessingStatus]) -> Optional[ProcessingStatus]:
+    def validate_status(cls, value: ProcessingStatus | None) -> ProcessingStatus | None:
         return value
 
 
 class DocumentFilterParams(BaseModel):
     """Supported filters for listing documents."""
 
-    manufacturer_id: Optional[str] = Field(None, description="Filter by manufacturer ID")
-    product_id: Optional[str] = Field(None, description="Filter by product ID")
-    document_type: Optional[str] = Field(None, description="Filter by document type")
-    language: Optional[str] = Field(None, description="Filter by language")
-    processing_status: Optional[str] = Field(None, description="Filter by processing status")
-    manual_review_required: Optional[bool] = Field(
-        None, description="Filter by manual review requirement flag"
-    )
-    search: Optional[str] = Field(None, description="Full-text search query")
-    has_failed_stages: Optional[bool] = Field(None, description="Filter by documents with failed stages")
-    has_incomplete_stages: Optional[bool] = Field(None, description="Filter by documents with incomplete stages")
-    stage_name: Optional[str] = Field(None, description="Filter by specific stage name")
+    manufacturer_id: str | None = Field(None, description="Filter by manufacturer ID")
+    product_id: str | None = Field(None, description="Filter by product ID")
+    document_type: str | None = Field(None, description="Filter by document type")
+    language: str | None = Field(None, description="Filter by language")
+    processing_status: str | None = Field(None, description="Filter by processing status")
+    manual_review_required: bool | None = Field(None, description="Filter by manual review requirement flag")
+    search: str | None = Field(None, description="Full-text search query")
+    has_failed_stages: bool | None = Field(None, description="Filter by documents with failed stages")
+    has_incomplete_stages: bool | None = Field(None, description="Filter by documents with incomplete stages")
+    stage_name: str | None = Field(None, description="Filter by specific stage name")
 
     class Config:
         json_schema_extra = {
@@ -240,18 +247,18 @@ class DocumentFilterParams(BaseModel):
                 "processing_status": "completed",
                 "search": "CS920 calibration",
                 "has_failed_stages": True,
-                "stage_name": "embedding"
+                "stage_name": "embedding",
             }
         }
 
     @validator("manufacturer_id", "product_id")
-    def validate_ids(cls, value: Optional[str]) -> Optional[str]:
+    def validate_ids(cls, value: str | None) -> str | None:
         if value is None:
             return value
         return validate_uuid(value)
 
     @validator("search")
-    def validate_search(cls, value: Optional[str]) -> Optional[str]:
+    def validate_search(cls, value: str | None) -> str | None:
         if value is None:
             return value
         if len(value) > 100:
@@ -260,7 +267,7 @@ class DocumentFilterParams(BaseModel):
         return value
 
     @validator("document_type")
-    def validate_document_type(cls, value: Optional[str]) -> Optional[str]:
+    def validate_document_type(cls, value: str | None) -> str | None:
         if value is None:
             return value
         try:
@@ -271,7 +278,7 @@ class DocumentFilterParams(BaseModel):
         return value
 
     @validator("processing_status")
-    def validate_processing_status(cls, value: Optional[str]) -> Optional[str]:
+    def validate_processing_status(cls, value: str | None) -> str | None:
         if value is None:
             return value
         try:
@@ -282,7 +289,7 @@ class DocumentFilterParams(BaseModel):
         return value
 
     @validator("stage_name")
-    def validate_stage_name(cls, value: Optional[str]) -> Optional[str]:
+    def validate_stage_name(cls, value: str | None) -> str | None:
         if value is None:
             return value
         if value not in CANONICAL_STAGES:
@@ -294,9 +301,7 @@ class DocumentSortParams(BaseModel):
     """Sorting parameters for documents."""
 
     sort_by: str = Field("created_at", description="Field name to sort by")
-    sort_order: SortOrder = Field(
-        SortOrder.DESC, description="Sort order: asc or desc"
-    )
+    sort_order: SortOrder = Field(SortOrder.DESC, description="Sort order: asc or desc")
 
     class Config:
         json_schema_extra = {
@@ -314,7 +319,7 @@ class DocumentSortParams(BaseModel):
         return value
 
     @validator("sort_order", pre=True)
-    def validate_sort_order(cls, value: Union[str, SortOrder]) -> SortOrder:
+    def validate_sort_order(cls, value: str | SortOrder) -> SortOrder:
         try:
             return SortOrder(value)
         except ValueError as exc:
@@ -333,24 +338,24 @@ class DocumentResponse(BaseModel):
     storage_path: str
     storage_url: str
     document_type: DocumentType
-    language: Optional[str] = None
-    version: Optional[str] = None
-    publish_date: Optional[datetime] = None
-    page_count: Optional[int] = None
-    word_count: Optional[int] = None
-    character_count: Optional[int] = None
-    processing_status: Optional[ProcessingStatus] = None
-    confidence_score: Optional[float] = None
-    manual_review_required: Optional[bool] = None
-    manual_review_notes: Optional[str] = None
-    stage_status: Optional[dict] = None
-    manufacturer: Optional[str] = None
-    series: Optional[str] = None
-    models: List[str] = Field(default_factory=list)
+    language: str | None = None
+    version: str | None = None
+    publish_date: datetime | None = None
+    page_count: int | None = None
+    word_count: int | None = None
+    character_count: int | None = None
+    processing_status: ProcessingStatus | None = None
+    confidence_score: float | None = None
+    manual_review_required: bool | None = None
+    manual_review_notes: str | None = None
+    stage_status: dict | None = None
+    manufacturer: str | None = None
+    series: str | None = None
+    models: list[str] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
-    manufacturer_id: Optional[str] = None
-    product_id: Optional[str] = None
+    manufacturer_id: str | None = None
+    product_id: str | None = None
 
     class Config:
         from_attributes = True
@@ -383,14 +388,14 @@ class DocumentResponse(BaseModel):
         }
 
     @validator("models", pre=True, always=True)
-    def ensure_models(cls, value: Optional[List[str]]) -> List[str]:
+    def ensure_models(cls, value: list[str] | None) -> list[str]:
         return value or []
 
 
 class DocumentListResponse(BaseModel):
     """Paginated document list response."""
 
-    documents: List[DocumentResponse]
+    documents: list[DocumentResponse]
     total: int
     page: int
     page_size: int
@@ -412,9 +417,9 @@ class DocumentStatsResponse(BaseModel):
     """Aggregated document statistics."""
 
     total_documents: int
-    by_type: Dict[str, int]
-    by_status: Dict[str, int]
-    by_manufacturer: Dict[str, int]
+    by_type: dict[str, int]
+    by_status: dict[str, int]
+    by_manufacturer: dict[str, int]
 
     class Config:
         json_schema_extra = {

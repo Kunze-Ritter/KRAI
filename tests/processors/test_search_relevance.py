@@ -7,24 +7,23 @@ to approximate semantic similarity for a few canonical queries.
 
 from __future__ import annotations
 
-from typing import List, Dict, Any
+from typing import Any
 
 import pytest
-
 
 pytestmark = [pytest.mark.processor, pytest.mark.embedding, pytest.mark.search, pytest.mark.search_quality]
 
 
 def _rank_chunks_for_query(
     query: str,
-    sample_embeddings: List[Dict[str, Any]],
+    sample_embeddings: list[dict[str, Any]],
     mock_embedding_service,
     embedding_quality_metrics,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Return embeddings ranked by similarity to the query text."""
 
     query_vec = mock_embedding_service._generate_embedding(query)
-    ranked: List[Dict[str, Any]] = []
+    ranked: list[dict[str, Any]] = []
 
     query_lower = query.lower()
 
@@ -112,4 +111,3 @@ class TestSearchRelevance:
 
         top_texts = [r["content"].lower() for r in ranked[:5]]
         assert any("900.01" in t and "fuser" in t for t in top_texts)
-

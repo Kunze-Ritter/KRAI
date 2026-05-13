@@ -7,15 +7,8 @@ Utility modules for document processing
 """
 
 from .chunk_utils import ChunkingUtils
+from .config_loader import ConfigLoader, config_loader
+from .jwt_helper import JWTHelper, jwt_helper
 from .ollama_client import OllamaClient
-from .config_loader import config_loader, ConfigLoader
-from .jwt_helper import jwt_helper, JWTHelper
 
-__all__ = [
-    "ChunkingUtils",
-    "OllamaClient",
-    "config_loader",
-    "ConfigLoader",
-    "jwt_helper",
-    "JWTHelper"
-]
+__all__ = ["ChunkingUtils", "ConfigLoader", "JWTHelper", "OllamaClient", "config_loader", "jwt_helper"]

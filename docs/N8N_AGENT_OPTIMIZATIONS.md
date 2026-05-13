@@ -362,6 +362,6 @@ When user asks a question, preprocess query to remove noise:
 
 ---
 
-**Last Updated:** 2025-01-04  
-**Status:** **Implemented in production pipeline**  
+**Last Updated:** 2025-01-04
+**Status:** **Implemented in production pipeline**
 **Next Review:** Before n8n agent enhancement sprint

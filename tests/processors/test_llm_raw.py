@@ -2,8 +2,9 @@
 Test raw Ollama response
 """
 
-import requests
 import json
+
+import requests
 
 # Sample text
 text = """
@@ -53,9 +54,9 @@ response = requests.post(
         "prompt": prompt,
         "stream": False,
         "format": "json",
-        "options": {"temperature": 0.1, "num_predict": 2000}
+        "options": {"temperature": 0.1, "num_predict": 2000},
     },
-    timeout=60
+    timeout=60,
 )
 
 result = response.json()

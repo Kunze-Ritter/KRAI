@@ -8,7 +8,7 @@ sync for both metadata and similarity search behaviour.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any
 from uuid import uuid4
 
 import pytest
@@ -16,7 +16,6 @@ import pytest
 from backend.core.base_processor import ProcessingContext
 from backend.processors.embedding_processor import EmbeddingProcessor
 from backend.processors.stage_tracker import StageTracker
-
 
 pytestmark = [pytest.mark.processor, pytest.mark.embedding]
 
@@ -48,8 +47,8 @@ class E2EEmbeddingProcessor(EmbeddingProcessor):
         self,
         chunk_id: str,
         document_id,
-        embedding: List[float],
-        chunk_data: Dict[str, Any],
+        embedding: list[float],
+        chunk_data: dict[str, Any],
     ) -> bool:
         """Synchronously persist embedding into mock adapter stores.
 
@@ -112,7 +111,7 @@ class TestEmbeddingStorageIntegration:
         document_id = sample_chunks_with_content[0]["document_id"]
 
         # Prepare a small slice of chunks for storage
-        processor_chunks: List[Dict[str, Any]] = []
+        processor_chunks: list[dict[str, Any]] = []
         for chunk in sample_chunks_with_content[:8]:
             processor_chunks.append(
                 {
@@ -167,9 +166,7 @@ class TestEmbeddingStorageIntegration:
             assert legacy_meta.get("chunk_type", "text") == chunk["chunk_type"]
 
             v2_matches = [
-                emb
-                for emb in mock_database_adapter.embeddings_v2.values()
-                if emb.get("source_id") == chunk_id
+                emb for emb in mock_database_adapter.embeddings_v2.values() if emb.get("source_id") == chunk_id
             ]
             assert len(v2_matches) == 1
             v2_entry = v2_matches[0]
@@ -191,7 +188,7 @@ class TestEmbeddingStorageIntegration:
         document_id = sample_chunks_with_content[0]["document_id"]
 
         # Embed a small set of chunks
-        processor_chunks: List[Dict[str, Any]] = []
+        processor_chunks: list[dict[str, Any]] = []
         for chunk in sample_chunks_with_content[:6]:
             processor_chunks.append(
                 {
@@ -239,7 +236,7 @@ class TestEmbeddingStorageIntegration:
         assert v2_chunk_ids, "Expected at least one result from embeddings_v2 search"
 
         # Legacy system: rank legacy_embeddings using the same cosine metric
-        def _cosine(a: List[float], b: List[float]) -> float:
+        def _cosine(a: list[float], b: list[float]) -> float:
             if not a or not b or len(a) != len(b):
                 return 0.0
             dot = 0.0
@@ -251,9 +248,9 @@ class TestEmbeddingStorageIntegration:
                 norm_b += y * y
             if norm_a == 0.0 or norm_b == 0.0:
                 return 0.0
-            return dot / (norm_a ** 0.5 * norm_b ** 0.5)
+            return dot / (norm_a**0.5 * norm_b**0.5)
 
-        legacy_rank: List[Dict[str, Any]] = []
+        legacy_rank: list[dict[str, Any]] = []
         for chunk_id, entry in mock_database_adapter.legacy_embeddings.items():
             metadata = entry.get("metadata") or {}
             if metadata.get("document_id") != document_id:

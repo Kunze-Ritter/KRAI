@@ -59,9 +59,7 @@ def test_merge_scope_keeps_existing_scope_until_reset():
 
 
 def test_build_scope_system_message_includes_scope_details():
-    message = build_scope_system_message(
-        {"manufacturer": "HP", "product": "Color LaserJet E877", "series": "Flow"}
-    )
+    message = build_scope_system_message({"manufacturer": "HP", "product": "Color LaserJet E877", "series": "Flow"})
 
     assert message is not None
     assert "Hersteller: HP" in message

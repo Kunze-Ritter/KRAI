@@ -165,7 +165,7 @@ http://host.docker.internal:8000/v1
 
 **Problem**: Antworten kommen nicht in Echtzeit
 
-**Lösung**: 
+**Lösung**:
 - Streaming ist implementiert, aber OpenWebUI zeigt manchmal erst am Ende
 - Das ist normal und ein OpenWebUI-Verhalten
 

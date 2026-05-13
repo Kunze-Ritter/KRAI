@@ -26,7 +26,7 @@ Vollständige Pattern-Erkennung für alle Sharp-Produktserien: Production, Offic
 
 #### BP Series MFP
 - **Pattern**: `BP-\d{2}[CEQ]\d{2,3}`
-- **Beispiele**: 
+- **Beispiele**:
   - BP-50C31, BP-50C55
   - BP-60C45, BP-55C26
   - BP-22C25

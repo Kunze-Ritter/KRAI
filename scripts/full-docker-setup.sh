@@ -51,7 +51,7 @@ print_status() {
     local status="$1"
     local message="$2"
     local timestamp=$(get_timestamp)
-    
+
     case "$status" in
         "success")
             echo -e "[${timestamp}] ${GREEN}[SUCCESS]${NC} ✅ ${message}"
@@ -83,7 +83,7 @@ log_step() {
     local step_num="$1"
     local step_name="$2"
     local timestamp=$(get_timestamp)
-    
+
     echo ""
     echo -e "[${timestamp}] ${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     print_status "info" "Step ${step_num}/4: ${step_name}..."
@@ -95,7 +95,7 @@ format_duration() {
     local seconds=$1
     local minutes=$((seconds / 60))
     local remaining_seconds=$((seconds % 60))
-    
+
     if [ $minutes -gt 0 ]; then
         echo "${minutes}m ${remaining_seconds}s"
     else
@@ -182,7 +182,7 @@ if [ "$SKIP_CLEAN" = false ]; then
     log_step "1" "Running Clean Setup"
     CLEAN_START_TIME=$(date +%s)
     CLEAN_TIMESTAMP=$(get_timestamp)
-    
+
     if ./scripts/docker-clean-setup.sh; then
         CLEAN_EXIT_CODE=0
         CLEAN_END_TIME=$(date +%s)
@@ -204,7 +204,7 @@ if [ "$SKIP_CLEAN" = false ]; then
             print_status "error" "Step 1 failed (Duration: ${CLEAN_DURATION}, Exit Code: ${CLEAN_EXIT_CODE})"
         fi
         echo -e "[$(get_timestamp)] ${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        
+
         if [ $CLEAN_EXIT_CODE -eq 2 ]; then
             print_status "error" "Critical error in clean setup. Continuing to final report."
             OVERALL_EXIT_CODE=2
@@ -243,7 +243,7 @@ else
         print_status "error" "Step 2 failed (Duration: ${HEALTH_DURATION}, Exit Code: ${HEALTH_EXIT_CODE})"
     fi
     echo -e "[$(get_timestamp)] ${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    
+
     if [ $HEALTH_EXIT_CODE -eq 2 ]; then
         print_status "error" "Critical health check failure. System may not be functional."
         print_status "error" "Recommendation: Review health check logs and fix critical issues before proceeding."
@@ -256,12 +256,12 @@ if [ "$SKIP_INTEGRATION" = false ]; then
     log_step "3" "Running Integration Tests"
     INTEGRATION_START_TIME=$(date +%s)
     INTEGRATION_TIMESTAMP=$(get_timestamp)
-    
+
     # Check for BACKEND_API_TOKEN
     if [ -z "${BACKEND_API_TOKEN:-}" ]; then
         print_status "warning" "BACKEND_API_TOKEN not set. Some write tests may be skipped."
     fi
-    
+
     if ./scripts/docker-integration-tests.sh; then
         INTEGRATION_EXIT_CODE=0
         INTEGRATION_END_TIME=$(date +%s)

@@ -4,6 +4,7 @@ Apply migration 020: add extended columns to krai_system.processing_queue.
 Adds: payload, chunk_id, image_id, video_id, task_type, retry_count, max_retries.
 All additions use ADD COLUMN IF NOT EXISTS so the script is safe to re-run.
 """
+
 import asyncio
 import os
 import sys
@@ -23,12 +24,7 @@ except ImportError:
     print("asyncpg required: pip install asyncpg")
     sys.exit(1)
 
-MIGRATION_FILE = (
-    PROJECT_ROOT
-    / "database"
-    / "migrations_postgresql"
-    / "020_add_processing_queue_extended_columns.sql"
-)
+MIGRATION_FILE = PROJECT_ROOT / "database" / "migrations_postgresql" / "020_add_processing_queue_extended_columns.sql"
 
 
 def read_statements(path: Path) -> list[str]:
@@ -149,10 +145,7 @@ def read_statements(path: Path) -> list[str]:
             current.append(c)
         elif c == ";" and depth == 0:
             stmt = "".join(current).strip()
-            if stmt and not all(
-                line.strip().startswith("--") or not line.strip()
-                for line in stmt.splitlines()
-            ):
+            if stmt and not all(line.strip().startswith("--") or not line.strip() for line in stmt.splitlines()):
                 statements.append(stmt + ";")
             current = []
         else:
@@ -167,11 +160,7 @@ def read_statements(path: Path) -> list[str]:
 
 
 async def main():
-    postgres_url = (
-        os.getenv("POSTGRES_URL")
-        or os.getenv("DATABASE_CONNECTION_URL")
-        or os.getenv("DATABASE_URL")
-    )
+    postgres_url = os.getenv("POSTGRES_URL") or os.getenv("DATABASE_CONNECTION_URL") or os.getenv("DATABASE_URL")
     if not postgres_url:
         print("POSTGRES_URL (or DATABASE_CONNECTION_URL / DATABASE_URL) not set.")
         sys.exit(1)

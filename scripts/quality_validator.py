@@ -8,20 +8,19 @@ strategy with safe fallback behavior.
 
 import logging
 import os
-from typing import Any, Dict, List
+from typing import Any
 
 from backend.core.types import Stage
-
 
 logger = logging.getLogger(__name__)
 
 
 class QualityValidator:
-    def __init__(self, database_adapter, thresholds: Dict[str, Any]):
+    def __init__(self, database_adapter, thresholds: dict[str, Any]):
         self.database_adapter = database_adapter
         self.thresholds = thresholds
 
-    async def validate(self, document_ids: List[str]) -> Dict[str, Any]:
+    async def validate(self, document_ids: list[str]) -> dict[str, Any]:
         """Run all quality checks and return a combined PASS/FAIL result."""
         completeness = await self._check_completeness(document_ids)
         correctness = await self._check_correctness(document_ids)
@@ -43,7 +42,7 @@ class QualityValidator:
             "metrics": metrics,
         }
 
-    async def _check_completeness(self, document_ids: List[str]) -> Dict[str, Any]:
+    async def _check_completeness(self, document_ids: list[str]) -> dict[str, Any]:
         """Validate extraction completeness across chunks, images, codes, and parts.
 
         Uses document-scoped counts for chunks/images/error codes. For parts, this
@@ -156,12 +155,14 @@ class QualityValidator:
                 "warnings": warnings if parts_count == 0 else None,
             },
             "stage_warnings": warnings,
-            "status": "PASS"
-            if all([chunk_pass, image_pass, error_code_pass, parts_pass or parts_status == "SKIPPED"])
-            else "FAIL",
+            "status": (
+                "PASS"
+                if all([chunk_pass, image_pass, error_code_pass, parts_pass or parts_status == "SKIPPED"])
+                else "FAIL"
+            ),
         }
 
-    async def _detect_parts_catalog_schema(self) -> Dict[str, bool]:
+    async def _detect_parts_catalog_schema(self) -> dict[str, bool]:
         """Detect which relationship columns exist in parts_catalog table."""
         schema_query = """
         SELECT column_name
@@ -179,7 +180,7 @@ class QualityValidator:
             "has_manufacturer_id": "manufacturer_id" in available_columns,
         }
 
-    async def _check_correctness(self, document_ids: List[str]) -> Dict[str, Any]:
+    async def _check_correctness(self, document_ids: list[str]) -> dict[str, Any]:
         """Validate extraction correctness in a manufacturer-agnostic way.
 
         For mixed document batches we treat correctness as:
@@ -232,7 +233,7 @@ class QualityValidator:
             "status": "PASS" if correctness_pass else "FAIL",
         }
 
-    async def _check_embeddings(self, document_ids: List[str]) -> Dict[str, Any]:
+    async def _check_embeddings(self, document_ids: list[str]) -> dict[str, Any]:
         """Validate embedding coverage against configured threshold."""
         try:
             total_chunks_row = await self.database_adapter.fetch_one(
@@ -277,7 +278,7 @@ class QualityValidator:
             "status": "PASS" if coverage_pass else "FAIL",
         }
 
-    async def _check_relationships(self, document_ids: List[str]) -> Dict[str, Any]:
+    async def _check_relationships(self, document_ids: list[str]) -> dict[str, Any]:
         """Validate document-to-product relationships from junction table links."""
         try:
             row = await self.database_adapter.fetch_one(
@@ -305,7 +306,7 @@ class QualityValidator:
             "status": "PASS" if relation_pass else "FAIL",
         }
 
-    async def _check_stage_status(self, document_ids: List[str]) -> Dict[str, Any]:
+    async def _check_stage_status(self, document_ids: list[str]) -> dict[str, Any]:
         """Validate that all expected stage records exist and are completed."""
         try:
             rows = await self.database_adapter.fetch_all(
@@ -325,7 +326,7 @@ class QualityValidator:
         total_records = len(records)
         enabled_stage_count = len(self._enabled_stage_names())
 
-        rows_by_document: Dict[str, List[Dict[str, Any]]] = {}
+        rows_by_document: dict[str, list[dict[str, Any]]] = {}
         for row in records:
             row_dict = dict(row) if not isinstance(row, dict) else row
             doc_id = str(row_dict.get("document_id"))
@@ -347,10 +348,7 @@ class QualityValidator:
                     completed_stages += 1
 
         extra_stage_records = max(total_records - expected_stage_records, 0)
-        stage_pass = (
-            total_records >= expected_stage_records
-            and completed_stages >= expected_stage_records
-        )
+        stage_pass = total_records >= expected_stage_records and completed_stages >= expected_stage_records
 
         return {
             "total_stage_records": total_records,
@@ -361,7 +359,7 @@ class QualityValidator:
             "status": "PASS" if stage_pass else "FAIL",
         }
 
-    def _enabled_stage_names(self) -> List[str]:
+    def _enabled_stage_names(self) -> list[str]:
         """Return expected stage names for current feature flags."""
         stages = [stage.value for stage in Stage]
         if not self._env_flag_enabled("ENABLE_BRIGHTCOVE_ENRICHMENT", default=False):
@@ -383,7 +381,7 @@ class QualityValidator:
         row_dict = dict(row) if not isinstance(row, dict) else row
         return int(row_dict.get(key, 0))
 
-    async def _get_stage_warnings(self, document_ids: List[str]) -> Dict[str, List[str]]:
+    async def _get_stage_warnings(self, document_ids: list[str]) -> dict[str, list[str]]:
         """Fetch warnings from stage_tracking metadata for documents."""
         try:
             rows = await self.database_adapter.fetch_all(
@@ -393,11 +391,11 @@ class QualityValidator:
                 WHERE document_id = ANY($1)
                   AND metadata ? 'warning'
                 """,
-                [document_ids]
+                [document_ids],
             )
 
-            warnings: Dict[str, List[str]] = {}
-            for row in (rows or []):
+            warnings: dict[str, list[str]] = {}
+            for row in rows or []:
                 row_dict = dict(row) if not isinstance(row, dict) else row
                 doc_id = str(row_dict.get("document_id"))
                 stage = row_dict.get("stage_name")

@@ -1,20 +1,17 @@
 """Pydantic models for video content management APIs."""
+
 from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl, PositiveInt, model_validator, validator
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator, validator
 
-from models.document import DocumentResponse, PaginationParams, SortOrder
+from models.document import DocumentResponse, SortOrder
 from models.manufacturer import ManufacturerResponse
 from models.product import ProductResponse, ProductSeriesResponse
-from models.validators import (
-    sanitize_string,
-    validate_no_sql_injection,
-    validate_uuid,
-)
+from models.validators import sanitize_string, validate_no_sql_injection, validate_uuid
 
 
 class VideoPlatform(str, Enum):
@@ -29,66 +26,35 @@ class VideoPlatform(str, Enum):
 class VideoBase(BaseModel):
     """Shared video attributes."""
 
-    link_id: Optional[str] = Field(None, description="External link identifier if available.")
-    youtube_id: Optional[str] = Field(
-        None, max_length=20, description="YouTube video identifier when applicable."
-    )
-    platform: Optional[VideoPlatform] = Field(
-        None, description="Platform hosting the video (YouTube, Vimeo, etc.)."
-    )
-    video_url: Optional[HttpUrl] = Field(
-        None, description="Canonical accessible URL for the video resource."
-    )
-    title: Optional[str] = Field(None, description="Human-friendly video title.")
-    description: Optional[str] = Field(
-        None, description="Long-form description or transcript excerpt."
-    )
-    thumbnail_url: Optional[HttpUrl] = Field(
-        None, description="Publicly accessible thumbnail image URL."
-    )
-    duration: Optional[int] = Field(
-        None, ge=0, description="Video duration in seconds (if known)."
-    )
-    view_count: Optional[int] = Field(
-        None, ge=0, description="Total number of views across the hosting platform."
-    )
-    like_count: Optional[int] = Field(
-        None, ge=0, description="Total number of positive reactions.")
-    comment_count: Optional[int] = Field(
-        None, ge=0, description="Total number of comments for the video."
-    )
-    channel_id: Optional[str] = Field(
-        None, description="Channel identifier on the source platform."
-    )
-    channel_title: Optional[str] = Field(
-        None, description="Friendly name of the channel or publisher."
-    )
-    published_at: Optional[datetime] = Field(
-        None, description="Original publication timestamp provided by the platform."
-    )
-    manufacturer_id: Optional[str] = Field(
-        None, description="Associated manufacturer identifier, if applicable."
-    )
-    series_id: Optional[str] = Field(
-        None, description="Associated product series identifier, if available."
-    )
-    document_id: Optional[str] = Field(
-        None, description="Associated document identifier within the knowledge base."
-    )
-    metadata: Optional[Dict[str, Any]] = Field(
-        None, description="Additional metadata collected during enrichment."
-    )
+    link_id: str | None = Field(None, description="External link identifier if available.")
+    youtube_id: str | None = Field(None, max_length=20, description="YouTube video identifier when applicable.")
+    platform: VideoPlatform | None = Field(None, description="Platform hosting the video (YouTube, Vimeo, etc.).")
+    video_url: HttpUrl | None = Field(None, description="Canonical accessible URL for the video resource.")
+    title: str | None = Field(None, description="Human-friendly video title.")
+    description: str | None = Field(None, description="Long-form description or transcript excerpt.")
+    thumbnail_url: HttpUrl | None = Field(None, description="Publicly accessible thumbnail image URL.")
+    duration: int | None = Field(None, ge=0, description="Video duration in seconds (if known).")
+    view_count: int | None = Field(None, ge=0, description="Total number of views across the hosting platform.")
+    like_count: int | None = Field(None, ge=0, description="Total number of positive reactions.")
+    comment_count: int | None = Field(None, ge=0, description="Total number of comments for the video.")
+    channel_id: str | None = Field(None, description="Channel identifier on the source platform.")
+    channel_title: str | None = Field(None, description="Friendly name of the channel or publisher.")
+    published_at: datetime | None = Field(None, description="Original publication timestamp provided by the platform.")
+    manufacturer_id: str | None = Field(None, description="Associated manufacturer identifier, if applicable.")
+    series_id: str | None = Field(None, description="Associated product series identifier, if available.")
+    document_id: str | None = Field(None, description="Associated document identifier within the knowledge base.")
+    metadata: dict[str, Any] | None = Field(None, description="Additional metadata collected during enrichment.")
 
     model_config = ConfigDict(from_attributes=True)
 
     @model_validator(mode="after")
-    def validate_published_at(cls, values: "VideoBase") -> "VideoBase":
+    def validate_published_at(cls, values: VideoBase) -> VideoBase:
         if values.published_at and values.published_at > datetime.utcnow():
             raise ValueError("published_at cannot be in the future.")
         return values
 
     @validator("manufacturer_id", "series_id", "document_id")
-    def validate_related_ids(cls, value: Optional[str]) -> Optional[str]:
+    def validate_related_ids(cls, value: str | None) -> str | None:
         if value is None:
             return value
         return validate_uuid(value)
@@ -101,7 +67,7 @@ class VideoBase(BaseModel):
         "link_id",
         pre=True,
     )
-    def sanitize_text_fields(cls, value: Optional[str]) -> Optional[str]:
+    def sanitize_text_fields(cls, value: str | None) -> str | None:
         if value is None:
             return value
         sanitized = sanitize_string(value)
@@ -137,11 +103,9 @@ class VideoCreateRequest(VideoBase):
 class VideoUpdateRequest(VideoBase):
     """Payload for updating video information."""
 
-    platform: Optional[VideoPlatform] = Field(
-        None, description="Hosting platform for the video."
-    )
-    video_url: Optional[HttpUrl] = Field(None)
-    title: Optional[str] = Field(None, min_length=1)
+    platform: VideoPlatform | None = Field(None, description="Hosting platform for the video.")
+    video_url: HttpUrl | None = Field(None)
+    title: str | None = Field(None, min_length=1)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -158,12 +122,12 @@ class VideoUpdateRequest(VideoBase):
 class VideoFilterParams(BaseModel):
     """Filtering options for listing videos."""
 
-    manufacturer_id: Optional[str] = Field(None)
-    series_id: Optional[str] = Field(None)
-    document_id: Optional[str] = Field(None)
-    platform: Optional[VideoPlatform] = Field(None)
-    youtube_id: Optional[str] = Field(None)
-    search: Optional[str] = Field(
+    manufacturer_id: str | None = Field(None)
+    series_id: str | None = Field(None)
+    document_id: str | None = Field(None)
+    platform: VideoPlatform | None = Field(None)
+    youtube_id: str | None = Field(None)
+    search: str | None = Field(
         None,
         description="Full-text search across title, description, and channel_title.",
     )
@@ -179,13 +143,13 @@ class VideoFilterParams(BaseModel):
     )
 
     @validator("manufacturer_id", "series_id", "document_id")
-    def validate_filter_ids(cls, value: Optional[str]) -> Optional[str]:
+    def validate_filter_ids(cls, value: str | None) -> str | None:
         if value is None:
             return value
         return validate_uuid(value)
 
     @validator("search")
-    def validate_search(cls, value: Optional[str]) -> Optional[str]:
+    def validate_search(cls, value: str | None) -> str | None:
         if value is None:
             return value
         if len(value) > 150:
@@ -211,11 +175,9 @@ class VideoResponse(VideoBase):
     platform: VideoPlatform = Field(...)
     video_url: HttpUrl = Field(...)
     title: str = Field(...)
-    created_at: Optional[str] = Field(None)
-    updated_at: Optional[str] = Field(None)
-    enriched_at: Optional[str] = Field(
-        None, description="Timestamp when enrichment was performed, if applicable."
-    )
+    created_at: str | None = Field(None)
+    updated_at: str | None = Field(None)
+    enriched_at: str | None = Field(None, description="Timestamp when enrichment was performed, if applicable.")
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -236,10 +198,10 @@ class VideoResponse(VideoBase):
 class VideoWithRelationsResponse(VideoResponse):
     """Video response that includes related resources."""
 
-    manufacturer: Optional[ManufacturerResponse] = Field(None)
-    series: Optional[ProductSeriesResponse] = Field(None)
-    document: Optional[DocumentResponse] = Field(None)
-    linked_products: List[ProductResponse] = Field(
+    manufacturer: ManufacturerResponse | None = Field(None)
+    series: ProductSeriesResponse | None = Field(None)
+    document: DocumentResponse | None = Field(None)
+    linked_products: list[ProductResponse] = Field(
         default_factory=list, description="Products linked to this video via junction table."
     )
 
@@ -247,7 +209,7 @@ class VideoWithRelationsResponse(VideoResponse):
 class VideoListResponse(BaseModel):
     """Paginated video listing."""
 
-    videos: List[VideoResponse] = Field(...)
+    videos: list[VideoResponse] = Field(...)
     total: int = Field(..., ge=0)
     page: int = Field(..., ge=1)
     page_size: int = Field(..., ge=1)
@@ -275,16 +237,12 @@ class VideoListResponse(BaseModel):
 class VideoProductLinkRequest(BaseModel):
     """Request payload for linking videos to products."""
 
-    product_ids: List[str] = Field(..., min_length=1)
+    product_ids: list[str] = Field(..., min_length=1)
 
-    model_config = ConfigDict(
-        json_schema_extra={
-            "example": {"product_ids": ["prod-001", "prod-002"]}
-        }
-    )
+    model_config = ConfigDict(json_schema_extra={"example": {"product_ids": ["prod-001", "prod-002"]}})
 
     @validator("product_ids")
-    def validate_product_ids(cls, value: List[str]) -> List[str]:
+    def validate_product_ids(cls, value: list[str]) -> list[str]:
         if not value:
             raise ValueError("product_ids cannot be empty")
         return [validate_uuid(product_id) for product_id in value]
@@ -294,8 +252,8 @@ class VideoEnrichmentRequest(BaseModel):
     """Payload for enrichment endpoint."""
 
     video_url: HttpUrl = Field(...)
-    document_id: Optional[str] = Field(None)
-    manufacturer_id: Optional[str] = Field(None)
+    document_id: str | None = Field(None)
+    manufacturer_id: str | None = Field(None)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -312,11 +270,11 @@ class VideoEnrichmentResponse(BaseModel):
     """Response payload returned from enrichment."""
 
     success: bool = Field(...)
-    video_id: Optional[str] = Field(None)
-    title: Optional[str] = Field(None)
-    platform: Optional[VideoPlatform] = Field(None)
-    duration: Optional[int] = Field(None, ge=0)
-    error: Optional[str] = Field(None)
+    video_id: str | None = Field(None)
+    title: str | None = Field(None)
+    platform: VideoPlatform | None = Field(None)
+    duration: int | None = Field(None, ge=0)
+    error: str | None = Field(None)
 
     model_config = ConfigDict(
         json_schema_extra={

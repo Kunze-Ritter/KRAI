@@ -100,9 +100,9 @@ export_table_with_filter() {
     local table=$2
     local where_clause=$3
     local output_file="${SNAPSHOT_DIR}/${schema}_${table}.sql"
-    
+
     echo "Exporting ${schema}.${table}..."
-    
+
     if [ -z "$where_clause" ]; then
         pg_dump -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
             --table="${schema}.${table}" \
@@ -115,7 +115,7 @@ export_table_with_filter() {
             -c "COPY (SELECT * FROM ${schema}.${table} WHERE ${where_clause}) TO STDOUT WITH CSV HEADER" \
             > "${SNAPSHOT_DIR}/${schema}_${table}.csv" 2>&1
     fi
-    
+
     if [ $? -eq 0 ]; then
         echo "  ✓ Exported ${schema}.${table}"
         return 0
@@ -130,7 +130,7 @@ count_rows() {
     local schema=$1
     local table=$2
     local where_clause=$3
-    
+
     if [ -z "$where_clause" ]; then
         psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
             -t -c "SELECT COUNT(*) FROM ${schema}.${table};" 2>/dev/null | xargs

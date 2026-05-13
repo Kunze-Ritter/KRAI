@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 import uuid
-from typing import Iterable, List
+from collections.abc import Iterable
 
 import validators as url_validators
 
@@ -104,13 +104,13 @@ def validate_password_strength(password: str) -> str:
     min_length = max(cfg.PASSWORD_MIN_LENGTH, 8)
     if len(password) < min_length:
         raise ValueError(f"Password must be at least {min_length} characters long")
-    rules: List[tuple[bool, str, str]] = [
+    rules: list[tuple[bool, str, str]] = [
         (cfg.PASSWORD_REQUIRE_UPPERCASE, r"[A-Z]", "uppercase letter"),
         (cfg.PASSWORD_REQUIRE_LOWERCASE, r"[a-z]", "lowercase letter"),
         (cfg.PASSWORD_REQUIRE_NUMBER, r"[0-9]", "number"),
         (cfg.PASSWORD_REQUIRE_SPECIAL, r"[^A-Za-z0-9]", "special character"),
     ]
-    missing: List[str] = []
+    missing: list[str] = []
     for required, pattern, label in rules:
         if required and not re.search(pattern, password):
             missing.append(label)
@@ -131,7 +131,7 @@ def ensure_max_length(value: str, maximum: int, field_name: str) -> str:
     return value
 
 
-def ensure_allowed_fields(value: Iterable[str], allowed: Iterable[str], field_name: str) -> List[str]:
+def ensure_allowed_fields(value: Iterable[str], allowed: Iterable[str], field_name: str) -> list[str]:
     allowed_set = set(allowed)
     invalid = [item for item in value if item not in allowed_set]
     if invalid:

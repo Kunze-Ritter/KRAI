@@ -15,13 +15,13 @@
 **File**: `backend/processors/metadata_processor_ai.py`
 
 ### Issue 2: Vision Model Crashes After First Image
-**Problem**: 
+**Problem**:
 ```
 ✅ Works: "Extracted 1 error codes from image using llava:7b"
 ❌ Then: "model runner has unexpectedly stopped" on next image
 ```
 
-**Root Cause**: 
+**Root Cause**:
 - GPU memory not being freed between image processing
 - Multiple images processed too quickly
 - VRAM exhaustion from accumulated memory
@@ -72,7 +72,7 @@ Wrapped each image processing in try-catch so one failure doesn't stop the entir
    ```python
    max_images_to_process = int(os.getenv('MAX_VISION_IMAGES', '10'))
    processed_count = 0
-   
+
    if processed_count >= max_images_to_process:
        self.logger.warning(f"Reached max vision image limit")
        break
@@ -127,7 +127,7 @@ MAX_VISION_IMAGES=5
 
 **Before**: Pipeline crashes
 
-**After**: 
+**After**:
 - ⚠️ Warning logged
 - ⏭️ Skip to next image
 - ✅ Pipeline continues

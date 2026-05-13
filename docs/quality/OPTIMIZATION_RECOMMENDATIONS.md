@@ -173,4 +173,3 @@ Total: ~3.5 to 5.5 engineering days.
   - `manufacturer_detected = true`
   - `linked_products >= 1`
   - no silent zero-extraction stages
-

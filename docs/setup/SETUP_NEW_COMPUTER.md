@@ -157,4 +157,3 @@ python backend/scripts/test_supabase_connection.py
 - [Configuration Setup](docs/setup/CONFIGURATION_SETUP.md)
 - [Version Management](../development/VERSION_MANAGEMENT.md)
 - [Troubleshooting](docs/troubleshooting/)
-

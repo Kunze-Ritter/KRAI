@@ -3,7 +3,7 @@
 import json
 import os
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any
 
 from backend.core.base_processor import BaseProcessor, ProcessingError, Stage
 from scripts.enrich_video_metadata import VideoEnricher
@@ -15,16 +15,14 @@ class VideoEnrichmentProcessor(BaseProcessor):
     def __init__(
         self,
         database_service=None,
-        config: Dict[str, Any] = None,
+        config: dict[str, Any] = None,
         brightcove_client: Any = None,
         enricher: Any = None,
     ):
         super().__init__(name="video_enrichment_processor", config=config or {})
         self.stage = Stage.VIDEO_ENRICHMENT
         self.database_service = database_service
-        self.batch_size = int(
-            os.getenv("BRIGHTCOVE_ENRICHMENT_BATCH_SIZE", os.getenv("BRIGHTCOVE_BATCH_SIZE", "10"))
-        )
+        self.batch_size = int(os.getenv("BRIGHTCOVE_ENRICHMENT_BATCH_SIZE", os.getenv("BRIGHTCOVE_BATCH_SIZE", "10")))
         self.enabled = os.getenv("ENABLE_BRIGHTCOVE_ENRICHMENT", "false").lower() == "true"
         self.brightcove_client = brightcove_client
         if enricher is not None:
@@ -39,13 +37,13 @@ class VideoEnrichmentProcessor(BaseProcessor):
                 self.enricher = VideoEnricher(database_adapter=database_service)
         self.logger.info("VideoEnrichmentProcessor initialized (enabled=%s)", self.enabled)
 
-    def get_dependencies(self) -> List[str]:
+    def get_dependencies(self) -> list[str]:
         return ["link_extraction"]
 
-    def get_required_inputs(self) -> List[str]:
+    def get_required_inputs(self) -> list[str]:
         return ["document_id"]
 
-    def get_output_tables(self) -> List[str]:
+    def get_output_tables(self) -> list[str]:
         return ["krai_content.videos"]
 
     async def process(self, context):
@@ -168,7 +166,7 @@ class VideoEnrichmentProcessor(BaseProcessor):
             metadata={"stage": self.stage.value, "document_id": str(document_id)},
         )
 
-    async def _get_videos_needing_enrichment(self, document_id: str, force: bool) -> List[Dict[str, Any]]:
+    async def _get_videos_needing_enrichment(self, document_id: str, force: bool) -> list[dict[str, Any]]:
         if hasattr(self.database_service, "get_videos_needing_enrichment"):
             return await self.database_service.get_videos_needing_enrichment(
                 document_id=document_id,
@@ -195,7 +193,7 @@ class VideoEnrichmentProcessor(BaseProcessor):
             [document_id, self.batch_size * 100],
         )
 
-    async def _update_video(self, video_id: str, updates: Dict[str, Any]) -> None:
+    async def _update_video(self, video_id: str, updates: dict[str, Any]) -> None:
         if hasattr(self.database_service, "update_video_enrichment"):
             await self.database_service.update_video_enrichment(video_id, updates)
             return

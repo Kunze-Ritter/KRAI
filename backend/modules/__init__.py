@@ -12,31 +12,28 @@ Main Components:
 - Utilities: Chunking algorithms, Ollama client, helper functions
 """
 
-from .modular_document_processor import (
-    ModularDocumentProcessor,
-    DocumentProcessingPipeline,
-    ProcessingSession,
-    process_document,
-    batch_process_documents
-)
-
 from .interfaces.base_processor import (
     BaseProcessor,
     ProcessingContext,
-    ProcessingResult,
-    ProcessorChain,
-    ProcessingStatus,
     ProcessingException,
+    ProcessingResult,
+    ProcessingStatus,
+    ProcessorChain,
+    ResourceException,
     ValidationException,
-    ResourceException
 )
-
-from .processors.text_processor import TextProcessor
-from .processors.image_processor import ImageProcessor  
-from .processors.embedding_processor import EmbeddingProcessor
+from .modular_document_processor import (
+    DocumentProcessingPipeline,
+    ModularDocumentProcessor,
+    ProcessingSession,
+    batch_process_documents,
+    process_document,
+)
 from .processors.classification_processor import ClassificationProcessor
+from .processors.embedding_processor import EmbeddingProcessor
+from .processors.image_processor import ImageProcessor
 from .processors.storage_processor import StorageProcessor
-
+from .processors.text_processor import TextProcessor
 from .utils.chunk_utils import ChunkingUtils
 from .utils.ollama_client import OllamaClient
 
@@ -49,11 +46,10 @@ __description__ = "Modular AI-powered document processing system"
 __all__ = [
     # Main orchestrator
     "ModularDocumentProcessor",
-    "DocumentProcessingPipeline", 
+    "DocumentProcessingPipeline",
     "ProcessingSession",
     "process_document",
     "batch_process_documents",
-    
     # Base interfaces
     "BaseProcessor",
     "ProcessingContext",
@@ -61,17 +57,15 @@ __all__ = [
     "ProcessorChain",
     "ProcessingStatus",
     "ProcessingException",
-    "ValidationException", 
+    "ValidationException",
     "ResourceException",
-    
     # Specialized processors
     "TextProcessor",
     "ImageProcessor",
-    "EmbeddingProcessor", 
+    "EmbeddingProcessor",
     "ClassificationProcessor",
     "StorageProcessor",
-    
     # Utilities
     "ChunkingUtils",
-    "OllamaClient"
+    "OllamaClient",
 ]

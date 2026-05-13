@@ -35,7 +35,7 @@ def parse_version(version_string):
 def increment_version(version_string, commit_message):
     """
     Increment version based on commit message keywords.
-    
+
     Keywords:
     - RELEASE: or MAJOR: -> Increment major (2.1.3 -> 3.0.0)
     - MINOR: or FEATURE: -> Increment minor (2.1.3 -> 2.2.0)
@@ -44,26 +44,26 @@ def increment_version(version_string, commit_message):
     """
     if not commit_message:
         return version_string
-    
+
     # Convert to uppercase for case-insensitive matching
     msg_upper = commit_message.upper()
-    
+
     # Parse current version
     version_parts = parse_version(version_string)
     if not version_parts:
         print(f"Warning: Could not parse version '{version_string}'", file=sys.stderr)
         return version_string
-    
+
     major, minor, patch = version_parts
-    
+
     # Check for keywords
     if "RELEASE:" in msg_upper or "MAJOR:" in msg_upper:
         return f"{major + 1}.0.0"
-    elif "MINOR:" in msg_upper or "FEATURE:" in msg_upper:
+    if "MINOR:" in msg_upper or "FEATURE:" in msg_upper:
         return f"{major}.{minor + 1}.0"
-    elif "PATCH:" in msg_upper or "FIX:" in msg_upper or "BUGFIX:" in msg_upper:
+    if "PATCH:" in msg_upper or "FIX:" in msg_upper or "BUGFIX:" in msg_upper:
         return f"{major}.{minor}.{patch + 1}"
-    
+
     # No keyword found, keep version unchanged
     return version_string
 
@@ -177,7 +177,7 @@ def update_version_file(
         print("   parent commit: unavailable")
 
 
-def _load_shared_module() -> "module":
+def _load_shared_module() -> module:
     """Load shared git hook helpers."""
     repo_root = Path(__file__).resolve().parents[2]
     module_path = repo_root / "scripts" / "git_hooks" / "shared.py"

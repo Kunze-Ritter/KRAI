@@ -121,14 +121,14 @@ if [ "$CREATE_BACKUP" = true ]; then
     BACKUP_DIR="./staging-backups"
     BACKUP_TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
     BACKUP_FILE="${BACKUP_DIR}/staging_backup_${BACKUP_TIMESTAMP}.sql"
-    
+
     mkdir -p "$BACKUP_DIR"
-    
+
     pg_dump -h "$STAGING_HOST" -p "$STAGING_PORT" -U "$STAGING_USER" -d "$STAGING_DB" \
         --schema=krai_core --schema=krai_intelligence --schema=krai_content \
         --data-only \
         > "$BACKUP_FILE" 2>&1
-    
+
     if [ $? -eq 0 ]; then
         echo "  ✓ Backup created: $BACKUP_FILE"
     else
@@ -142,22 +142,22 @@ restore_csv_data() {
     local schema=$1
     local table=$2
     local csv_file="${SNAPSHOT_DIR}/${schema}_${table}.csv"
-    
+
     if [ ! -f "$csv_file" ]; then
         echo "  ⚠️  CSV file not found: $csv_file"
         return 1
     fi
-    
+
     echo "Restoring ${schema}.${table}..."
-    
+
     # Truncate table first
     psql -h "$STAGING_HOST" -p "$STAGING_PORT" -U "$STAGING_USER" -d "$STAGING_DB" \
         -c "TRUNCATE TABLE ${schema}.${table} CASCADE;" > /dev/null 2>&1
-    
+
     # Copy data from CSV
     psql -h "$STAGING_HOST" -p "$STAGING_PORT" -U "$STAGING_USER" -d "$STAGING_DB" \
         -c "\COPY ${schema}.${table} FROM '${csv_file}' WITH CSV HEADER;" 2>&1
-    
+
     if [ $? -eq 0 ]; then
         local row_count=$(psql -h "$STAGING_HOST" -p "$STAGING_PORT" -U "$STAGING_USER" -d "$STAGING_DB" \
             -t -c "SELECT COUNT(*) FROM ${schema}.${table};" 2>/dev/null | xargs)
@@ -210,10 +210,10 @@ update_sequence() {
     local schema=$1
     local table=$2
     local sequence="${schema}.${table}_id_seq"
-    
+
     psql -h "$STAGING_HOST" -p "$STAGING_PORT" -U "$STAGING_USER" -d "$STAGING_DB" \
         -c "SELECT setval('${sequence}', COALESCE((SELECT MAX(id) FROM ${schema}.${table}), 1));" > /dev/null 2>&1
-    
+
     if [ $? -eq 0 ]; then
         echo "  ✓ Updated sequence: $sequence"
     fi
@@ -236,10 +236,10 @@ verify_table() {
     local schema=$1
     local table=$2
     local expected_count=$3
-    
+
     local actual_count=$(psql -h "$STAGING_HOST" -p "$STAGING_PORT" -U "$STAGING_USER" -d "$STAGING_DB" \
         -t -c "SELECT COUNT(*) FROM ${schema}.${table};" 2>/dev/null | xargs)
-    
+
     if [ "$actual_count" = "$expected_count" ]; then
         echo "  ✓ ${schema}.${table}: ${actual_count} rows (matches manifest)"
     else

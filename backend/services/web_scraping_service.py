@@ -15,8 +15,8 @@ import logging
 import os
 import re
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 from urllib.parse import urljoin, urlparse, urlunparse
 
 import httpx
@@ -29,8 +29,7 @@ except Exception:  # pragma: no cover - imported lazily
 
 
 DEFAULT_USER_AGENT = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 )
 
 
@@ -48,34 +47,28 @@ class WebScraperBackend(ABC):
         self.logger = logging.getLogger(f"krai.scraping.{self.backend_name}")
 
     @abstractmethod
-    async def scrape_url(
-        self, url: str, options: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    async def scrape_url(self, url: str, options: dict[str, Any] | None = None) -> dict[str, Any]:
         """Scrape a single URL and return a normalized response dictionary."""
 
     @abstractmethod
-    async def crawl_site(
-        self, start_url: str, options: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    async def crawl_site(self, start_url: str, options: dict[str, Any] | None = None) -> dict[str, Any]:
         """Crawl a website starting from ``start_url`` returning aggregated data."""
 
     @abstractmethod
     async def extract_structured_data(
         self,
         url: str,
-        schema: Dict[str, Any],
-        options: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        schema: dict[str, Any],
+        options: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Extract structured data from a URL using the provided schema."""
 
     @abstractmethod
-    async def map_urls(
-        self, url: str, options: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    async def map_urls(self, url: str, options: dict[str, Any] | None = None) -> dict[str, Any]:
         """Discover URLs on the target site."""
 
     @abstractmethod
-    async def health_check(self) -> Dict[str, Any]:
+    async def health_check(self) -> dict[str, Any]:
         """Return backend health metadata."""
 
 
@@ -96,8 +89,8 @@ class FirecrawlBackend(WebScraperBackend):
         block_media: bool = True,
         allow_local_webhooks: bool = True,
         max_concurrency: int = 4,
-        proxy: Optional[Dict[str, str]] = None,
-        openai_api_key: Optional[str] = None,
+        proxy: dict[str, str] | None = None,
+        openai_api_key: str | None = None,
         mock_mode: bool = False,
     ) -> None:
         super().__init__(mock_mode=mock_mode)
@@ -135,20 +128,17 @@ class FirecrawlBackend(WebScraperBackend):
 
         if AsyncFirecrawl is None and not self.mock_mode:
             raise FirecrawlUnavailableError(
-                "firecrawl-py SDK is not installed. Install `firecrawl-py` to enable "
-                "Firecrawl backend."
+                "firecrawl-py SDK is not installed. Install `firecrawl-py` to enable " "Firecrawl backend."
             )
 
-        self._client: Optional[AsyncFirecrawl] = None
+        self._client: AsyncFirecrawl | None = None
         if AsyncFirecrawl is not None:
             client_kwargs = {"api_key": self.api_key}
             if self.api_url:
                 client_kwargs["api_url"] = self.api_url
             self._client = AsyncFirecrawl(**client_kwargs)
 
-    async def scrape_url(
-        self, url: str, options: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    async def scrape_url(self, url: str, options: dict[str, Any] | None = None) -> dict[str, Any]:
         if self.mock_mode:
             self.logger.debug("Mock scrape_url called for %s", url)
             return {
@@ -170,7 +160,7 @@ class FirecrawlBackend(WebScraperBackend):
         if self.proxy and "proxy" not in request_options:
             request_options["proxy"] = self.proxy
         attempt = 0
-        last_error: Optional[Exception] = None
+        last_error: Exception | None = None
         while attempt < self.retries:
             attempt += 1
             try:
@@ -194,7 +184,7 @@ class FirecrawlBackend(WebScraperBackend):
                     "html": payload.get("html"),
                     "metadata": payload.get("metadata", {}),
                 }
-            except (httpx.TimeoutException, asyncio.TimeoutError) as exc:
+            except (TimeoutError, httpx.TimeoutException) as exc:
                 last_error = exc
                 self.logger.warning(
                     "Firecrawl scrape timeout for %s (attempt %s/%s)",
@@ -204,9 +194,7 @@ class FirecrawlBackend(WebScraperBackend):
                 )
             except (httpx.ConnectError, httpx.TransportError) as exc:
                 last_error = exc
-                self.logger.error(
-                    "Firecrawl connection error for %s: %s", url, exc
-                )
+                self.logger.error("Firecrawl connection error for %s: %s", url, exc)
                 raise FirecrawlUnavailableError("Firecrawl connection failed") from exc
             except httpx.HTTPStatusError as exc:
                 last_error = exc
@@ -221,24 +209,18 @@ class FirecrawlBackend(WebScraperBackend):
                 raise
             except Exception as exc:  # pragma: no cover - guard against SDK changes
                 last_error = exc
-                self.logger.exception(
-                    "Unexpected Firecrawl error for %s: %s", url, exc
-                )
+                self.logger.exception("Unexpected Firecrawl error for %s: %s", url, exc)
                 break
-            await asyncio.sleep(2 ** attempt)
+            await asyncio.sleep(2**attempt)
 
-        error_message = (
-            f"Firecrawl scrape failed for {url}: {last_error!s}" if last_error else ""
-        )
+        error_message = f"Firecrawl scrape failed for {url}: {last_error!s}" if last_error else ""
         return {
             "success": False,
             "backend": self.backend_name,
             "error": error_message,
         }
 
-    async def crawl_site(
-        self, start_url: str, options: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    async def crawl_site(self, start_url: str, options: dict[str, Any] | None = None) -> dict[str, Any]:
         if self.mock_mode:
             return {
                 "success": True,
@@ -280,17 +262,13 @@ class FirecrawlBackend(WebScraperBackend):
                     self._client.start_crawl(url=start_url, options=crawl_options),
                     timeout=self.timeout,
                 )
-                crawl_id = (
-                    crawl_job.get("id")
-                    or crawl_job.get("jobId")
-                    or crawl_job.get("crawlId")
-                )
+                crawl_id = crawl_job.get("id") or crawl_job.get("jobId") or crawl_job.get("crawlId")
                 if not crawl_id:
                     raise RuntimeError("Firecrawl start_crawl did not return an identifier")
 
                 poll_interval = float(options.get("pollInterval", 2.0))
                 deadline = asyncio.get_event_loop().time() + self.crawl_timeout
-                status: Dict[str, Any] = {}
+                status: dict[str, Any] = {}
 
                 while asyncio.get_event_loop().time() < deadline:
                     status = await self._client.get_crawl_status(crawl_id)
@@ -299,9 +277,7 @@ class FirecrawlBackend(WebScraperBackend):
                         break
                     await asyncio.sleep(poll_interval)
                 else:
-                    raise asyncio.TimeoutError(
-                        f"Firecrawl crawl for {start_url} exceeded timeout"
-                    )
+                    raise TimeoutError(f"Firecrawl crawl for {start_url} exceeded timeout")
 
                 if status.get("status") not in {"completed", "succeeded"}:
                     error_message = status.get("error") or status.get("message") or "Unknown crawl failure"
@@ -317,9 +293,7 @@ class FirecrawlBackend(WebScraperBackend):
             normalized_pages = [
                 {
                     "url": page.get("url") or page.get("link"),
-                    "content": page.get("markdown")
-                    or page.get("content")
-                    or page.get("text"),
+                    "content": page.get("markdown") or page.get("content") or page.get("text"),
                     "metadata": page.get("metadata", {}),
                 }
                 for page in pages
@@ -334,7 +308,7 @@ class FirecrawlBackend(WebScraperBackend):
         except (httpx.ConnectError, httpx.TransportError) as exc:
             self.logger.error("Firecrawl crawl connection error: %s", exc)
             raise FirecrawlUnavailableError("Firecrawl connection failed") from exc
-        except (httpx.TimeoutException, asyncio.TimeoutError) as exc:
+        except (TimeoutError, httpx.TimeoutException) as exc:
             self.logger.warning("Firecrawl crawl timeout for %s", start_url)
             return {
                 "success": False,
@@ -352,9 +326,9 @@ class FirecrawlBackend(WebScraperBackend):
     async def extract_structured_data(
         self,
         url: str,
-        schema: Dict[str, Any],
-        options: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        schema: dict[str, Any],
+        options: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         if self.mock_mode:
             return {
                 "success": True,
@@ -386,7 +360,7 @@ class FirecrawlBackend(WebScraperBackend):
         except (httpx.ConnectError, httpx.TransportError) as exc:
             self.logger.error("Firecrawl extract connection error: %s", exc)
             raise FirecrawlUnavailableError("Firecrawl connection failed") from exc
-        except (httpx.TimeoutException, asyncio.TimeoutError) as exc:
+        except (TimeoutError, httpx.TimeoutException) as exc:
             self.logger.warning("Firecrawl extract timeout for %s", url)
             return {
                 "success": False,
@@ -401,9 +375,7 @@ class FirecrawlBackend(WebScraperBackend):
                 "error": str(exc),
             }
 
-    async def map_urls(
-        self, url: str, options: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    async def map_urls(self, url: str, options: dict[str, Any] | None = None) -> dict[str, Any]:
         if self.mock_mode:
             return {
                 "success": True,
@@ -436,7 +408,7 @@ class FirecrawlBackend(WebScraperBackend):
         except (httpx.ConnectError, httpx.TransportError) as exc:
             self.logger.error("Firecrawl map connection error: %s", exc)
             raise FirecrawlUnavailableError("Firecrawl connection failed") from exc
-        except (httpx.TimeoutException, asyncio.TimeoutError) as exc:
+        except (TimeoutError, httpx.TimeoutException) as exc:
             self.logger.warning("Firecrawl map timeout for %s", url)
             return {
                 "success": False,
@@ -451,7 +423,7 @@ class FirecrawlBackend(WebScraperBackend):
                 "error": str(exc),
             }
 
-    async def health_check(self) -> Dict[str, Any]:
+    async def health_check(self) -> dict[str, Any]:
         if self.mock_mode:
             return {
                 "status": "mock",
@@ -497,9 +469,7 @@ class BeautifulSoupBackend(WebScraperBackend):
         self.delay = delay
         self.logger = logging.getLogger("krai.scraping.beautifulsoup")
 
-    async def scrape_url(
-        self, url: str, options: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    async def scrape_url(self, url: str, options: dict[str, Any] | None = None) -> dict[str, Any]:
         if self.mock_mode:
             return {
                 "success": True,
@@ -545,9 +515,7 @@ class BeautifulSoupBackend(WebScraperBackend):
                 "error": str(exc),
             }
 
-    async def crawl_site(
-        self, start_url: str, options: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    async def crawl_site(self, start_url: str, options: dict[str, Any] | None = None) -> dict[str, Any]:
         if self.mock_mode:
             return {
                 "success": True,
@@ -565,9 +533,9 @@ class BeautifulSoupBackend(WebScraperBackend):
         options = options or {}
         limit = int(options.get("limit", 10))
         max_depth = int(options.get("maxDepth", 2))
-        visited: Dict[str, int] = {}
-        queue: List[tuple[str, int]] = [(start_url, 0)]
-        pages: List[Dict[str, Any]] = []
+        visited: dict[str, int] = {}
+        queue: list[tuple[str, int]] = [(start_url, 0)]
+        pages: list[dict[str, Any]] = []
 
         while queue and len(pages) < limit:
             current_url, depth = queue.pop(0)
@@ -602,21 +570,17 @@ class BeautifulSoupBackend(WebScraperBackend):
     async def extract_structured_data(
         self,
         url: str,
-        schema: Dict[str, Any],
-        options: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
-        self.logger.warning(
-            "Structured extraction not available with BeautifulSoup backend"
-        )
+        schema: dict[str, Any],
+        options: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        self.logger.warning("Structured extraction not available with BeautifulSoup backend")
         return {
             "success": False,
             "backend": self.backend_name,
             "error": "Structured extraction requires Firecrawl backend",
         }
 
-    async def map_urls(
-        self, url: str, options: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    async def map_urls(self, url: str, options: dict[str, Any] | None = None) -> dict[str, Any]:
         if self.mock_mode:
             return {
                 "success": True,
@@ -645,17 +609,17 @@ class BeautifulSoupBackend(WebScraperBackend):
             "total": len(links),
         }
 
-    async def health_check(self) -> Dict[str, Any]:
+    async def health_check(self) -> dict[str, Any]:
         return {
             "status": "healthy",
             "backend": self.backend_name,
             "details": {"message": "BeautifulSoup backend available"},
         }
 
-    def _extract_links(self, html: str, base_url: str) -> List[str]:
+    def _extract_links(self, html: str, base_url: str) -> list[str]:
         soup = BeautifulSoup(html, "html.parser")
         base_domain = urlparse(base_url).netloc
-        links: List[str] = []
+        links: list[str] = []
         for anchor in soup.find_all("a", href=True):
             href = anchor.get("href")
             absolute = urljoin(base_url, href)
@@ -677,8 +641,8 @@ class WebScrapingService:
     def __init__(
         self,
         primary_backend: WebScraperBackend,
-        fallback_backend: Optional[WebScraperBackend] = None,
-        config_service: Optional[Any] = None,
+        fallback_backend: WebScraperBackend | None = None,
+        config_service: Any | None = None,
     ) -> None:
         self._primary_backend = primary_backend
         self._fallback_backend = fallback_backend
@@ -695,15 +659,15 @@ class WebScrapingService:
         return self._primary_backend
 
     @property
-    def fallback_backend(self) -> Optional[WebScraperBackend]:
+    def fallback_backend(self) -> WebScraperBackend | None:
         return self._fallback_backend
 
     async def scrape_url(
         self,
         url: str,
-        options: Optional[Dict[str, Any]] = None,
-        force_backend: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        options: dict[str, Any] | None = None,
+        force_backend: str | None = None,
+    ) -> dict[str, Any]:
         backend = self._resolve_backend(force_backend)
         start = asyncio.get_event_loop().time()
         try:
@@ -724,17 +688,15 @@ class WebScrapingService:
                 result = await self._fallback_backend.scrape_url(url, options)
         duration = asyncio.get_event_loop().time() - start
         status = "completed" if result.get("success") else "failed"
-        self._logger.info(
-            "Scrape %s using %s in %.2fs", status, result.get("backend"), duration
-        )
+        self._logger.info("Scrape %s using %s in %.2fs", status, result.get("backend"), duration)
         return result
 
     async def crawl_site(
         self,
         start_url: str,
-        options: Optional[Dict[str, Any]] = None,
-        force_backend: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        options: dict[str, Any] | None = None,
+        force_backend: str | None = None,
+    ) -> dict[str, Any]:
         self._assert_valid_url(start_url)
         backend = self._resolve_backend(force_backend)
         try:
@@ -745,9 +707,9 @@ class WebScrapingService:
     async def extract_structured_data(
         self,
         url: str,
-        schema: Dict[str, Any],
-        options: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        schema: dict[str, Any],
+        options: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         backend = self._resolve_backend()
         if backend.backend_name != "firecrawl":
             return {
@@ -760,26 +722,24 @@ class WebScrapingService:
         try:
             return await backend.extract_structured_data(url, schema, options)
         except FirecrawlUnavailableError as exc:
-            self._logger.warning(
-                "Firecrawl unavailable during extract_structured_data for %s", url
-            )
+            self._logger.warning("Firecrawl unavailable during extract_structured_data for %s", url)
             raise exc
 
     async def map_urls(
         self,
         url: str,
-        options: Optional[Dict[str, Any]] = None,
-        force_backend: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        options: dict[str, Any] | None = None,
+        force_backend: str | None = None,
+    ) -> dict[str, Any]:
         backend = self._resolve_backend(force_backend)
         try:
             return await backend.map_urls(url, options)
         except FirecrawlUnavailableError as exc:
             return await self._handle_fallback("map_urls", url, options, exc)
 
-    async def health_check(self) -> Dict[str, Any]:
+    async def health_check(self) -> dict[str, Any]:
         status = "healthy"
-        backends: Dict[str, Any] = {}
+        backends: dict[str, Any] = {}
 
         for backend in filter(None, [self._primary_backend, self._fallback_backend]):
             try:
@@ -793,12 +753,12 @@ class WebScrapingService:
 
         aggregated_status = {
             "status": status,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "backends": backends,
         }
         return aggregated_status
 
-    def get_backend_info(self) -> Dict[str, Any]:
+    def get_backend_info(self) -> dict[str, Any]:
         active_backend = self._primary_backend.backend_name
         capabilities = ["scrape", "crawl", "map"]
         if active_backend == "firecrawl":
@@ -819,11 +779,10 @@ class WebScrapingService:
         )
         self._primary_backend = backend
 
-    def _resolve_backend(self, force_backend: Optional[str] = None) -> WebScraperBackend:
+    def _resolve_backend(self, force_backend: str | None = None) -> WebScraperBackend:
         if force_backend:
-            if (
-                self._primary_backend.backend_name == force_backend
-                or (self._fallback_backend and self._fallback_backend.backend_name == force_backend)
+            if self._primary_backend.backend_name == force_backend or (
+                self._fallback_backend and self._fallback_backend.backend_name == force_backend
             ):
                 return (
                     self._primary_backend
@@ -837,9 +796,9 @@ class WebScrapingService:
         self,
         method: str,
         url: str,
-        options: Optional[Dict[str, Any]],
+        options: dict[str, Any] | None,
         error: Exception,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         if not self._fallback_backend:
             raise error
         self._fallback_count += 1
@@ -857,20 +816,20 @@ class WebScrapingService:
             raise ValueError(f"Invalid URL scheme for {url}")
 
 
-def _env_bool(value: Optional[str], default: bool) -> bool:
+def _env_bool(value: str | None, default: bool) -> bool:
     if value is None:
         return default
     return value.lower() in {"1", "true", "yes", "on"}
 
 
 def create_web_scraping_service(
-    backend: Optional[str] = None,
-    config_service: Optional[Any] = None,
+    backend: str | None = None,
+    config_service: Any | None = None,
 ) -> WebScrapingService:
     """Factory for ``WebScrapingService`` instances following config patterns."""
 
     logger = logging.getLogger("krai.scraping")
-    config: Dict[str, Any] = {}
+    config: dict[str, Any] = {}
 
     if config_service:
         config = config_service.get_scraping_config()
@@ -880,17 +839,13 @@ def create_web_scraping_service(
             "firecrawl_api_url": os.getenv("FIRECRAWL_API_URL", "http://localhost:3002"),
             "firecrawl_llm_provider": os.getenv("FIRECRAWL_LLM_PROVIDER", "ollama"),
             "firecrawl_model_name": os.getenv("FIRECRAWL_MODEL_NAME", "llama3.2:latest"),
-            "firecrawl_embedding_model": os.getenv(
-                "FIRECRAWL_EMBEDDING_MODEL", "nomic-embed-text:latest"
-            ),
+            "firecrawl_embedding_model": os.getenv("FIRECRAWL_EMBEDDING_MODEL", "nomic-embed-text:latest"),
             "max_concurrency": int(os.getenv("FIRECRAWL_MAX_CONCURRENCY", "4")),
             "scrape_timeout": float(os.getenv("FIRECRAWL_SCRAPE_TIMEOUT", "300")),
             "crawl_timeout": float(os.getenv("FIRECRAWL_CRAWL_TIMEOUT", "900")),
             "retries": int(os.getenv("FIRECRAWL_RETRIES", "3")),
             "block_media": _env_bool(os.getenv("FIRECRAWL_BLOCK_MEDIA"), True),
-            "allow_local_webhooks": _env_bool(
-                os.getenv("FIRECRAWL_ALLOW_LOCAL_WEBHOOKS"), True
-            ),
+            "allow_local_webhooks": _env_bool(os.getenv("FIRECRAWL_ALLOW_LOCAL_WEBHOOKS"), True),
             "proxy_server": os.getenv("FIRECRAWL_PROXY_SERVER"),
             "proxy_username": os.getenv("FIRECRAWL_PROXY_USERNAME"),
             "proxy_password": os.getenv("FIRECRAWL_PROXY_PASSWORD"),
@@ -903,7 +858,7 @@ def create_web_scraping_service(
     mock_mode = bool(config.get("mock_mode", False))
 
     bs_backend = BeautifulSoupBackend(mock_mode=mock_mode)
-    firecrawl_backend: Optional[FirecrawlBackend] = None
+    firecrawl_backend: FirecrawlBackend | None = None
 
     if backend_name == "firecrawl":
         try:
@@ -918,9 +873,7 @@ def create_web_scraping_service(
                 api_url=config.get("firecrawl_api_url", "http://localhost:3002"),
                 llm_provider=config.get("firecrawl_llm_provider", "ollama"),
                 model_name=config.get("firecrawl_model_name", "llama3.2:latest"),
-                embedding_model=config.get(
-                    "firecrawl_embedding_model", "nomic-embed-text:latest"
-                ),
+                embedding_model=config.get("firecrawl_embedding_model", "nomic-embed-text:latest"),
                 timeout=float(config.get("scrape_timeout", 30.0)),
                 crawl_timeout=float(config.get("crawl_timeout", 300.0)),
                 retries=int(config.get("retries", 3)),
