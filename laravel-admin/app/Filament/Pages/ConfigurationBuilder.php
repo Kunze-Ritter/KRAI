@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Models\Product;
 use App\Models\ProductConfiguration;
+use BackedEnum;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
@@ -13,18 +14,19 @@ use Filament\Forms\Components\Wizard;
 use Filament\Forms\Form;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Http;
+use UnitEnum;
 
 class ConfigurationBuilder extends Page
 {
-    protected static ?string $navigationIcon = 'heroicon-o-wrench-screwdriver';
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-wrench-screwdriver';
 
     protected static ?string $navigationLabel = 'Konfigurations-Builder';
 
     protected static ?string $title = 'Konfigurations-Builder';
 
-    protected static string $view = 'filament.pages.configuration-builder';
+    protected string $view = 'filament.pages.configuration-builder';
 
-    protected static ?string $navigationGroup = 'Konfiguration';
+    protected static string|UnitEnum|null $navigationGroup = 'Konfiguration';
 
     protected static ?int $navigationSort = 1;
 
