@@ -71,17 +71,9 @@ class DocumentForm
                     ])
                     ->nullable(),
 
-                Select::make('series_id')
+                TextInput::make('series')
                     ->label('Serie')
-                    ->relationship('series', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->createOptionForm([
-                        TextInput::make('name')
-                            ->label('Serienname')
-                            ->required(),
-                    ])
-                    ->nullable(),
+                    ->maxLength(100),
 
                 Toggle::make('manual_review_required')
                     ->label('Manuelle Prüfung erforderlich'),
