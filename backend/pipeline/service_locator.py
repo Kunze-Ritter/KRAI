@@ -4,16 +4,16 @@ Lazy loading of services and processors to reduce import time.
 Import this module instead of importing services directly.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any, ClassVar
 
 
 class ServiceLocator:
     """Lazy service and processor locator."""
-    
-    _services: Dict[str, Any] = {}
-    
+
+    _services: ClassVar[dict[str, Any]] = {}
+
     # Service mappings (module path -> class/function name)
-    SERVICE_MAP = {
+    SERVICE_MAP: ClassVar = {
         # Services
         "ObjectStorageService": "backend.services.object_storage_service.ObjectStorageService",
         "create_storage_service": "backend.services.storage_factory.create_storage_service",
@@ -26,8 +26,9 @@ class ServiceLocator:
         "ManufacturerVerificationService": "backend.services.manufacturer_verification_service.ManufacturerVerificationService",
         "create_web_scraping_service": "backend.services.web_scraping_service.create_web_scraping_service",
         "PerformanceCollector": "backend.services.performance_service.PerformanceCollector",
+        "AlertService": "backend.services.alert_service.AlertService",
+        "StageAlertManager": "backend.services.stage_alert_manager.StageAlertManager",
         "apply_colored_logging_globally": "backend.utils.colored_logging.apply_colored_logging_globally",
-        
         # Processors
         "UploadProcessor": "backend.processors.upload_processor.UploadProcessor",
         "OptimizedTextProcessor": "backend.processors.text_processor_optimized.OptimizedTextProcessor",
@@ -48,34 +49,35 @@ class ServiceLocator:
         "VideoEnrichmentProcessor": "backend.processors.video_enrichment_processor.VideoEnrichmentProcessor",
         "get_pipeline_config": "backend.processors.pipeline_config.get_pipeline_config",
     }
-    
+
     @classmethod
     def get(cls, name: str) -> Any:
         """Get a service or processor by name (lazy loaded)."""
         if name not in cls._services:
             if name not in cls.SERVICE_MAP:
                 raise ImportError(f"Unknown service: {name}")
-            
+
             import importlib
+
             full_path = cls.SERVICE_MAP[name]
             module_path, attr_name = full_path.rsplit(".", 1)
             module = importlib.import_module(module_path)
             cls._services[name] = getattr(module, attr_name)
-        
+
         return cls._services[name]
-    
+
     @classmethod
     def preload(cls, *names: str) -> None:
         """Preload specific services."""
         for name in names:
             cls.get(name)
-    
+
     @classmethod
     def preload_all(cls) -> None:
         """Preload all services (useful for testing)."""
         for name in cls.SERVICE_MAP:
             cls.get(name)
-    
+
     @classmethod
     def clear_cache(cls) -> None:
         """Clear the cache (useful for testing)."""

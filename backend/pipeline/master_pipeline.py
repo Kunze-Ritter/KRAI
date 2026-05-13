@@ -231,6 +231,18 @@ class KRMasterPipeline:
             database_service=self.database_service, web_scraping_service=web_scraping_service
         )
 
+        # Initialize alert service
+        AlertService = ServiceLocator.get("AlertService")
+        self.alert_service = AlertService(
+            database_adapter=self.database_service, metrics_service=self.performance_service
+        )
+        self.logger.info("✅ Alert service initialized")
+
+        # Initialize stage alert manager
+        StageAlertManager = ServiceLocator.get("StageAlertManager")
+        self.stage_alert_manager = StageAlertManager(alert_service=self.alert_service)
+        self.logger.info("✅ Stage alert manager initialized")
+
         # Initialize performance collector
         if self.performance_service is None:
             PerformanceCollector = ServiceLocator.get("PerformanceCollector")
@@ -924,9 +936,33 @@ class KRMasterPipeline:
                         failed_stages.append(stage_name)
                         failure_message = message or "Unknown error"
                         self.logger.warning("    ❌ %s failed: %s", stage_name.capitalize(), failure_message)
-                except Exception:
+                        # Alert on stage failure
+                        try:
+                            await self.stage_alert_manager.alert_stage_failure(
+                                stage_name=stage_name,
+                                context=context,
+                                error=Exception(failure_message),
+                                is_transient=False,
+                                retry_attempt=3,
+                                max_retries=3,
+                            )
+                        except Exception as alert_error:
+                            self.logger.warning("Failed to send stage failure alert: %s", alert_error)
+                except Exception as e:
                     failed_stages.append(stage_name)
                     self.logger.error("    ❌ %s raised an exception", stage_name.capitalize(), exc_info=True)
+                    # Alert on stage exception
+                    try:
+                        await self.stage_alert_manager.alert_stage_failure(
+                            stage_name=stage_name,
+                            context=context,
+                            error=e,
+                            is_transient=False,
+                            retry_attempt=3,
+                            max_retries=3,
+                        )
+                    except Exception as alert_error:
+                        self.logger.warning("Failed to send stage failure alert: %s", alert_error)
 
             if not failed_stages:
                 await self.database_service.update_document_status(document_id, "completed")
@@ -954,12 +990,25 @@ class KRMasterPipeline:
                 for issue in issues[:3]:
                     self.logger.warning("      %s", issue)
 
+            # Alert on pipeline completion
+            total_stages = len(completed_stages) + len(failed_stages)
+            try:
+                await self.stage_alert_manager.alert_pipeline_completion(
+                    document_id=document_id,
+                    total_stages=total_stages,
+                    successful_stages=len(completed_stages),
+                    failed_stages=len(failed_stages),
+                    correlation_id=getattr(context, "correlation_id", document_id),
+                )
+            except Exception as alert_error:
+                self.logger.warning("Failed to send pipeline completion alert: %s", alert_error)
+
             return {
                 "success": len(completed_stages) > 0,
                 "filename": filename,
                 "completed_stages": completed_stages,
                 "failed_stages": failed_stages,
-                "total_stages": len(completed_stages) + len(failed_stages),
+                "total_stages": total_stages,
                 "quality_score": score,
                 "quality_passed": quality_result.get("passed"),
             }
