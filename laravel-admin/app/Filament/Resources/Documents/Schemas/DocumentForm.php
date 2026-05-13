@@ -117,6 +117,19 @@ class DocumentForm
                             ->label('')
                             ->view('filament.forms.components.stage-status-display')
                             ->columnSpanFull(),
+
+                        ViewField::make('stage_activity_log')
+                            ->label('Aktivitätslog')
+                            ->view('filament.forms.components.stage-activity-log')
+                            ->columnSpanFull()
+                            ->afterStateHydrated(function ($component, $record) {
+                                if (! $record) {
+                                    return;
+                                }
+
+                                $activityLog = $record->getStageActivityLog();
+                                $component->state($activityLog);
+                            }),
                     ])
                     ->collapsible()
                     ->collapsed(false)

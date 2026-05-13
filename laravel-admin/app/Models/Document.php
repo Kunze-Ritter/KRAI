@@ -71,4 +71,23 @@ class Document extends Model
     {
         return $this->belongsTo(Manufacturer::class, 'manufacturer_id');
     }
+
+    public function getStageActivityLog(): array
+    {
+        $stages = \DB::connection('pgsql')
+            ->table('krai_system.stage_tracking')
+            ->where('document_id', $this->id)
+            ->orderBy('created_at')
+            ->get()
+            ->map(fn ($stage) => [
+                'stage_name' => $stage->stage_name,
+                'status' => $stage->status,
+                'error_message' => $stage->error_message,
+                'created_at' => $stage->created_at,
+                'retry_count' => $stage->retry_count ?? 0,
+            ])
+            ->toArray();
+
+        return $stages;
+    }
 }

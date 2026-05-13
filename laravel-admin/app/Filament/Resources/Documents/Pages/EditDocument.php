@@ -16,6 +16,16 @@ class EditDocument extends EditRecord
 {
     protected static string $resource = DocumentResource::class;
 
+    public function getPollingInterval(): ?string
+    {
+        $record = $this->getRecord();
+        $status = $record?->processing_status?->value ?? '';
+
+        return in_array($status, ['processing', 'pending', 'queued'])
+            ? '5s'
+            : null;
+    }
+
     /**
      * Render the body text shown in the "Status prüfen" notification, given the
      * normalized response from KraiEngineService::getDocumentStatus().
