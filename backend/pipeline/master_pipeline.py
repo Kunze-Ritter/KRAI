@@ -2258,8 +2258,6 @@ class KRMasterPipeline:
                 temp_download_path.write_bytes(file_bytes)
                 return str(temp_download_path)
 
-            resolved_document_path = getattr(document, "storage_path", None)
-
             # Enforce stage dependencies for single-stage runs
             stage_status = await self.get_document_stage_status(document_id)
             stage_name = stage.value
@@ -2278,8 +2276,15 @@ class KRMasterPipeline:
                     "processor": processor_key,
                 }
 
-            # Upload must be completed (and storage_path must exist) before text/table stages
-            if stage in [Stage.TEXT_EXTRACTION, Stage.TABLE_EXTRACTION]:
+            # Upload must be completed (and storage_path must exist) before PDF-reading stages
+            pdf_reading_stages = [
+                Stage.TEXT_EXTRACTION,
+                Stage.TABLE_EXTRACTION,
+                Stage.SVG_PROCESSING,
+                Stage.IMAGE_PROCESSING,
+                Stage.LINK_EXTRACTION,
+            ]
+            if stage in pdf_reading_stages:
                 if not stage_status.get("upload"):
                     return await _tracked_failure(
                         f"Cannot run stage '{stage_name}' for document {document_id}: "
@@ -2287,13 +2292,14 @@ class KRMasterPipeline:
                     )
 
                 storage_path = getattr(document, "storage_path", None)
-                resolved_storage_path = await _resolve_local_document_path(storage_path)
-                if not resolved_storage_path or not os.path.exists(resolved_storage_path):
+                resolved_document_path = await _resolve_local_document_path(storage_path)
+                if not resolved_document_path or not os.path.exists(resolved_document_path):
                     return await _tracked_failure(
                         f"Cannot run stage '{stage_name}' for document {document_id}: "
                         "no valid storage_path/resolved_path found on disk"
                     )
-                resolved_document_path = resolved_storage_path
+            else:
+                resolved_document_path = getattr(document, "storage_path", None)
 
             # Text extraction must be completed before table extraction
             if stage == Stage.TABLE_EXTRACTION and not stage_status.get("text_extraction"):
@@ -2369,6 +2375,7 @@ class KRMasterPipeline:
                 Stage.TABLE_EXTRACTION,
                 Stage.SVG_PROCESSING,
                 Stage.IMAGE_PROCESSING,
+                Stage.LINK_EXTRACTION,
             ]:
                 file_path = resolved_file_path
                 if file_path and os.path.exists(file_path):
