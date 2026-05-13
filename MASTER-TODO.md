@@ -60,7 +60,7 @@
 |---|------|--------------|--------|
 | 4 | **Type Annotations** | MyPy konfigurieren, viele `Any` entfernen | 🔄 In Progress |
 | 5 | **Performance Profiling** | Benchmark für Stage-Zeiten nach Fixes | ✅ DONE |
-| 6 | **Fehler-Alerting** | Automatische Benachrichtigungen bei Stage-Fehlern | 📝 TODO |
+| 6 | **Fehler-Alerting** | Automatische Benachrichtigungen bei Stage-Fehlern | ✅ DONE |
 | 7 | **Dashboard Verbindungen** | Visuelle Links zwischen verwandten Dokumenten | 📝 TODO |
 
 ### Niedrige Priorität (Nice-to-Have)
@@ -102,11 +102,26 @@
 - [x] **Image Processor** — Empfängt jetzt korrekte Dateipfade
 - [x] **Link Extraction** — Hinzugefügt zur Liste der Dateipfad-Stadien
 
+### Error Alerting System ✅ ERLEDIGT
+- [x] **StageAlertManager Service** — Intelligente Fehler-Benachrichtigungen für Stage-Ausfälle
+  - stage_alert_manager.py: Service mit Severity-Escalation und Criticality-Mapping
+  - Alerts on stage failures with context (error type, document, retry info)
+  - Alerts on pipeline completion with summary (success/partial/failed)
+  - 13 comprehensive test cases in test_stage_alert_manager.py
+- [x] **Integration in master_pipeline.py** — Stage-Fehler triggern automatisch Alerts
+  - Alert auf Stage-Fehler (success=False oder Exception)
+  - Alert auf Pipeline-Completion mit Summary (completed/partial/failed stages)
+  - Graceful degradation wenn AlertService unavailable
+- [x] **ServiceLocator Registration** — AlertService und StageAlertManager in Service-Registry
+  - Lazy loading via backend.services.alert_service.AlertService
+  - Lazy loading via backend.services.stage_alert_manager.StageAlertManager
+- [x] **Code Quality** — Linting und Formatting (ruff, black, isort, bandit) — alle Checks passing
+
 ### Infrastructure & Code Quality
 - [x] Docker Container (krai-engine) neu gestartet und health-checks bestätigt
 - [x] Git Merge-Conflict (version file) aufgelöst
 - [x] Pre-commit Hooks (black, isort, ruff, bandit) konfiguriert und automatisch applied
-- [x] Commits zu GitHub gepusht (29e4d63, de49f25)
+- [x] Commits zu GitHub gepusht (9bb106e mit Error Alerting System)
 
 ---
 
@@ -128,14 +143,15 @@
 ✅ 1. Integration-Tests für alle 4 Stage-Fixes schreiben (SVG/Image/Link/Visual)
 ✅ 2. Dashboard mit Fehler-Indikatoren erweitern (farbige Symbole)
 ✅ 3. Performance Profiling nach Fixes durchführen
+✅ 5. Fehler-Alerting System implementieren für Stage-Fehler
 🔄 4. Type Annotations in kritischen Paths verbessern
 ```
 
 ### Danach:
 ```
-5. Fehler-Alerting System aktivieren für kritische Stage-Fehler
 6. Dashboard-Links zwischen verwandten Dokumenten hinzufügen
 7. Foliant-System Integration prüfen
+8. Type Annotations finalisieren (MyPy vollständig)
 ```
 
 ## 📈 Metriken (seit März)
