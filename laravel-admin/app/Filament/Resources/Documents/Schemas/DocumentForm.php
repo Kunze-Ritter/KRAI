@@ -4,12 +4,12 @@ namespace App\Filament\Resources\Documents\Schemas;
 
 use App\Enums\DocumentProcessingStatus;
 use App\Models\Manufacturer;
-use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\ViewField;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
 class DocumentForm
@@ -60,22 +60,28 @@ class DocumentForm
 
                 Select::make('manufacturer_id')
                     ->label('Hersteller')
-                    ->options(fn (): array => Manufacturer::query()
-                        ->orderBy('name')
-                        ->pluck('name', 'id')
-                        ->toArray()
-                    )
+                    ->relationship('manufacturer', 'name')
                     ->searchable()
                     ->preload()
+                    ->createOptionForm([
+                        TextInput::make('name')
+                            ->label('Herstellername')
+                            ->required()
+                            ->unique(Manufacturer::class, 'name'),
+                    ])
                     ->nullable(),
 
-                TextInput::make('manufacturer')
-                    ->label('Hersteller (Text)')
-                    ->maxLength(100),
-
-                TextInput::make('series')
+                Select::make('series_id')
                     ->label('Serie')
-                    ->maxLength(100),
+                    ->relationship('series', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->createOptionForm([
+                        TextInput::make('name')
+                            ->label('Serienname')
+                            ->required(),
+                    ])
+                    ->nullable(),
 
                 Toggle::make('manual_review_required')
                     ->label('Manuelle Prüfung erforderlich'),
@@ -128,11 +134,11 @@ class DocumentForm
                         ViewField::make('stage_status_display')
                             ->label('')
                             ->view('filament.forms.components.stage-status-display')
-                            ->columnSpanFull()
+                            ->columnSpanFull(),
                     ])
                     ->collapsible()
                     ->collapsed(false)
-                    ->visible(fn($record) => $record && !empty($record->stage_status)),
+                    ->visible(fn ($record) => $record && ! empty($record->stage_status)),
             ]);
     }
 }
