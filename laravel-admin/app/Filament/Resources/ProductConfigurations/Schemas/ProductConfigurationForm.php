@@ -9,7 +9,6 @@ use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\View;
 use Filament\Schemas\Schema;
 
 class ProductConfigurationForm
@@ -61,13 +60,6 @@ class ProductConfigurationForm
                                 'invalid' => 'Ungültig',
                             ])
                             ->required(),
-
-                        View::make('validation-result')
-                            ->viewData([
-                                'errors' => null,
-                                'warnings' => null,
-                                'recommendations' => null,
-                            ]),
                     ]),
 
                 Section::make('Metadaten')
