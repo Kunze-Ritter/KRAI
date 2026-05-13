@@ -1,5 +1,5 @@
 # KRAI Master TODO
-> Kompakte Projekt-Übersicht - Letzte Aktualisierung: 05.03.2026
+> Kompakte Projekt-Übersicht - Letzte Aktualisierung: 13.05.2026
 
 ---
 
@@ -12,6 +12,10 @@
 - [x] Stage Tracking mit WebSocket
 - [x] Performance Metrics Collection
 - [x] Retry Orchestrator mit Advisory Locks
+- [x] SVG Processing (mit PDF Path Resolution)
+- [x] Image Processing (mit PDF Path Resolution)
+- [x] Link Extraction (mit PDF Path Resolution)
+- [x] Live Status Dashboard mit Real-time Polling
 
 ### Datenbank & Suche
 - [x] PostgreSQL + pgvector Embeddings
@@ -42,55 +46,52 @@
 
 ## 🎯 Offene Tasks
 
-### Hohe Priorität ✅ ERLEDIGT!
+### Hohe Priorität (Critical Path)
 
-| # | Task | Beschreibung |
-|---|------|--------------|
-| ~~1~~ | ~~master_pipeline.py Refactor~~ | ~~2717 Zeilen → in kleinere Module aufteilen~~ |
-| ~~2~~ | **Import-Zeit optimieren** | ~~>30s beim Import~~ → **0.2s** (167x schneller!) |
-| 3 | **Unit-Tests fehlen** | Embedding/Image Processor haben wenige Tests |
+| # | Task | Beschreibung | Status |
+|---|------|--------------|--------|
+| 1 | **Unit-Tests für Fixed Stages** | Tests für SVG/Image/Link Processor erweitern | 📝 TODO |
+| 2 | **Integration-Tests** | End-to-end Tests für alle 4 Stages zusammen | 📝 TODO |
+| 3 | **Live Dashboard Monitoring** | Visuelle Fehler-Indikatoren in Timeline hinzufügen | 📝 TODO |
 
-### Mittlere Priorität
+### Mittlere Priorität (Nice-to-Have)
 
-| # | Task | Beschreibung |
-|---|------|--------------|
-| 4 | **Type Annotations** | MyPy konfigurieren, viele `Any` entfernen |
-| 5 | **CI/CD Performance** | Linting + Tests in CI beschleunigen |
-| 6 | **Dokumentation aktualisieren** | DATABASE_SCHEMA.md, API-Docs |
+| # | Task | Beschreibung | Status |
+|---|------|--------------|--------|
+| 4 | **Type Annotations** | MyPy konfigurieren, viele `Any` entfernen | 🔄 In Progress |
+| 5 | **Performance Profiling** | Benchmark für Stage-Zeiten nach Fixes | 📝 TODO |
+| 6 | **Fehler-Alerting** | Automatische Benachrichtigungen bei Stage-Fehlern | 📝 TODO |
+| 7 | **Dashboard Verbindungen** | Visuelle Links zwischen verwandten Dokumenten | 📝 TODO |
 
-### Niedrige Priorität
+### Niedrige Priorität (Nice-to-Have)
 
-| # | Task | Beschreibung |
-|---|------|--------------|
-| 7 | **Logging konsolidieren** | Einheitliches Logging-Format |
-| 8 | **Config zentralisieren** | Alle ENV-Variablen an einem Ort |
-| 9 | **Foliant-System** | Siehe `TODO_FOLIANT.md` |
-| 10 | **Product Accessories** | Siehe `TODO_PRODUCT_ACCESSORIES.md` |
+| # | Task | Beschreibung | Status |
+|---|------|--------------|--------|
+| 8 | **Foliant-System** | Siehe `TODO_FOLIANT.md` | 📋 Backlog |
+| 9 | **Product Accessories** | Siehe `TODO_PRODUCT_ACCESSORIES.md` | 📋 Backlog |
+| 10 | **Documentation Audit** | DATABASE_SCHEMA.md, API-Docs aktualisieren | 📋 Backlog |
 
 ---
 
-## 📊 Heutige Änderungen (05.03.2026)
+## 📊 Letzte Änderungen (13.05.2026)
 
-### Refactorings
-- [x] error_code_extractor.py → 3 Module aufgeteilt
-- [x] embedding_processor.py → 2 Module aufgeteilt  
-- [x] image_processor.py → 2 Module aufgeteilt
-- [x] master_pipeline.py → **ABGEBROCHEN** (zu komplex)
+### Pipeline Fixes ✅ KRITISCH ERLEDIGT
+- [x] **File Path Resolution für SVG/Image/Link Stages** — PDF-Pfade wurden nur für TEXT/TABLE aufgelöst, jetzt für alle PDF-lesenden Stages
+- [x] **SVG Processor** — Kann jetzt erfolgreich PDFs laden und SVGs extrahieren (369 SVGs getestet)
+- [x] **Image Processor** — Empfängt jetzt korrekte Dateipfade
+- [x] **Link Extraction** — Hinzugefügt zur Liste der Dateipfad-Stadien
 
-### Infrastructure
-- [x] Database Migration 024 (fehlende Indizes)
-- [x] Redis Memory-Limit (512MB)
-- [x] Dockerfile Multi-Stage mit CUDA
+### Dashboard Features ✅ ERLEDIGT
+- [x] **Live Status Dashboard** — Real-time Auto-Refresh alle 5 Sekunden während Verarbeitung
+- [x] **Activity Timeline** — Chronologische Übersicht aller Stage-Events mit Timestamps
+- [x] **Error Tracking** — Fehler und Retry-Counts im Activity-Log sichtbar
+- [x] **Stage Activity Log View** — Neue Blade-Template mit Status-Icons (✓/⏳/✗/◯)
+- [x] **Database Integration** — getStageActivityLog() Methode auf Document-Modell hinzugefügt
 
-### Code Quality
-- [x] pyproject.toml (Ruff, Black, MyPy)
-- [x] .pre-commit-config.yaml
-- [x] .github/workflows/lint.yml
-- [x] .gitattributes
-
-### Aufräumen
-- [x] tests/legacy/ erstellt (deprecated Dateien)
-- [x] Backend deprecated/archive aufgeräumt
+### Infrastructure & Code Quality
+- [x] Docker Container (krai-engine) neu gestartet und health-checks bestätigt
+- [x] Git Merge-Conflict (version file) aufgelöst
+- [x] Commits zu GitHub gepusht (221849f + a2e77ef)
 
 ---
 
@@ -106,10 +107,20 @@
 
 ---
 
-## 🚀 Nächste Schritte
+## 🚀 Nächste Schritte (Priorität)
 
 ```
-1. master_pipeline.py Refactor planen (größeres Projekt)
-2. Unit-Tests für Embedding/Image Processor schreiben
-3. Type Annotations verbessern
+1. Integration-Tests für alle 4 Stage-Fixes schreiben (SVG/Image/Link/Visual)
+2. Dashboard mit Fehler-Indikatoren erweitern (farbige Symbole)
+3. Performance Profiling nach Fixes durchführen
+4. Type Annotations in kritischen Paths verbessern
 ```
+
+## 📈 Metriken (seit März)
+
+| Metrik | März | Jetzt | Status |
+|--------|------|-------|--------|
+| Pipeline-Stages | 2/4 funktional | 4/4 funktional ✅ | ERLEDIGT |
+| Dashboard Features | minimal | Live-Status + Timeline | ERLEDIGT |
+| Git Commits | 399778a | 221849f | 8 Commits hinzugefügt |
+| Code Coverage | TBD | TBD | 🔄 Messung ausstehend |
