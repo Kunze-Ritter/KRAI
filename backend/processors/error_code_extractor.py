@@ -16,7 +16,7 @@ OEM/REBRAND SUPPORT:
 import json
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
 from backend.config.oem_mappings import get_effective_manufacturer
@@ -63,7 +63,7 @@ class ErrorCodeExtractor:
         """Initialize error code extractor with configuration"""
 
         self.logger = get_logger()
-        self._chunk_cache = {}  # Cache chunks to avoid repeated queries
+        self._chunk_cache: dict[str, Any] = {}  # Cache chunks to avoid repeated queries
         self._missing_manufacturer_events: list[dict[str, Any]] = []
 
         if config_path is None:
@@ -81,7 +81,7 @@ class ErrorCodeExtractor:
         """Load error code patterns configuration"""
         try:
             with open(self.config_path, encoding="utf-8") as f:
-                return json.load(f)
+                return cast(dict[str, Any], json.load(f))
         except FileNotFoundError:
             logger.warning(f"Error code patterns config not found: {self.config_path}")
             return {"extraction_rules": {}}
@@ -640,13 +640,13 @@ class ErrorCodeExtractor:
             return None
         method = hierarchy_rules.get("derive_parent")
         if method == "first_n_segments":
-            sep = hierarchy_rules.get("separator", ".")
+            sep = cast(str, hierarchy_rules.get("separator", "."))
             parts = code.split(sep)
-            n = hierarchy_rules.get("parent_segments", 2)
+            n = cast(int, hierarchy_rules.get("parent_segments", 2))
             if len(parts) > n:
                 return sep.join(parts[:n])
         elif method == "prefix_digits":
-            length = hierarchy_rules.get("prefix_length", 3)
+            length = cast(int, hierarchy_rules.get("prefix_length", 3))
             if len(code) > length:
                 return code[:length]
         return None
@@ -1071,7 +1071,7 @@ class ErrorCodeExtractor:
             return []
 
         # Group by error_code
-        seen = {}
+        seen: dict[str, ExtractedErrorCode] = {}
         for ec in error_codes:
             key = ec.error_code
             if key not in seen or ec.confidence > seen[key].confidence:
@@ -1229,7 +1229,8 @@ class ErrorCodeExtractor:
         try:
             result = client.table("vw_manufacturers").select("name").eq("id", str(manufacturer_id)).limit(1).execute()
             if result.data:
-                return result.data[0].get("name")
+                name = result.data[0].get("name")
+                return cast(str | None, name)
         except Exception as exc:  # pragma: no cover - defensive logging
             self.logger.debug("Failed to load manufacturer name for %s: %s", manufacturer_id, exc)
 
@@ -1241,7 +1242,8 @@ class ErrorCodeExtractor:
         for name in (effective_manufacturer, manufacturer_name):
             key = self._get_manufacturer_key(name)
             if key and key in self.patterns_config:
-                return self.patterns_config[key].get("validation_regex")
+                regex = self.patterns_config[key].get("validation_regex")
+                return cast(str | None, regex)
         return None
 
     def validate_extraction(self, error_code: ExtractedErrorCode) -> list[ValError]:

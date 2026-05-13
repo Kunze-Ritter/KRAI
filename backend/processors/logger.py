@@ -5,32 +5,31 @@ Uses rich for colored, formatted console output.
 """
 
 import hashlib
-import logging
-import sys
 import io
+import logging
 import os
 import re
-from pathlib import Path
+import sys
 from datetime import datetime
-from typing import Optional, Any, Dict
+from logging import Handler
 from logging.handlers import RotatingFileHandler, TimedRotatingFileHandler
+from pathlib import Path
+from typing import Any
 
 try:
-    from rich.logging import RichHandler
     from rich.console import Console
-    from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
-    from rich.table import Table
+    from rich.logging import RichHandler
     from rich.panel import Panel
-    from rich import print as rprint
+    from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
+    from rich.table import Table
+
     RICH_AVAILABLE = True
 except ImportError:
     RICH_AVAILABLE = False
     root_logger = logging.getLogger()
     if not root_logger.handlers:
         logging.basicConfig(
-            level=logging.INFO,
-            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-            datefmt='%H:%M:%S'
+            level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", datefmt="%H:%M:%S"
         )
     logging.warning("'rich' not installed. Install with: pip install rich. Falling back to basic logging.")
 
@@ -66,7 +65,7 @@ def _mask_pii(text: str) -> str:
     return masked
 
 
-def sanitize_text(text: Optional[str], max_length: Optional[int] = None) -> str:
+def sanitize_text(text: str | None, max_length: int | None = None) -> str:
     """
     Apply PII masking and truncate overly long strings for safe logging.
 
@@ -87,7 +86,7 @@ def sanitize_text(text: Optional[str], max_length: Optional[int] = None) -> str:
     return f"{sanitized[:limit]}… (+{len(sanitized) - limit} chars)"
 
 
-def sanitize_document_name(name: Optional[str]) -> str:
+def sanitize_document_name(name: str | None) -> str:
     """Hash document-identifying names when LOG_REDACT is enabled."""
     if not name:
         return ""
@@ -98,13 +97,13 @@ def sanitize_document_name(name: Optional[str]) -> str:
     return name
 
 
-def text_stats(text: Optional[str]) -> Dict[str, Any]:
+def text_stats(text: str | None) -> dict[str, Any]:
     """Return aggregate statistics about a text payload without exposing content."""
     if not text:
         return {"length": 0, "words": 0, "empty": True}
 
     masked = _mask_pii(text)
-    summary: Dict[str, Any] = {
+    summary: dict[str, Any] = {
         "length": len(masked),
         "words": len(masked.split()),
         "empty": False,
@@ -119,15 +118,15 @@ def text_stats(text: Optional[str]) -> Dict[str, Any]:
     return summary
 
 
-def summarize_payload(payload: Any) -> Dict[str, Any]:
+def summarize_payload(payload: Any) -> dict[str, Any]:
     """Generate a structure-free summary for logging without exposing raw data."""
-    summary: Dict[str, Any] = {"type": type(payload).__name__}
+    summary: dict[str, Any] = {"type": type(payload).__name__}
 
     if isinstance(payload, str):
         summary.update(text_stats(payload))
         return summary
 
-    if isinstance(payload, (bytes, bytearray)):
+    if isinstance(payload, bytes | bytearray):
         summary["length"] = len(payload)
         summary["empty"] = len(payload) == 0
         return summary
@@ -141,7 +140,7 @@ def summarize_payload(payload: Any) -> Dict[str, Any]:
             summary["prompt_stats"] = text_stats(payload["prompt"])
         return summary
 
-    if isinstance(payload, (list, tuple, set)):
+    if isinstance(payload, list | tuple | set):
         summary["items"] = len(payload)
         return summary
 
@@ -151,17 +150,16 @@ def summarize_payload(payload: Any) -> Dict[str, Any]:
 
 class ProcessorLogger:
     """Enhanced logger with rich formatting"""
-    
-    def __init__(self, name: str = "processor_v2", log_file: Optional[Path] = None):
+
+    def __init__(self, name: str = "processor_v2", log_file: Path | None = None):
         self.name = name
         self.log_file = log_file
         self.logger = self._setup_logger()
-        
+        self.console: Console | None = None
+
         if RICH_AVAILABLE:
             self.console = Console()
-        else:
-            self.console = None
-    
+
     def _setup_logger(self) -> logging.Logger:
         """Setup logger with rich handler"""
         logger = logging.getLogger(self.name)
@@ -173,6 +171,7 @@ class ProcessorLogger:
         logger.handlers.clear()
 
         console_enabled = _env_bool("LOG_TO_CONSOLE", True)
+        console_handler: Handler | None = None
 
         if RICH_AVAILABLE:
             # Rich console handler
@@ -191,15 +190,14 @@ class ProcessorLogger:
             if console_enabled:
                 try:
                     # Try to wrap stdout.buffer if available
-                    utf8_stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+                    utf8_stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
                     console_handler = logging.StreamHandler(utf8_stdout)
                 except AttributeError:
                     # stdout.buffer not available (already wrapped), use stdout directly
                     console_handler = logging.StreamHandler(sys.stdout)
                 console_handler.setLevel(log_level)
                 formatter = logging.Formatter(
-                    '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    datefmt='%H:%M:%S'
+                    "%(asctime)s - %(name)s - %(levelname)s - %(message)s", datefmt="%H:%M:%S"
                 )
                 console_handler.setFormatter(formatter)
                 logger.addHandler(console_handler)
@@ -224,33 +222,29 @@ class ProcessorLogger:
             rotation_mode = os.getenv("LOG_ROTATION", "size").lower()
             backup_count = int(os.getenv("LOG_BACKUP_COUNT", "5"))
 
+            file_handler: TimedRotatingFileHandler | RotatingFileHandler
             if rotation_mode == "time":
                 file_handler = TimedRotatingFileHandler(
                     self.log_file,
                     when=os.getenv("LOG_ROTATION_WHEN", "midnight"),
                     interval=int(os.getenv("LOG_ROTATION_INTERVAL", "1")),
                     backupCount=backup_count,
-                    encoding='utf-8'
+                    encoding="utf-8",
                 )
             else:
                 max_bytes = int(os.getenv("LOG_MAX_BYTES", str(10_000_000)))
                 file_handler = RotatingFileHandler(
-                    self.log_file,
-                    maxBytes=max_bytes,
-                    backupCount=backup_count,
-                    encoding='utf-8'
+                    self.log_file, maxBytes=max_bytes, backupCount=backup_count, encoding="utf-8"
                 )
 
             file_handler.setLevel(logging.DEBUG)
-            formatter = logging.Formatter(
-                '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-            )
+            formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
             file_handler.setFormatter(formatter)
             logger.addHandler(file_handler)
 
         logger.propagate = False
         return logger
-    
+
     def info(self, *args: Any, **kwargs: Any):
         """Proxy info logging with support for arbitrary arguments."""
         self.logger.info(*args, **kwargs)
@@ -274,7 +268,7 @@ class ProcessorLogger:
             wrapped = f"[WARN] {message}"
             self.logger.warning(wrapped, *args, **kwargs)
 
-    def error(self, message: str, *args: Any, exc: Optional[Exception] = None, **kwargs: Any):
+    def error(self, message: str, *args: Any, exc: Exception | None = None, **kwargs: Any):
         """Log error message"""
         if RICH_AVAILABLE:
             wrapped = f"[red]{message}[/red]"
@@ -293,7 +287,7 @@ class ProcessorLogger:
     def __getattr__(self, item: str) -> Any:
         """Delegate unknown attributes to underlying logger."""
         return getattr(self.logger, item)
-    
+
     def section(self, title: str):
         """Print section header"""
         if RICH_AVAILABLE and self.console:
@@ -319,10 +313,10 @@ class ProcessorLogger:
             table = Table(title=title, show_header=True)
             table.add_column("Key", style="cyan")
             table.add_column("Value", style="green")
-            
+
             for key, value in data.items():
                 table.add_row(str(key), str(value))
-            
+
             self.console.print(table)
         else:
             if title:
@@ -338,130 +332,115 @@ class ProcessorLogger:
                 TextColumn("[progress.description]{task.description}"),
                 BarColumn(),
                 TaskProgressColumn(),
-                console=self.console
+                console=self.console,
             )
-        else:
-            # Fallback: simple counter
-            class SimpleProgress:
-                class _Task:
-                    def __init__(self, description, total):
-                        self.description = description
-                        self.total = total
-                        self.completed = 0
 
-                def __init__(self, logger):
-                    self._logger = logger
-                    self.tasks = {}
+        # Fallback: simple counter
+        class SimpleProgress:
+            class _Task:
+                def __init__(self, description, total):
+                    self.description = description
+                    self.total = total
+                    self.completed = 0
 
-                def __enter__(self):
-                    return self
-                
-                def __exit__(self, *args):
-                    pass
-                
-                def add_task(self, description, total):
-                    task_id = len(self.tasks)
-                    task = self._Task(description, total)
-                    self.tasks[task_id] = task
-                    self._logger.debug("Starting task '%s' with total %s", description, total)
-                    return task_id
-                
-                def update(self, task_id, advance=1, **kwargs):
-                    task = self.tasks.get(task_id)
-                    if task is None:
-                        self._logger.debug("Received update for unknown task_id %s", task_id)
-                        return
+            def __init__(self, logger):
+                self._logger = logger
+                self.tasks = {}
 
-                    description = kwargs.get("description")
-                    if description:
-                        task.description = description
+            def __enter__(self):
+                return self
 
-                    task.completed += advance
-                    task.completed = min(task.completed, task.total)
-                    self._logger.debug(
-                        "%s: %s/%s",
-                        task.description,
-                        task.completed,
-                        task.total
-                    )
-                    if task.completed >= task.total:
-                        self._logger.debug("%s completed", task.description)
+            def __exit__(self, *args):
+                pass
 
-            return SimpleProgress(self.logger)
+            def add_task(self, description, total):
+                task_id = len(self.tasks)
+                task = self._Task(description, total)
+                self.tasks[task_id] = task
+                self._logger.debug("Starting task '%s' with total %s", description, total)
+                return task_id
+
+            def update(self, task_id, advance=1, **kwargs):
+                task = self.tasks.get(task_id)
+                if task is None:
+                    self._logger.debug("Received update for unknown task_id %s", task_id)
+                    return
+
+                description = kwargs.get("description")
+                if description:
+                    task.description = description
+
+                task.completed += advance
+                task.completed = min(task.completed, task.total)
+                self._logger.debug("%s: %s/%s", task.description, task.completed, task.total)
+                if task.completed >= task.total:
+                    self._logger.debug("%s completed", task.description)
+
+        return SimpleProgress(self.logger)
 
 
 # Global logger instance
-_logger_instance: Optional[ProcessorLogger] = None
+_logger_instance: ProcessorLogger | None = None
 
 
-def get_logger(
-    name: str = "processor_v2",
-    log_file: Optional[Path] = None
-) -> ProcessorLogger:
+def get_logger(name: str = "processor_v2", log_file: Path | None = None) -> ProcessorLogger:
     """
     Get or create logger instance
-    
+
     Args:
         name: Logger name
         log_file: Optional file to log to
-        
+
     Returns:
         ProcessorLogger instance
     """
     global _logger_instance
-    
+
     if _logger_instance is None:
         if log_file is None:
             # Default log file location
             log_dir = Path(__file__).parent.parent / "logs"
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             log_file = log_dir / f"processor_v2_{timestamp}.log"
-        
+
         _logger_instance = ProcessorLogger(name, log_file)
-    
+
     return _logger_instance
 
 
-def log_processing_summary(
-    logger: ProcessorLogger,
-    stats: dict,
-    duration_seconds: float
-):
+def log_processing_summary(logger: ProcessorLogger, stats: dict, duration_seconds: float):
     """
     Log pretty processing summary
-    
+
     Args:
         logger: Logger instance
         stats: Dictionary with processing statistics
         duration_seconds: Total processing time
     """
     logger.section("Processing Summary")
-    
+
     summary = {
         "Duration": f"{duration_seconds:.2f}s",
-        "Documents Processed": stats.get('documents_processed', 0),
-        "Chunks Created": stats.get('chunks_created', 0),
-        "Embeddings Generated": stats.get('embeddings_created', 0),
-        "Products Extracted": stats.get('products_extracted', 0),
-        "Error Codes Found": stats.get('error_codes_extracted', 0),
-        "Validation Failures": stats.get('validation_failures', 0),
+        "Documents Processed": stats.get("documents_processed", 0),
+        "Chunks Created": stats.get("chunks_created", 0),
+        "Embeddings Generated": stats.get("embeddings_created", 0),
+        "Products Extracted": stats.get("products_extracted", 0),
+        "Error Codes Found": stats.get("error_codes_extracted", 0),
+        "Validation Failures": stats.get("validation_failures", 0),
         "Average Confidence": f"{stats.get('avg_confidence', 0):.2f}",
     }
-    
+
     logger.table(summary, title="📊 Statistics")
-    
+
     # Success/warning/error summary
-    if stats.get('validation_failures', 0) > 0:
+    if stats.get("validation_failures", 0) > 0:
+        logger.warning(f"Had {stats['validation_failures']} validation failures - check logs!")
+
+    if stats.get("avg_confidence", 1.0) < 0.7:
         logger.warning(
-            f"Had {stats['validation_failures']} validation failures - check logs!"
+            f"Average confidence is low ({stats['avg_confidence']:.2f}) - " "extracted data may be unreliable"
         )
-    
-    if stats.get('avg_confidence', 1.0) < 0.7:
-        logger.warning(
-            f"Average confidence is low ({stats['avg_confidence']:.2f}) - "
-            "extracted data may be unreliable"
-        )
-    
+
     logger.success(f"Processing completed in {duration_seconds:.2f}s")
 
 
@@ -469,21 +448,17 @@ def log_processing_summary(
 if __name__ == "__main__":
     # Test logger
     logger = get_logger()
-    
+
     logger.section("Testing Logger")
     logger.info("This is an info message")
     logger.success("This is a success message")
     logger.warning("This is a warning message")
     logger.error("This is an error message")
     logger.debug("This is a debug message (won't show unless DEBUG level)")
-    
+
     logger.panel("This is panel content", title="Test Panel", style="green")
-    
-    test_data = {
-        "chunks_created": 150,
-        "embeddings": 145,
-        "confidence": 0.85
-    }
+
+    test_data = {"chunks_created": 150, "embeddings": 145, "confidence": 0.85}
     logger.table(test_data, title="Test Table")
-    
+
     logger.success("Logger test complete!")
