@@ -11,7 +11,7 @@ import logging
 import mimetypes
 import os
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 
 try:
     import boto3
@@ -38,6 +38,10 @@ class ObjectStorageService:
 
     Bucket names are configurable via environment variables.
     """
+
+    client: Any
+    buckets: dict[str, str]
+    public_urls: dict[str, str]
 
     def __init__(
         self,
@@ -71,7 +75,7 @@ class ObjectStorageService:
         self._setup_logging()
 
         images_bucket_override = bucket_images or os.getenv("OBJECT_STORAGE_BUCKET_IMAGES")
-        documents_bucket_name = bucket_documents or os.getenv("OBJECT_STORAGE_BUCKET_DOCUMENTS", "documents")
+        documents_bucket_name = bucket_documents or os.getenv("OBJECT_STORAGE_BUCKET_DOCUMENTS") or "documents"
 
         if not images_bucket_override:
             images_bucket_override = "images"
@@ -177,6 +181,8 @@ class ObjectStorageService:
 
     async def _set_public_read_policy(self, bucket_name: str):
         """Allow anonymous GetObject access for a bucket."""
+        if self.client is None:
+            return
         policy = {
             "Version": "2012-10-17",
             "Statement": [
@@ -738,7 +744,7 @@ class ObjectStorageService:
             bucket_name = self.buckets[bucket_type]
 
             response = self.client.get_object(Bucket=bucket_name, Key=key)
-            content = response["Body"].read()
+            content = cast(bytes, response["Body"].read())
 
             self.logger.info(f"Downloaded image from {bucket_name}/{key}")
             return content
@@ -759,7 +765,7 @@ class ObjectStorageService:
 
             bucket_name = self.buckets[bucket_type]
             response = self.client.get_object(Bucket=bucket_name, Key=key)
-            return response["Body"].read()
+            return cast(bytes, response["Body"].read())
 
         except Exception as e:
             self.logger.error(f"Failed to download file {bucket_type}/{key}: {e}")

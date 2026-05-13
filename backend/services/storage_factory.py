@@ -1,42 +1,41 @@
-﻿"""
+"""
 Object Storage Factory
 
 Factory pattern for creating object storage services based on configuration.
 Supports MinIO and S3-compatible storage (AWS S3, Wasabi, Backblaze B2).
 """
 
-import os
 import logging
-from typing import Optional
+import os
+from typing import overload
 from urllib.parse import urlparse, urlunparse
 
 from .object_storage_service import ObjectStorageService
-
 
 logger = logging.getLogger("krai.storage.factory")
 
 
 def create_storage_service(
-    storage_type: Optional[str] = None,
-    endpoint_url: Optional[str] = None,
-    access_key: Optional[str] = None,
-    secret_key: Optional[str] = None,
-    public_url_documents: Optional[str] = None,
-    public_url_images: Optional[str] = None,
-    public_url_error: Optional[str] = None,
-    public_url_parts: Optional[str] = None,
-    use_ssl: Optional[bool] = None,
-    region: Optional[str] = None,
-    bucket_documents: Optional[str] = None,
-    bucket_images: Optional[str] = None,
-    bucket_videos: Optional[str] = None,
-    bucket_error: Optional[str] = None,
-    bucket_parts: Optional[str] = None,
-    bucket_temp: Optional[str] = None
+    storage_type: str | None = None,
+    endpoint_url: str | None = None,
+    access_key: str | None = None,
+    secret_key: str | None = None,
+    public_url_documents: str | None = None,
+    public_url_images: str | None = None,
+    public_url_error: str | None = None,
+    public_url_parts: str | None = None,
+    use_ssl: bool | None = None,
+    region: str | None = None,
+    bucket_documents: str | None = None,
+    bucket_images: str | None = None,
+    bucket_videos: str | None = None,
+    bucket_error: str | None = None,
+    bucket_parts: str | None = None,
+    bucket_temp: str | None = None,
 ) -> ObjectStorageService:
     """
     Create an object storage service based on the specified type.
-    
+
     Args:
         storage_type: Type of storage backend ('s3', 'minio', 'r2', 'wasabi', etc.)
                       If None, reads from OBJECT_STORAGE_TYPE environment variable (default: 's3')
@@ -54,13 +53,13 @@ def create_storage_service(
         bucket_error: Error bucket name (overrides environment)
         bucket_parts: Parts bucket name (overrides environment)
         bucket_temp: Temporary bucket name (overrides environment)
-    
+
     Returns:
         ObjectStorageService: Configured storage service instance
-    
+
     Raises:
         ValueError: If required configuration is missing
-    
+
     Environment Variables:
         OBJECT_STORAGE_TYPE: Storage backend type (default: 's3')
         OBJECT_STORAGE_ENDPOINT: Storage endpoint URL
@@ -74,25 +73,30 @@ def create_storage_service(
         OBJECT_STORAGE_BUCKET_DOCUMENTS: Documents bucket name
         OBJECT_STORAGE_BUCKET_ERROR: Error bucket name
         OBJECT_STORAGE_BUCKET_PARTS: Parts bucket name
-        
+
         # Note: Only OBJECT_STORAGE_* variables are supported.
     """
-    
+
     # Determine storage type from parameter or environment
     if storage_type is None:
         storage_type = os.getenv("OBJECT_STORAGE_TYPE", "s3").lower()
     else:
         storage_type = storage_type.lower()
-    
+
     logger.info(f"Creating object storage service: {storage_type}")
-    
+
     # Helper function to get env var with default
-    def get_env_var(var: str, default: str = None) -> str:
+    @overload
+    def get_env_var(var: str, default: str) -> str: ...
+
+    @overload
+    def get_env_var(var: str, default: None = None) -> str | None: ...
+
+    def get_env_var(var: str, default: str | None = None) -> str | None:
         return os.getenv(var) or default
-    
+
     # Load configuration from parameters or environment
-    endpoint = (endpoint_url or 
-                get_env_var('OBJECT_STORAGE_ENDPOINT'))
+    endpoint = endpoint_url or get_env_var("OBJECT_STORAGE_ENDPOINT")
 
     # Normalize endpoint when running outside Docker and talking to Docker-internal MinIO
     if endpoint:
@@ -113,51 +117,39 @@ def create_storage_service(
             # Best-effort normalization only; fall back silently on errors
             pass
 
-    access_key = (access_key or 
-                  get_env_var('OBJECT_STORAGE_ACCESS_KEY'))
-    
-    secret_key = (secret_key or 
-                  get_env_var('OBJECT_STORAGE_SECRET_KEY'))
-    
-    use_ssl_val = (use_ssl if use_ssl is not None else 
-                   get_env_var('OBJECT_STORAGE_USE_SSL', 'true'))
-    use_ssl = str(use_ssl_val).lower() == 'true'
-    
-    region = (region or 
-              get_env_var('OBJECT_STORAGE_REGION', 'auto'))
-    
+    access_key = access_key or get_env_var("OBJECT_STORAGE_ACCESS_KEY")
+
+    secret_key = secret_key or get_env_var("OBJECT_STORAGE_SECRET_KEY")
+
+    use_ssl_val = use_ssl if use_ssl is not None else get_env_var("OBJECT_STORAGE_USE_SSL", "true")
+    use_ssl = str(use_ssl_val).lower() == "true"
+
+    region = region or get_env_var("OBJECT_STORAGE_REGION", "auto")
+
     # Extract bucket names
-    bucket_documents = (bucket_documents or 
-                        get_env_var('OBJECT_STORAGE_BUCKET_DOCUMENTS', 'documents'))
-    bucket_images = (bucket_images or
-                     get_env_var('OBJECT_STORAGE_BUCKET_IMAGES', 'images'))
-    bucket_error = (bucket_error or 
-                    get_env_var('OBJECT_STORAGE_BUCKET_ERROR'))
-    bucket_parts = (bucket_parts or 
-                    get_env_var('OBJECT_STORAGE_BUCKET_PARTS'))
+    bucket_documents = bucket_documents or get_env_var("OBJECT_STORAGE_BUCKET_DOCUMENTS", "documents")
+    bucket_images = bucket_images or get_env_var("OBJECT_STORAGE_BUCKET_IMAGES", "images")
+    bucket_error = bucket_error or get_env_var("OBJECT_STORAGE_BUCKET_ERROR")
+    bucket_parts = bucket_parts or get_env_var("OBJECT_STORAGE_BUCKET_PARTS")
 
-    public_url_base = get_env_var('OBJECT_STORAGE_PUBLIC_URL', '').rstrip('/')
+    public_url_base = get_env_var("OBJECT_STORAGE_PUBLIC_URL", "").rstrip("/")
 
-    public_url_documents = (public_url_documents or 
-                            get_env_var('OBJECT_STORAGE_PUBLIC_URL_DOCUMENTS', ''))
+    public_url_documents = public_url_documents or get_env_var("OBJECT_STORAGE_PUBLIC_URL_DOCUMENTS", "")
     if not public_url_documents and public_url_base:
         public_url_documents = f"{public_url_base}/{bucket_documents}"
 
-    public_url_images = (public_url_images or
-                         get_env_var('OBJECT_STORAGE_PUBLIC_URL_IMAGES', ''))
+    public_url_images = public_url_images or get_env_var("OBJECT_STORAGE_PUBLIC_URL_IMAGES", "")
     if not public_url_images and public_url_base:
         public_url_images = f"{public_url_base}/{bucket_images}"
-    
-    public_url_error = (public_url_error or 
-                        get_env_var('OBJECT_STORAGE_PUBLIC_URL_ERROR', ''))
+
+    public_url_error = public_url_error or get_env_var("OBJECT_STORAGE_PUBLIC_URL_ERROR", "")
     if not public_url_error and public_url_base and bucket_error:
         public_url_error = f"{public_url_base}/{bucket_error}"
-    
-    public_url_parts = (public_url_parts or 
-                        get_env_var('OBJECT_STORAGE_PUBLIC_URL_PARTS', ''))
+
+    public_url_parts = public_url_parts or get_env_var("OBJECT_STORAGE_PUBLIC_URL_PARTS", "")
     if not public_url_parts and public_url_base and bucket_parts:
         public_url_parts = f"{public_url_base}/{bucket_parts}"
-    
+
     # Validate required configuration
     if not endpoint:
         raise ValueError("OBJECT_STORAGE_ENDPOINT is required for object storage")
@@ -165,15 +157,15 @@ def create_storage_service(
         raise ValueError("OBJECT_STORAGE_ACCESS_KEY is required for object storage")
     if not secret_key:
         raise ValueError("OBJECT_STORAGE_SECRET_KEY is required for object storage")
-    
+
     # Log configuration summary
     logger.info(f"Storage endpoint: {endpoint}")
     logger.info(f"SSL enabled: {use_ssl}")
     logger.info(f"Region: {region}")
-    logger.info(f"Buckets: images")
-    
+    logger.info("Buckets: images")
+
     # Create service with bucket name parameters
-    return ObjectStorageService(
+    service = ObjectStorageService(
         access_key_id=access_key,
         secret_access_key=secret_key,
         endpoint_url=endpoint,
@@ -186,26 +178,25 @@ def create_storage_service(
         bucket_documents=bucket_documents,
         bucket_images=bucket_images,
         bucket_error=bucket_error,
-        bucket_parts=bucket_parts
-    )  
-
+        bucket_parts=bucket_parts,
+    )
     logger.info(f"Created {storage_type} object storage service at {endpoint}")
+    return service
 
 
 class StorageFactory:
     """
     Factory class for creating object storage services.
-    
+
     This class provides a static interface to the create_storage_service function
     for compatibility with existing code that expects a class-based factory.
     """
-    
+
     @staticmethod
     def create_storage_service(**kwargs) -> ObjectStorageService:
         """
         Create an object storage service.
-        
+
         This is a static wrapper around the create_storage_service function.
         """
         return create_storage_service(**kwargs)
-
