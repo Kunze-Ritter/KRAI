@@ -10,6 +10,7 @@ use App\Services\KraiEngineService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -79,7 +80,13 @@ class ListDocuments extends ListRecords
                         ->searchable()
                         ->preload()
                         ->live()
-                        ->helperText('Leer lassen für Auto-Erkennung.')
+                        ->createOptionForm([
+                            TextInput::make('name')
+                                ->label('Herstellername')
+                                ->required()
+                                ->unique(Manufacturer::class, 'name'),
+                        ])
+                        ->helperText('Leer lassen für Auto-Erkennung. Neue Hersteller können hier angelegt werden.')
                         ->afterStateUpdated(function (Set $set): void {
                             $set('series', null);
                             $set('model', null);
@@ -90,8 +97,13 @@ class ListDocuments extends ListRecords
                         ->searchable()
                         ->preload()
                         ->live()
+                        ->createOptionForm([
+                            TextInput::make('name')
+                                ->label('Serienname')
+                                ->required(),
+                        ])
                         ->disabled(fn (Get $get): bool => blank($get('manufacturer')))
-                        ->helperText('Optional. Für Serie und Modell zuerst Hersteller wählen.')
+                        ->helperText('Optional. Für Serie und Modell zuerst Hersteller wählen. Neue Serien können hier angelegt werden.')
                         ->afterStateUpdated(function (Set $set): void {
                             $set('model', null);
                         }),
@@ -102,12 +114,30 @@ class ListDocuments extends ListRecords
                         ->preload()
                         ->disabled(fn (Get $get): bool => blank($get('manufacturer')))
                         ->helperText('Leer lassen für Auto-Erkennung.'),
-                    CheckboxList::make('stages')
-                        ->label('Stages zur Verarbeitung (optional)')
-                        ->options(collect(config('krai.stages'))->except(['upload'])->mapWithKeys(fn ($stage, $key) => [$key => $stage['label']]))
-                        ->columns(3)
-                        ->helperText('Leer lassen für vollständige Verarbeitung (alle Stages)')
-                        ->default(null),
+                    Grid::make(1)
+                        ->schema([
+                            Toggle::make('select_all_stages')
+                                ->label('Alle Stages aktivieren')
+                                ->helperText('Aktivieren Sie diese Option, um automatisch alle verfügbaren Stages auszuwählen')
+                                ->live()
+                                ->afterStateUpdated(function (Get $get, Set $set): void {
+                                    if ($get('select_all_stages')) {
+                                        $allStages = collect(config('krai.stages'))
+                                            ->except(['upload'])
+                                            ->keys()
+                                            ->toArray();
+                                        $set('stages', $allStages);
+                                    } else {
+                                        $set('stages', null);
+                                    }
+                                }),
+                            CheckboxList::make('stages')
+                                ->label('Stages zur Verarbeitung (optional)')
+                                ->options(collect(config('krai.stages'))->except(['upload'])->mapWithKeys(fn ($stage, $key) => [$key => $stage['label']]))
+                                ->columns(3)
+                                ->helperText('Leer lassen für vollständige Verarbeitung (alle Stages). Oder nutzen Sie "Alle Stages aktivieren" oben.')
+                                ->default(null),
+                        ]),
                     Toggle::make('stop_on_error')
                         ->label('Bei Fehler stoppen')
                         ->default(true)
