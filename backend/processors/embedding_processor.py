@@ -20,33 +20,30 @@ Features:
 - Compatibility with vw_chunks view
 """
 
-import os
-import json
-import random
-import platform
-from pathlib import Path
-from collections import deque
-from typing import List, Dict, Any, Optional
 import asyncio
-from uuid import UUID
+import json
+import os
+import platform
+import random
 import time
+from collections import deque
+from contextlib import suppress
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
+from uuid import UUID
+
 import requests
-from requests.adapters import HTTPAdapter
 from requests import exceptions as requests_exceptions
+from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-from datetime import datetime, timezone
 
 from backend.core.base_processor import BaseProcessor, Stage
-from .stage_tracker import StageTracker
 from backend.pipeline.metrics import metrics
 from backend.processors.logger import text_stats
 
 # Import from refactored modules
-from .embedding_config import (
-    create_embedding_session,
-    BatchStateManager,
-    PromptLimitManager,
-)
+from .stage_tracker import StageTracker
 
 
 class EmbeddingProcessor(BaseProcessor):
@@ -76,8 +73,8 @@ class EmbeddingProcessor(BaseProcessor):
     def __init__(
         self,
         database_adapter=None,
-        ollama_url: Optional[str] = None,
-        model_name: str = None,
+        ollama_url: str | None = None,
+        model_name: str | None = None,
         batch_size: int = 100,
         embedding_dimension: int = 768,
         min_batch_size: int = 25,
@@ -147,7 +144,7 @@ class EmbeddingProcessor(BaseProcessor):
             else default_state_dir / "embedding_prompt_limit_state.json"
         )
         self.prompt_limit_floor = int(os.getenv("EMBEDDING_PROMPT_LIMIT_FLOOR", "512"))
-        self._prompt_limit_by_model: Dict[str, int] = {}
+        self._prompt_limit_by_model: dict[str, int] = {}
         self._load_persisted_prompt_limits()
 
         # Stage tracker
@@ -167,10 +164,8 @@ class EmbeddingProcessor(BaseProcessor):
 
     def __del__(self):
         """Destructor to ensure cleanup."""
-        try:
+        with suppress(Exception):
             self.close()
-        except Exception:
-            pass
 
     def _create_session(self) -> requests.Session:
         """Create a persistent HTTP session with retry-aware adapter."""
@@ -216,7 +211,7 @@ class EmbeddingProcessor(BaseProcessor):
             if self.batch_state_path.exists():
                 with self.batch_state_path.open("r", encoding="utf-8") as f:
                     state = json.load(f)
-            state[self.node_id] = {"batch_size": self.batch_size, "updated_at": datetime.now(timezone.utc).isoformat()}
+            state[self.node_id] = {"batch_size": self.batch_size, "updated_at": datetime.now(UTC).isoformat()}
             with self.batch_state_path.open("w", encoding="utf-8") as f:
                 json.dump(state, f, indent=2)
         except Exception as exc:
@@ -243,7 +238,7 @@ class EmbeddingProcessor(BaseProcessor):
         try:
             payload = {
                 "models": self._prompt_limit_by_model,
-                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(UTC).isoformat(),
             }
             with self.prompt_limit_state_path.open("w", encoding="utf-8") as f:
                 json.dump(payload, f, indent=2)
@@ -394,7 +389,7 @@ class EmbeddingProcessor(BaseProcessor):
         """Check if embedding processor is properly configured"""
         return self.ollama_available and self.database_adapter is not None
 
-    def get_configuration_status(self) -> Dict[str, Any]:
+    def get_configuration_status(self) -> dict[str, Any]:
         """Get detailed configuration status for debugging"""
         return {
             "is_configured": self.is_configured(),
@@ -407,10 +402,10 @@ class EmbeddingProcessor(BaseProcessor):
         }
 
     @staticmethod
-    def _vector_literal(values: List[float]) -> str:
+    def _vector_literal(values: list[float]) -> str:
         return "[" + ",".join(f"{v:.8f}" for v in values) + "]"
 
-    async def process(self, context) -> Dict[str, Any]:
+    async def process(self, context) -> dict[str, Any]:
         """Async pipeline entrypoint wrapping `process_document`."""
         if not hasattr(context, "document_id"):
             raise ValueError("Processing context must include 'document_id'")
@@ -467,9 +462,9 @@ class EmbeddingProcessor(BaseProcessor):
                 }
 
         # Normalize chunk payloads so downstream code can rely on `chunk_id` + `text`.
-        normalized_chunks: List[Dict[str, Any]] = []
+        normalized_chunks: list[dict[str, Any]] = []
         for idx, chunk in enumerate(chunks):
-            normalized: Dict[str, Any]
+            normalized: dict[str, Any]
             if isinstance(chunk, dict):
                 normalized = dict(chunk)
             else:
@@ -495,7 +490,6 @@ class EmbeddingProcessor(BaseProcessor):
 
         track_stage = getattr(context, "track_stage", True)
 
-        loop = asyncio.get_running_loop()
         manufacturer = getattr(context, "manufacturer", None) or getattr(context, "processing_config", {}).get(
             "manufacturer"
         )
@@ -537,8 +531,11 @@ class EmbeddingProcessor(BaseProcessor):
         return result
 
     async def process_document(
-        self, document_id: UUID, chunks: List[Dict[str, Any]], track_stage: bool = True
-    ) -> Dict[str, Any]:
+        self,
+        document_id: UUID,
+        chunks: list[dict[str, Any]],
+        track_stage: bool = True,
+    ) -> dict[str, Any]:
         """
         Generate embeddings for all chunks in a document
 
@@ -732,7 +729,7 @@ class EmbeddingProcessor(BaseProcessor):
 
                 return {"success": False, "error": error_msg, "embeddings_created": 0}
 
-    async def _embed_batch(self, chunks: List[Dict[str, Any]], document_id: UUID) -> Dict[str, Any]:
+    async def _embed_batch(self, chunks: list[dict[str, Any]], document_id: UUID) -> dict[str, Any]:
         """
         Generate embeddings for a batch of chunks (parallel requests to Ollama).
         """
@@ -742,7 +739,7 @@ class EmbeddingProcessor(BaseProcessor):
         success_count = 0
         failed_chunks = []
 
-        async def _embed_one(chunk: Dict[str, Any]) -> Dict[str, Any]:
+        async def _embed_one(chunk: dict[str, Any]) -> dict[str, Any]:
             chunk_id = chunk.get("chunk_id") or chunk.get("id")
             text_value = (
                 chunk.get("text") or chunk.get("chunk_text") or chunk.get("text_chunk") or chunk.get("content") or ""
@@ -785,7 +782,7 @@ class EmbeddingProcessor(BaseProcessor):
 
         return {"success_count": success_count, "failed_chunks": failed_chunks}
 
-    def _generate_embedding(self, text: str) -> Optional[List[float]]:
+    def _generate_embedding(self, text: str) -> list[float] | None:
         """
         Generate embedding for text using Ollama
 
@@ -948,7 +945,11 @@ class EmbeddingProcessor(BaseProcessor):
         return None
 
     async def _store_embedding(
-        self, chunk_id: str, document_id: UUID, embedding: List[float], chunk_data: Dict[str, Any]
+        self,
+        chunk_id: str,
+        document_id: UUID,
+        embedding: list[float],
+        chunk_data: dict[str, Any],
     ) -> bool:
         """
         Store embedding in krai_intelligence.chunks (embedding column)
@@ -984,7 +985,7 @@ class EmbeddingProcessor(BaseProcessor):
                 "char_count": existing_metadata.get("char_count", len(chunk_data.get("text", ""))),
                 "word_count": existing_metadata.get("word_count", len(chunk_data.get("text", "").split())),
                 "chunk_type": existing_metadata.get("chunk_type", chunk_data.get("chunk_type", "text")),
-                "embedded_at": datetime.now(timezone.utc).isoformat(),
+                "embedded_at": datetime.now(UTC).isoformat(),
             }
 
             # Merge with existing metadata (preserve header_metadata, etc.)
@@ -1031,9 +1032,9 @@ class EmbeddingProcessor(BaseProcessor):
         self,
         source_id: str,
         source_type: str,  # 'text', 'image', 'table'
-        embedding: List[float],
+        embedding: list[float],
         embedding_context: str,
-        metadata: Dict[str, Any] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> bool:
         """
         Store embedding in unified_embeddings table for unified multi-modal search
@@ -1090,11 +1091,11 @@ class EmbeddingProcessor(BaseProcessor):
 
     async def store_embeddings_batch(
         self,
-        embeddings: List[Dict[str, Any]],
+        embeddings: list[dict[str, Any]],
         *,
-        context: Optional[Any] = None,
-        document_id: Optional[Any] = None,
-    ) -> Dict[str, Any]:
+        context: Any | None = None,
+        document_id: Any | None = None,
+    ) -> dict[str, Any]:
         """
         Store batch of embeddings (text, image, table) in unified_embeddings
 
@@ -1193,8 +1194,12 @@ class EmbeddingProcessor(BaseProcessor):
             return {"success_count": success_count, "failed_count": len(embeddings)}
 
     def search_similar(
-        self, query_text: str, limit: int = 10, document_id: Optional[UUID] = None, similarity_threshold: float = 0.5
-    ) -> List[Dict[str, Any]]:
+        self,
+        query_text: str,
+        limit: int = 10,
+        document_id: UUID | None = None,
+        similarity_threshold: float = 0.5,
+    ) -> list[dict[str, Any]]:
         """
         Search for similar chunks using vector similarity
 
@@ -1503,8 +1508,6 @@ class EmbeddingProcessor(BaseProcessor):
 
 # Example usage
 if __name__ == "__main__":
-    from uuid import uuid4
-
     processor = EmbeddingProcessor()
 
     if processor.is_configured():
@@ -1518,7 +1521,7 @@ if __name__ == "__main__":
         embedding = processor._generate_embedding(test_text)
 
         if embedding:
-            print(f"\n✅ Test embedding generated!")
+            print("\n✅ Test embedding generated!")
             print(f"   Dimension: {len(embedding)}")
             print(f"   Sample values: {embedding[:5]}...")
         else:
