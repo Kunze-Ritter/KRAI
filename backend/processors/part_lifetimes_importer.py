@@ -158,7 +158,7 @@ class PartLifetimesImporter:
 
         # First, resolve manufacturer IDs
         sql_manufacturer_lookup = "SELECT id FROM krai_core.manufacturers WHERE name = %s LIMIT 1"
-        sql_product_lookup = "SELECT id FROM krai_core.products WHERE name = %s LIMIT 1"
+        sql_product_lookup = "SELECT id FROM krai_core.products WHERE model_number = %s LIMIT 1"
 
         sql_insert = """
         INSERT INTO krai_pm.part_lifetimes (
@@ -168,7 +168,7 @@ class PartLifetimesImporter:
         """
 
         count = 0
-        for entry in entries:
+        for idx, entry in enumerate(entries):
             try:
                 # Resolve manufacturer ID
                 manufacturer_id = await self.db_adapter.fetch_one(sql_manufacturer_lookup, (entry["manufacturer"],))
@@ -187,6 +187,21 @@ class PartLifetimesImporter:
 
                 # Insert part entry
                 metadata = json.dumps({"model_family": entry["model_family"]}) if entry["model_family"] else None
+
+                # Log the exact values being inserted (first few only for brevity)
+                if idx < 3:
+                    self.logger.debug(f"Inserting entry {idx}:")
+                    self.logger.debug(f"  manufacturer_id: {manufacturer_id!r} ({type(manufacturer_id)})")
+                    self.logger.debug(f"  product_id: {product_id!r} ({type(product_id)})")
+                    self.logger.debug(f"  part_category: {entry['part_category']!r} ({type(entry['part_category'])})")
+                    self.logger.debug(f"  part_number: {entry['part_number']!r} ({type(entry['part_number'])})")
+                    self.logger.debug(
+                        f"  nominal_lifetime_pages: {entry['nominal_lifetime_pages']!r} ({type(entry['nominal_lifetime_pages'])})"
+                    )
+                    self.logger.debug(f"  color_channel: {entry['color_channel']!r} ({type(entry['color_channel'])})")
+                    self.logger.debug(f"  source: {entry['source']!r} ({type(entry['source'])})")
+                    self.logger.debug(f"  metadata: {metadata!r} ({type(metadata)})")
+
                 await self.db_adapter.execute_query(
                     sql_insert,
                     (
@@ -202,6 +217,13 @@ class PartLifetimesImporter:
                 )
                 count += 1
             except Exception as e:
+                self.logger.debug(f"Failed to insert part entry {idx}: {type(e).__name__}: {e!s}")
+                self.logger.debug(f"  Entry: {entry}")
+                if idx < 3:
+                    self.logger.debug(f"  Full error: {e}")
+                    import traceback
+
+                    self.logger.debug(f"  Traceback: {traceback.format_exc()}")
                 self.logger.warning(f"Failed to insert part entry: {e!s}")
                 continue
 

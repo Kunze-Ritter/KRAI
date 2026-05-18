@@ -175,10 +175,17 @@ def mock_km_part_lifetimes():
             if color:  # Toners are per-color
                 for c in ["K", "C", "M", "Y"]:
                     ws.append(
-                        ["Konica Minolta", model, part_cat, f"{part_num}-{c}", lifetime * (0.9 + 0.1 * model_idx), c]
+                        [
+                            "Konica Minolta, Inc.",
+                            model,
+                            part_cat,
+                            f"{part_num}-{c}",
+                            lifetime * (0.9 + 0.1 * model_idx),
+                            c,
+                        ]
                     )
             else:
-                ws.append(["Konica Minolta", model, part_cat, part_num, lifetime * (0.9 + 0.1 * model_idx), None])
+                ws.append(["Konica Minolta, Inc.", model, part_cat, part_num, lifetime * (0.9 + 0.1 * model_idx), None])
 
     output = io.BytesIO()
     wb.save(output)
