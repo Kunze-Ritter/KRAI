@@ -4,6 +4,7 @@ Imports service tickets from KM Excel sources (OF, PP, SOL) into krai_pm.service
 """
 
 import contextlib
+import json
 import logging
 from datetime import datetime
 from typing import Any, ClassVar
@@ -195,7 +196,8 @@ class TicketIngestionProcessor:
         count = 0
         for ticket in tickets:
             try:
-                await self.db_adapter.execute(
+                metadata = json.dumps({"ingestion_source": "excel"})
+                await self.db_adapter.execute_query(
                     sql,
                     (
                         ticket["source_system"],
@@ -208,7 +210,7 @@ class TicketIngestionProcessor:
                         ticket["error_codes"],
                         ticket["replaced_parts"],
                         ticket["repair_time_minutes"],
-                        {"ingestion_source": "excel"},
+                        metadata,
                     ),
                 )
                 count += 1

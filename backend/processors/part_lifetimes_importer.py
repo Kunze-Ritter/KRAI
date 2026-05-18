@@ -3,6 +3,7 @@
 Imports OEM nominal lifetimes for consumables from KM Excel v1.18 into krai_pm.part_lifetimes.
 """
 
+import json
 import logging
 from typing import Any, ClassVar
 
@@ -185,7 +186,8 @@ class PartLifetimesImporter:
                         product_id = product[0]
 
                 # Insert part entry
-                await self.db_adapter.execute(
+                metadata = json.dumps({"model_family": entry["model_family"]}) if entry["model_family"] else None
+                await self.db_adapter.execute_query(
                     sql_insert,
                     (
                         manufacturer_id,
@@ -195,7 +197,7 @@ class PartLifetimesImporter:
                         entry["nominal_lifetime_pages"],
                         entry["color_channel"],
                         entry["source"],
-                        {"model_family": entry["model_family"]} if entry["model_family"] else None,
+                        metadata,
                     ),
                 )
                 count += 1
