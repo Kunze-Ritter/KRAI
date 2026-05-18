@@ -11,7 +11,7 @@ from backend.processors.ticket_ingestion_processor import TicketIngestionProcess
 def mock_db_adapter():
     """Create mock database adapter."""
     adapter = AsyncMock()
-    adapter.execute = AsyncMock(return_value=None)
+    adapter.execute_query = AsyncMock(return_value=None)
     return adapter
 
 
@@ -24,19 +24,19 @@ def processor(mock_db_adapter):
 @pytest.mark.asyncio
 async def test_ingest_km_anfragen_of_success(processor, mock_km_excel_of, mock_db_adapter):
     """Test successful ingestion of KM Office tickets."""
-    mock_db_adapter.execute.return_value = None
+    mock_db_adapter.execute_query.return_value = None
     processor.db_adapter = mock_db_adapter
 
     count = await processor.ingest_file(mock_km_excel_of, "km_anfragen_of")
 
     assert count == 100
-    assert mock_db_adapter.execute.call_count == 100
+    assert mock_db_adapter.execute_query.call_count == 100
 
 
 @pytest.mark.asyncio
 async def test_ingest_km_anfragen_pp(processor, mock_km_excel_pp, mock_db_adapter):
     """Test ingestion of KM Production tickets."""
-    mock_db_adapter.execute.return_value = None
+    mock_db_adapter.execute_query.return_value = None
     processor.db_adapter = mock_db_adapter
 
     count = await processor.ingest_file(mock_km_excel_pp, "km_anfragen_pp")
@@ -47,7 +47,7 @@ async def test_ingest_km_anfragen_pp(processor, mock_km_excel_pp, mock_db_adapte
 @pytest.mark.asyncio
 async def test_ingest_km_anfragen_sol(processor, mock_km_excel_sol, mock_db_adapter):
     """Test ingestion of KM Solutions tickets."""
-    mock_db_adapter.execute.return_value = None
+    mock_db_adapter.execute_query.return_value = None
     processor.db_adapter = mock_db_adapter
 
     count = await processor.ingest_file(mock_km_excel_sol, "km_anfragen_sol")
