@@ -58,7 +58,8 @@
   - Mock-Excel-Fixtures (OF: 100 Tickets, PP: 50, SOL: 30) ✓
   - Assertions auf INSERT-Counts ✓
   - 10 Test-Cases, alle grün ✓
-- [ ] Integrationstest gegen lokale PG (als nächstes)
+- [x] Integrationstest gegen lokale PG ✓
+  - 5 Test-Cases, alle grün ✓
 
 ### Aufgabe 1.3: Excel-Importer für Verbrauchsmaterial-Sollwerte
 
@@ -69,28 +70,33 @@
   - 7 Test-Cases, alle grün ✓
   - Normalisierung Bauteilkategorien ✓
   - Manufacturer/Product Lookup ✓
-- [ ] Integrationstest (als nächstes)
+- [x] Integrationstest ✓
+  - 6 Test-Cases, alle grün ✓
 
 ### Aufgabe 1.4: Datenexplorations-Notebook
 
-- [ ] Datei `examples/pm/01_data_exploration.ipynb` erstellen
-  - Datenquellen laden
-  - Verteilungen, fehlende Werte, Plausibilität visualisieren
-  - Long-Tail-Analyse: repliziere 67,6 % und 19,1 % aus Briefing
-  - Summary-Statistiken pro Hersteller
-  - Export als HTML für Dokumentation
+- [x] Datei `examples/pm/01_data_exploration.ipynb` erstellen ✓
+  - Datenquellen laden ✓
+  - Verteilungen, fehlende Werte, Plausibilität visualisieren ✓
+  - Long-Tail-Analyse: repliziere 67,6 % und 19,1 % aus Briefing ✓
+  - Summary-Statistiken pro Hersteller ✓
+  - Export als HTML für Dokumentation (pending: Ausführung gegen Dev-DB)
 
 ### Aufgabe 1.5: ADRs schreiben
 
-- [ ] `docs/adr/001-eigenes-pm-schema.md` – Begründung für neues `krai_pm` Schema (vs. `krai_intelligence`)
-- [ ] `docs/adr/002-pseudonymisierung-geraete.md` – SHA-256-Hashing statt Klartext-Seriennummern
+- [x] `docs/adr/001-eigenes-pm-schema.md` ✓
+  - Status: Accepted
+  - Begründung für neues `krai_pm` Schema vs. `krai_intelligence` ✓
+- [x] `docs/adr/002-pseudonymisierung-geraete.md` ✓
+  - Status: Accepted
+  - SHA-256-Hashing statt Klartext-Seriennummern ✓
 
 ### Aufgabe 1.6: Forschungstagebuch-Kickoff
 
-- [ ] `docs/research-log/2026-05-19_sprint01_kickoff.md` anlegen
-  - Datum, Sprint-Ziele, Ausgangslage, Forschungsfragen
-  - Was wird ausprobiert, zu welchem Zeitpunkt
-  - Bisherige Annahmen zu Datenverfügbarkeit
+- [x] `docs/research-log/2026-05-19_sprint01_kickoff.md` anlegen ✓
+  - Datum, Sprint-Ziele, Ausgangslage, Forschungsfragen ✓
+  - Was wird ausprobiert, zu welchem Zeitpunkt ✓
+  - Bisherige Annahmen zu Datenverfügbarkeit ✓
 
 ---
 
