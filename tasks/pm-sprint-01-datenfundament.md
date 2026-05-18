@@ -50,22 +50,26 @@
 
 ### Aufgabe 1.2: Excel-Importer für KM-Anfragedaten
 
-- [ ] Datei `backend/processors/ticket_ingestion_processor.py` erstellen
-  - Liest KM-Excel-Dateien (OF, PP, SOL)
-  - Normalisiert zu `krai_pm.service_tickets` Schema
-  - Error Handling, Logging
-- [ ] Unit-Tests `backend/tests/pm/test_ticket_ingestion.py`
-  - Mock-Excel-Fixture
-  - Assertions auf INSERT-Counts
-- [ ] Integrationstest gegen lokale PG
+- [x] Datei `backend/processors/ticket_ingestion_processor.py` erstellen ✓
+  - Liest KM-Excel-Dateien (OF, PP, SOL) ✓
+  - Normalisiert zu `krai_pm.service_tickets` Schema ✓
+  - Error Handling, Logging ✓
+- [x] Unit-Tests `backend/tests/pm/test_ticket_ingestion.py` ✓
+  - Mock-Excel-Fixtures (OF: 100 Tickets, PP: 50, SOL: 30) ✓
+  - Assertions auf INSERT-Counts ✓
+  - 10 Test-Cases, alle grün ✓
+- [ ] Integrationstest gegen lokale PG (als nächstes)
 
 ### Aufgabe 1.3: Excel-Importer für Verbrauchsmaterial-Sollwerte
 
-- [ ] Datei `backend/processors/part_lifetimes_importer.py` erstellen
-  - Liest KM-Excel v1.18 (88 Modellfamilien, 1.650 Laufzeitwerte)
-  - Normalisiert zu `krai_pm.part_lifetimes`
-- [ ] Unit-Tests `backend/tests/pm/test_part_lifetimes_importer.py`
-- [ ] Integrationstest
+- [x] Datei `backend/processors/part_lifetimes_importer.py` erstellen ✓
+  - Liest KM-Excel v1.18 (88 Modellfamilien, 1.650 Laufzeitwerte) ✓
+  - Normalisiert zu `krai_pm.part_lifetimes` ✓
+- [x] Unit-Tests `backend/tests/pm/test_part_lifetimes_importer.py` ✓
+  - 7 Test-Cases, alle grün ✓
+  - Normalisierung Bauteilkategorien ✓
+  - Manufacturer/Product Lookup ✓
+- [ ] Integrationstest (als nächstes)
 
 ### Aufgabe 1.4: Datenexplorations-Notebook
 

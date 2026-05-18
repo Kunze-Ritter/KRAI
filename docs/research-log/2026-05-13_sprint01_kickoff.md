@@ -1,8 +1,8 @@
 # Forschungstagebuch: Sprint 1 Kickoff – Datenfundament
 
-**Datum:** 2026-05-13  
-**Sprint:** 1 (Datenfundament)  
-**Zeitraum:** 2026-05-13 – 2026-05-31 (adjusted from planned 19.05–01.06)  
+**Datum:** 2026-05-13
+**Sprint:** 1 (Datenfundament)
+**Zeitraum:** 2026-05-13 – 2026-05-31 (adjusted from planned 19.05–01.06)
 **Owner:** Cursor-Claude
 
 ---
@@ -97,5 +97,5 @@ KRAI existiert als 16-stage multimodale Dokumentenverarbeitungs-Pipeline (Stand 
 
 ---
 
-**Erstellt:** 2026-05-13 von Cursor-Claude  
+**Erstellt:** 2026-05-13 von Cursor-Claude
 **Nächster Eintrag:** Sprint-1-Close (geplant 2026-05-31)
