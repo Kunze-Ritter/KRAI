@@ -1,6 +1,6 @@
 # Error Code Extraction Testing
 
-**Script:** `test_error_code_extraction.py`  
+**Script:** `test_error_code_extraction.py`
 **Purpose:** Test and optimize error code extraction across different manufacturers
 
 ---
@@ -155,7 +155,7 @@ Average confidence:       0.78
    Codes found:     123 (98 unique)
    With solutions:  89 (72.4%)
    Avg confidence:  0.81
-   
+
    Top codes:
      [✓] C3722 (p.456, conf: 0.85)
      [✓] C3725 (p.456, conf: 0.85)
@@ -226,7 +226,7 @@ python scripts/test_error_code_extraction.py `
   --output baseline_test.txt
 ```
 
-**Review:** 
+**Review:**
 - Note solution rate
 - Note confidence scores
 - Identify problems
@@ -360,8 +360,8 @@ Avg confidence:  0.62               # Low confidence
 C3722, C3725 → Only C3722 extracted
 ```
 
-**Current:** Each code extracted separately  
-**Workaround:** Both codes will get extracted if on same page  
+**Current:** Each code extracted separately
+**Workaround:** Both codes will get extracted if on same page
 **Fix Needed:** Detect "C3722, C3725" pattern and create 2 entries
 
 ---
@@ -418,5 +418,5 @@ C3722, C3725 → Only C3722 extracted
 
 ---
 
-**Last Updated:** 2025-10-06  
+**Last Updated:** 2025-10-06
 **Version:** V2.1

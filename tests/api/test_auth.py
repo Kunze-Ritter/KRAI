@@ -2,6 +2,7 @@
 import pytest
 from httpx import AsyncClient
 
+
 @pytest.mark.asyncio
 async def test_login_success(async_client: AsyncClient):
     response = await async_client.post(
@@ -13,6 +14,7 @@ async def test_login_success(async_client: AsyncClient):
     assert "access_token" in data
     assert "refresh_token" in data
 
+
 @pytest.mark.asyncio
 async def test_login_failure(async_client: AsyncClient):
     response = await async_client.post(
@@ -20,6 +22,7 @@ async def test_login_failure(async_client: AsyncClient):
         json={"username": "admin@example.com", "password": "wrongpass"},
     )
     assert response.status_code == 401
+
 
 @pytest.mark.asyncio
 async def test_protected_endpoint(async_client: AsyncClient, admin_token: str):

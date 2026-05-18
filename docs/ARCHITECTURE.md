@@ -7,13 +7,13 @@ flowchart TD
     subgraph "Dashboard Layer"
         A[Laravel Dashboard] --> B[FastAPI Backend]
     end
-    
+
     subgraph "Backend Services"
         B --> D[Document API]
         B --> E[Search API]
         B --> F[Stage-Based Pipeline]
     end
-    
+
     subgraph "Processing Pipeline"
         F --> G[15-Stage Processor]
         G --> H[Text Extraction]
@@ -21,20 +21,20 @@ flowchart TD
         G --> J[Embedding Generation]
         G --> K[Search Indexing]
     end
-    
+
     subgraph "Data Layer"
         H --> L[PostgreSQL]
         I --> M[MinIO Storage]
         J --> L
         K --> L
     end
-    
+
     subgraph "AI Services"
         H --> N[Ollama LLM]
         I --> N
         J --> N
     end
-    
+
     style A fill:#f3e5f5
     style B fill:#e8f5e8
     style L fill:#fff3e0
@@ -237,7 +237,7 @@ sequenceDiagram
     API->>Storage: Store original file
     API->>Pipeline: Start UPLOAD stage
     Pipeline->>DB: Update stage_status
-    
+
     loop 15-Stage Processing
         Pipeline->>AI: Process stage (if needed)
         Pipeline->>DB: Update progress
@@ -245,7 +245,7 @@ sequenceDiagram
         Dashboard->>API: GET /documents/{id}/stages/status
         API->>Dashboard: Real-time status updates
     end
-    
+
     Pipeline->>DB: Mark as completed
     Dashboard->>User: Processing complete
 ```
@@ -259,24 +259,24 @@ flowchart TD
     B --> D[TABLE_EXTRACTION]
     B --> E[SVG_PROCESSING]
     B --> F[IMAGE_PROCESSING]
-    
+
     C --> G[LINK_EXTRACTION]
     C --> H[CHUNK_PREP]
     F --> I[VISUAL_EMBEDDING]
-    
+
     H --> J[CLASSIFICATION]
     H --> K[METADATA_EXTRACTION]
-    
+
     J --> L[PARTS_EXTRACTION]
     J --> M[SERIES_DETECTION]
-    
+
     K --> N[EMBEDDING]
     I --> N
-    
+
     D --> O[STORAGE]
     E --> O
     F --> O
-    
+
     L --> P[SEARCH_INDEXING]
     M --> P
     N --> P
@@ -731,5 +731,3 @@ Key architectural principles:
 - **Observability**: Comprehensive monitoring and debugging capabilities
 
 This architecture supports the current Phase 6 advanced features while providing a solid foundation for future enhancements and scale requirements.
-
-

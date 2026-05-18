@@ -7,9 +7,8 @@ import asyncio
 import logging
 import os
 import re
-import time
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 import requests
@@ -25,11 +24,7 @@ class VideoEnricher:
         self.youtube_api_key = None
 
         self.session = requests.Session()
-        self.session.headers.update(
-            {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-            }
-        )
+        self.session.headers.update({"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"})
 
         self.youtube_api_key = os.getenv("YOUTUBE_API_KEY")
         if self.youtube_api_key and self.youtube_api_key != "your_youtube_api_key_here":
@@ -43,20 +38,16 @@ class VideoEnricher:
         self.brightcove_api_timeout = int(os.getenv("BRIGHTCOVE_API_TIMEOUT", "30"))
         self.brightcove_rate_limit_delay = float(os.getenv("BRIGHTCOVE_RATE_LIMIT_DELAY", "1.0"))
         self._brightcove_api_calls = 0
-        self._brightcove_access_token: Optional[str] = None
-        self._brightcove_token_expires_at: Optional[datetime] = None
+        self._brightcove_access_token: str | None = None
+        self._brightcove_token_expires_at: datetime | None = None
 
         if not self.has_brightcove_credentials():
-            logger.warning(
-                "Brightcove credentials not configured - videos will remain with needs_enrichment=true"
-            )
+            logger.warning("Brightcove credentials not configured - videos will remain with needs_enrichment=true")
 
         logger.info("VideoEnricher initialized - YouTube, Vimeo, Brightcove support ready")
 
     def has_brightcove_credentials(self) -> bool:
-        return bool(
-            self.brightcove_account_id and self.brightcove_client_id and self.brightcove_client_secret
-        )
+        return bool(self.brightcove_account_id and self.brightcove_client_id and self.brightcove_client_secret)
 
     def detect_platform(self, url: str) -> str:
         """Detect video platform from URL."""
@@ -72,7 +63,7 @@ class VideoEnricher:
             return "direct"
         return "unknown"
 
-    def extract_youtube_id(self, url: str) -> Optional[str]:
+    def extract_youtube_id(self, url: str) -> str | None:
         patterns = [
             r"(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/embed/)([a-zA-Z0-9_-]{11})",
             r"youtube\.com/watch\?.*v=([a-zA-Z0-9_-]{11})",
@@ -83,7 +74,7 @@ class VideoEnricher:
                 return match.group(1)
         return None
 
-    def extract_vimeo_id(self, url: str) -> Optional[str]:
+    def extract_vimeo_id(self, url: str) -> str | None:
         patterns = [r"vimeo\.com/(\d+)", r"player\.vimeo\.com/video/(\d+)"]
         for pattern in patterns:
             match = re.search(pattern, url)
@@ -91,7 +82,7 @@ class VideoEnricher:
                 return match.group(1)
         return None
 
-    def extract_brightcove_ids(self, url: str) -> Tuple[Optional[str], Optional[str]]:
+    def extract_brightcove_ids(self, url: str) -> tuple[str | None, str | None]:
         """Extract account_id and video_id from Brightcove URL patterns."""
         parsed = urlparse(url)
         query = parse_qs(parsed.query)
@@ -99,7 +90,7 @@ class VideoEnricher:
         account_id = self.brightcove_account_id
         video_id = None
 
-        if "videoId" in query and query["videoId"]:
+        if query.get("videoId"):
             video_id = query["videoId"][0]
 
         # players.brightcove.net/{account_id}/{player_id}_default/index.html?videoId=...
@@ -122,7 +113,7 @@ class VideoEnricher:
 
         return account_id, video_id
 
-    async def get_brightcove_access_token(self, force_refresh: bool = False) -> Optional[str]:
+    async def get_brightcove_access_token(self, force_refresh: bool = False) -> str | None:
         """Get Brightcove OAuth access token using client credentials flow."""
         if not self.has_brightcove_credentials():
             return None
@@ -182,10 +173,10 @@ class VideoEnricher:
 
         return None
 
-    async def _brightcove_get_with_retry(self, url: str, headers: Dict[str, str]) -> requests.Response:
+    async def _brightcove_get_with_retry(self, url: str, headers: dict[str, str]) -> requests.Response:
         """GET helper with exponential backoff and 429 handling."""
         delay = self.brightcove_rate_limit_delay
-        last_response: Optional[requests.Response] = None
+        last_response: requests.Response | None = None
 
         for attempt in range(4):
             self._brightcove_api_calls += 1
@@ -222,7 +213,7 @@ class VideoEnricher:
             raise RuntimeError("Brightcove request failed before receiving response")
         return last_response
 
-    async def enrich_youtube_video(self, video_id: str) -> Dict[str, Any]:
+    async def enrich_youtube_video(self, video_id: str) -> dict[str, Any]:
         metadata = {
             "platform": "youtube",
             "video_id": video_id,
@@ -304,7 +295,7 @@ class VideoEnricher:
 
         return metadata
 
-    async def enrich_vimeo_video(self, video_id: str) -> Dict[str, Any]:
+    async def enrich_vimeo_video(self, video_id: str) -> dict[str, Any]:
         metadata = {
             "platform": "vimeo",
             "video_id": video_id,
@@ -347,8 +338,8 @@ class VideoEnricher:
 
         return metadata
 
-    async def enrich_brightcove_video(self, url: str) -> Dict[str, Any]:
-        metadata: Dict[str, Any] = {
+    async def enrich_brightcove_video(self, url: str) -> dict[str, Any]:
+        metadata: dict[str, Any] = {
             "platform": "brightcove",
             "video_id": None,
             "url": url,
@@ -433,9 +424,7 @@ class VideoEnricher:
                 )
                 return metadata
 
-            metadata["enrichment_error"] = (
-                f"Brightcove CMS API error {response.status_code}: {response.text[:200]}"
-            )
+            metadata["enrichment_error"] = f"Brightcove CMS API error {response.status_code}: {response.text[:200]}"
             metadata["metadata"]["api_enriched"] = False
             metadata["metadata"]["needs_enrichment"] = True
             return metadata
@@ -446,7 +435,7 @@ class VideoEnricher:
             metadata["metadata"]["needs_enrichment"] = True
             return metadata
 
-    async def _try_brightcove_oembed(self, url: str) -> Optional[Dict[str, Any]]:
+    async def _try_brightcove_oembed(self, url: str) -> dict[str, Any] | None:
         """Attempt to fetch metadata via Brightcove's public oEmbed endpoint.
 
         Works for publicly accessible videos without API credentials.
@@ -472,7 +461,7 @@ class VideoEnricher:
             logger.debug("Brightcove oEmbed request failed: %s", exc)
             return None
 
-    async def enrich_direct_video(self, url: str) -> Dict[str, Any]:
+    async def enrich_direct_video(self, url: str) -> dict[str, Any]:
         metadata = {
             "platform": "direct",
             "video_id": None,
@@ -517,7 +506,7 @@ class VideoEnricher:
             return path.split(".")[-1].lower()
         return "unknown"
 
-    def _parse_youtube_duration(self, duration_str: str) -> Optional[int]:
+    def _parse_youtube_duration(self, duration_str: str) -> int | None:
         try:
             match = re.match(r"PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?", duration_str)
             if match:
@@ -529,7 +518,7 @@ class VideoEnricher:
             logger.error("Failed to parse YouTube duration: %s", exc)
         return None
 
-    async def enrich_video(self, video_url: str, **kwargs) -> Dict[str, Any]:
+    async def enrich_video(self, video_url: str, **kwargs) -> dict[str, Any]:
         logger.info("Enriching video: %s", video_url)
         platform = self.detect_platform(video_url)
 
@@ -557,9 +546,9 @@ class VideoEnricher:
 
         return metadata
 
-    async def batch_enrich(self, video_urls: List[str], **kwargs) -> Dict[str, Any]:
-        results: List[Dict[str, Any]] = []
-        errors: List[Dict[str, Any]] = []
+    async def batch_enrich(self, video_urls: list[str], **kwargs) -> dict[str, Any]:
+        results: list[dict[str, Any]] = []
+        errors: list[dict[str, Any]] = []
 
         for url in video_urls:
             try:

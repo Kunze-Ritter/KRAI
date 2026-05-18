@@ -1,4 +1,4 @@
-<x-filament::page> 
+<x-filament::page>
     <div class="space-y-4">
         @if (!($processorData['success'] ?? false))
             <div class="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700 flex items-start gap-3">

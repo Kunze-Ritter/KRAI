@@ -1,24 +1,21 @@
 """Transaction management utilities for batch operations."""
+
 from __future__ import annotations
 
-import asyncio
 import logging
 import time
 import uuid
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterable
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
-from typing import Any, AsyncIterator, Awaitable, Callable, Dict, Iterable, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 try:
     import asyncpg  # type: ignore
 except ImportError:  # pragma: no cover - asyncpg optional
     asyncpg = None  # type: ignore
 
-from models.batch import (
-    BatchOperationResponse,
-    BatchOperationResult,
-    BatchOperationResultStatus,
-)
+from models.batch import BatchOperationResponse, BatchOperationResult, BatchOperationResultStatus
 
 
 class TransactionManager:
@@ -29,7 +26,7 @@ class TransactionManager:
         self._logger = logging.getLogger("krai.services.transaction_manager")
 
     @property
-    def pg_pool(self) -> Optional["asyncpg.pool.Pool"]:
+    def pg_pool(self) -> asyncpg.pool.Pool | None:
         """Expose the asyncpg pool."""
 
         return self._pool
@@ -40,7 +37,7 @@ class TransactionManager:
         return self.pg_pool is not None
 
     @asynccontextmanager
-    async def begin_transaction(self) -> AsyncIterator[Optional["asyncpg.Connection"]]:  # type: ignore[name-defined]
+    async def begin_transaction(self) -> AsyncIterator[asyncpg.Connection | None]:  # type: ignore[name-defined]
         """Acquire a transactional connection when asyncpg is available.
 
         Falls back to a dummy context when no PostgreSQL pool is configured, in which
@@ -71,13 +68,11 @@ class TransactionManager:
 
     async def execute_batch_with_transaction(
         self,
-        operations: Iterable[Callable[[Optional[Any]], Awaitable[BatchOperationResult]]],
+        operations: Iterable[Callable[[Any | None], Awaitable[BatchOperationResult]]],
         *,
         rollback_on_error: bool = True,
-        total_items: Optional[int] = None,
-        progress_callback: Optional[
-            Callable[[BatchOperationResult, int, int, int, int], Awaitable[None]]
-        ] = None,
+        total_items: int | None = None,
+        progress_callback: Callable[[BatchOperationResult, int, int, int, int], Awaitable[None]] | None = None,
     ) -> BatchOperationResponse:
         """Execute a collection of operations within a transaction scope.
 
@@ -88,7 +83,7 @@ class TransactionManager:
         start_time = time.perf_counter()
         operations_list = list(operations)
         total_target = total_items if total_items is not None else len(operations_list)
-        results: List[BatchOperationResult] = []
+        results: list[BatchOperationResult] = []
         failed = 0
         successful = 0
         processed = 0
@@ -125,7 +120,7 @@ class TransactionManager:
                             await progress_callback(failure_result, processed, total_target, successful, failed)
                         if rollback_on_error and self.has_transaction_support():
                             raise
-        except Exception as exc:
+        except Exception:
             self._logger.error("Transactional batch execution aborted", exc_info=True)
             execution_ms = int((time.perf_counter() - start_time) * 1000)
             total = total_target if total_target else processed
@@ -154,8 +149,8 @@ class TransactionManager:
         *,
         table: str,
         record_id: str,
-        old_values: Dict[str, Any],
-        changed_by: Optional[str] = None,
+        old_values: dict[str, Any],
+        changed_by: str | None = None,
     ) -> str:
         """Persist a rollback point in the audit log and return its identifier."""
 
@@ -168,19 +163,19 @@ class TransactionManager:
             "old_values": old_values,
             "rollback_point_id": rollback_point_id,
             "is_rollback": False,
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
         }
 
         # Build INSERT query using asyncpg
         columns = list(payload.keys())
         placeholders = [f"${i+1}" for i in range(len(columns))]
         values = list(payload.values())
-        
+
         query = f"""
-            INSERT INTO krai_system.audit_log ({', '.join(columns)}) 
+            INSERT INTO krai_system.audit_log ({', '.join(columns)})
             VALUES ({', '.join(placeholders)})
         """
-        
+
         async with self._pool.acquire() as conn:
             await conn.execute(query, *values)
         self._logger.debug("Created rollback point %s for %s", rollback_point_id, table)
@@ -190,16 +185,16 @@ class TransactionManager:
         """Restore state using a rollback point previously recorded."""
 
         query = """
-            SELECT table_name, record_id, old_values 
-            FROM krai_system.audit_log 
-            WHERE rollback_point_id = $1 
+            SELECT table_name, record_id, old_values
+            FROM krai_system.audit_log
+            WHERE rollback_point_id = $1
             LIMIT 1
         """
-        
+
         async with self._pool.acquire() as conn:
             result = await conn.fetchrow(query, rollback_point_id)
         data = dict(result) if result else None
-        
+
         if not data:
             self._logger.warning("Rollback point %s not found", rollback_point_id)
             return False
@@ -214,14 +209,14 @@ class TransactionManager:
         # Update record with old values
         set_clauses = [f"{key} = ${i+2}" for i, key in enumerate(old_values.keys())]
         update_query = f"""
-            UPDATE {table_name} 
+            UPDATE {table_name}
             SET {', '.join(set_clauses)}
             WHERE id = $1
         """
-        
+
         async with self._pool.acquire() as conn:
             await conn.execute(update_query, record_id, *list(old_values.values()))
-        
+
         # Log the rollback
         rollback_payload = {
             "table_name": table_name,
@@ -231,24 +226,24 @@ class TransactionManager:
             "new_values": old_values,
             "rollback_point_id": rollback_point_id,
             "is_rollback": True,
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
         }
-        
+
         columns = list(rollback_payload.keys())
         placeholders = [f"${i+1}" for i in range(len(columns))]
         values = list(rollback_payload.values())
-        
+
         audit_query = f"""
-            INSERT INTO krai_system.audit_log ({', '.join(columns)}) 
+            INSERT INTO krai_system.audit_log ({', '.join(columns)})
             VALUES ({', '.join(placeholders)})
         """
-        
+
         async with self._pool.acquire() as conn:
             await conn.execute(audit_query, *values)
         self._logger.info("Executed rollback for %s via rollback point %s", record_id, rollback_point_id)
         return True
 
-    async def execute_compensating_transaction(self, failed_operations: Iterable[Dict[str, Any]]) -> int:
+    async def execute_compensating_transaction(self, failed_operations: Iterable[dict[str, Any]]) -> int:
         """Attempt to compensate previously successful operations.
 
         Each entry is expected to provide a ``rollback_data`` dictionary describing how to
@@ -313,22 +308,24 @@ class TransactionManager:
                     "is_rollback": True,
                     "old_values": old_values,
                     "new_values": new_values,
-                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "created_at": datetime.now(UTC).isoformat(),
                 }
-                
+
                 columns = list(audit_payload.keys())
                 placeholders = [f"${i+1}" for i in range(len(columns))]
                 values = list(audit_payload.values())
-                
-                audit_query = f"INSERT INTO krai_system.audit_log ({', '.join(columns)}) VALUES ({', '.join(placeholders)})"
+
+                audit_query = (
+                    f"INSERT INTO krai_system.audit_log ({', '.join(columns)}) VALUES ({', '.join(placeholders)})"
+                )
                 await self._adapter.execute_query(audit_query, values)
-                
-            except Exception as exc:  # pragma: no cover - defensive logging
+
+            except Exception:  # pragma: no cover - defensive logging
                 self._logger.error("Compensating transaction failed for %s", data, exc_info=True)
 
         return compensated
 
-    async def validate_transaction_scope(self, operations: Iterable[Dict[str, Any]]) -> bool:
+    async def validate_transaction_scope(self, operations: Iterable[dict[str, Any]]) -> bool:
         """Validate that all operations target the same table for transactional safety."""
 
         tables = {op.get("table") for op in operations if isinstance(op, dict)}
@@ -336,7 +333,7 @@ class TransactionManager:
             return False
         return len(tables) == 1
 
-    async def estimate_transaction_size(self, operations: Iterable[Dict[str, Any]]) -> int:
+    async def estimate_transaction_size(self, operations: Iterable[dict[str, Any]]) -> int:
         """Estimate the approximate payload size for a transaction in bytes."""
 
         size = 0
@@ -347,4 +344,3 @@ class TransactionManager:
 
 
 # Circular import avoidance: DatabaseAdapter is only needed for type checking.
-from services.database_adapter import DatabaseAdapter  # noqa: E402  # isort:skip

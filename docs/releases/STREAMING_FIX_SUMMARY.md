@@ -46,7 +46,7 @@ url = link['url']
 if 'youtube.com' in url or 'youtu.be' in url:
     # YouTube
 elif 'vimeo.com' in url:
-    # Vimeo  
+    # Vimeo
 elif 'brightcove' in url:
     # Brightcove
 ```

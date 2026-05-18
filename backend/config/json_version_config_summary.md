@@ -23,7 +23,7 @@
 
 ```
 ✅ Service Manual Edition 3, 5/2024 → 3, 5/2024
-✅ November 2024 Service Manual → November 2024  
+✅ November 2024 Service Manual → November 2024
 ✅ CPMD Database Edition 4.0, 04/2025 → 4.0, 04/2025
 ✅ Service Manual 2024/12/25 → 2024/12/25
 ✅ Service Manual 2022/09/29 → 2022/09/29
@@ -127,7 +127,7 @@
         "pattern_category": "edition_patterns"
       },
       {
-        "document_type": "cpmd_database", 
+        "document_type": "cpmd_database",
         "version_format": "Edition 4.0, 04/2025",
         "pattern_category": "edition_patterns"
       }
@@ -162,7 +162,7 @@
 ```json
 {
   "lexmark": {
-    "name": "Lexmark Version Patterns", 
+    "name": "Lexmark Version Patterns",
     "preferred_patterns": ["date_patterns"],
     "examples": [
       {
@@ -186,7 +186,7 @@
     "case_sensitive": false,
     "search_order": [
       "edition_patterns",
-      "date_patterns", 
+      "date_patterns",
       "firmware_patterns",
       "standard_patterns",
       "numeric_patterns"
@@ -244,10 +244,10 @@ result = extractor.extract_version(text, manufacturer="hp")
 def process_document(file_path, manufacturer=None):
     # Extract text from PDF
     text = extract_text_from_pdf(file_path)
-    
+
     # Extract version using JSON config
     version_result = extractor.extract_version(text, manufacturer)
-    
+
     # Store in database
     document_data = {
         'file_name': file_path.name,
@@ -257,7 +257,7 @@ def process_document(file_path, manufacturer=None):
             'version_pattern': version_result['pattern_category']
         }
     }
-    
+
     return document_data
 ```
 

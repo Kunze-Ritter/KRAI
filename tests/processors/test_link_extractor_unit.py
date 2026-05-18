@@ -1,11 +1,8 @@
-import json
-from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import pytest
 
 from backend.processors.link_extractor import LinkExtractor
-
 
 pytestmark = [pytest.mark.unit, pytest.mark.link]
 
@@ -17,10 +14,7 @@ def _make_extractor(youtube_api_key: str | None = None) -> LinkExtractor:
 class TestUrlExtraction:
     def test_extract_text_links_http_https(self) -> None:
         extractor = _make_extractor()
-        text = (
-            "See http://real.example.net for details and "
-            "https://docs.example.org/guide for the full guide."
-        )
+        text = "See http://real.example.net for details and " "https://docs.example.org/guide for the full guide."
 
         links = extractor._extract_text_links(text, page_num=1)  # type: ignore[attr-defined]
 
@@ -33,9 +27,7 @@ class TestUrlExtraction:
 
     def test_extract_text_links_skip_placeholders(self) -> None:
         extractor = _make_extractor()
-        text = (
-            "Use http://example.com or http://x.x.x.x or http://0.0.0.0 but they are placeholders"
-        )
+        text = "Use http://example.com or http://x.x.x.x or http://0.0.0.0 but they are placeholders"
 
         links = extractor._extract_text_links(text, page_num=1)  # type: ignore[attr-defined]
         urls = {l["url"] for l in links}
@@ -94,16 +86,16 @@ class TestYouTubeDetection:
         extractor = _make_extractor(youtube_api_key="TEST_KEY")
 
         class FakeResponse:
-            def __init__(self, payload: Dict[str, Any]):
+            def __init__(self, payload: dict[str, Any]):
                 self._payload = payload
 
             def raise_for_status(self) -> None:  # pragma: no cover - simple stub
                 return None
 
-            def json(self) -> Dict[str, Any]:
+            def json(self) -> dict[str, Any]:
                 return self._payload
 
-        def fake_get(url: str, params: Dict[str, Any], timeout: int = 10) -> FakeResponse:  # type: ignore[override]
+        def fake_get(url: str, params: dict[str, Any], timeout: int = 10) -> FakeResponse:  # type: ignore[override]
             assert params["id"] == "ABCDEFGHIJK"
             data = {
                 "items": [
@@ -137,16 +129,16 @@ class TestYouTubeDetection:
         extractor = _make_extractor(youtube_api_key=None)
 
         class FakeResponse:
-            def __init__(self, payload: Dict[str, Any]):
+            def __init__(self, payload: dict[str, Any]):
                 self._payload = payload
 
             def raise_for_status(self) -> None:  # pragma: no cover - simple stub
                 return None
 
-            def json(self) -> Dict[str, Any]:
+            def json(self) -> dict[str, Any]:
                 return self._payload
 
-        def fake_get(url: str, params: Dict[str, Any], timeout: int = 10) -> FakeResponse:  # type: ignore[override]
+        def fake_get(url: str, params: dict[str, Any], timeout: int = 10) -> FakeResponse:  # type: ignore[override]
             assert "oembed" in url
             assert "watch?v=ABCDEFGHIJK" in params["url"]
             payload = {
@@ -165,9 +157,7 @@ class TestYouTubeDetection:
         assert meta["title"] == "OEmbed Title"
         assert meta["thumbnail_url"] == "http://thumb-oembed"
 
-    def test_fetch_youtube_metadata_handles_request_exception(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_fetch_youtube_metadata_handles_request_exception(self, monkeypatch: pytest.MonkeyPatch) -> None:
         extractor = _make_extractor(youtube_api_key="TEST_KEY")
 
         def fake_get(*_args: Any, **_kwargs: Any) -> Any:
@@ -188,18 +178,18 @@ class TestYouTubeDetection:
     def test_fetch_youtube_metadata_handles_missing_items(
         self,
         monkeypatch: pytest.MonkeyPatch,
-        payload: Dict[str, Any],
+        payload: dict[str, Any],
     ) -> None:
         extractor = _make_extractor(youtube_api_key="TEST_KEY")
 
         class FakeResponse:
-            def __init__(self, data: Dict[str, Any]) -> None:
+            def __init__(self, data: dict[str, Any]) -> None:
                 self._data = data
 
             def raise_for_status(self) -> None:  # pragma: no cover - simple stub
                 return None
 
-            def json(self) -> Dict[str, Any]:
+            def json(self) -> dict[str, Any]:
                 return self._data
 
         def fake_get(*_args: Any, **_kwargs: Any) -> FakeResponse:
@@ -330,10 +320,7 @@ class TestDescriptionExtraction:
     def test_extract_link_description_removes_url_and_prefix(self) -> None:
         extractor = _make_extractor()
         url = "http://example.com/manual"
-        context = (
-            "For more information: visit "
-            f"{url} which contains the full service manual."
-        )
+        context = "For more information: visit " f"{url} which contains the full service manual."
 
         description = extractor._extract_link_description(context, url)  # type: ignore[attr-defined]
         desc_lower = description.lower()

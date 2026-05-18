@@ -32,7 +32,7 @@ class MockDatabaseAdapter:
 
     async def execute_rpc(self, name: str, params: dict | None = None):
         self.rpc_calls.append({"name": name, "params": params or {}})
-        return None
+        return
 
 
 @pytest.mark.embedding
@@ -94,7 +94,7 @@ class TestEmbeddingStage:
 
     @pytest.mark.ollama
     @pytest.mark.skipif(
-        not os.getenv("OLLAMA_AVAILABLE", "false").lower() == "true",
+        os.getenv("OLLAMA_AVAILABLE", "false").lower() != "true",
         reason="Ollama not available - set OLLAMA_AVAILABLE=true to run",
     )
     def test_ollama_embedding_generation_768_dim(self):
@@ -112,7 +112,7 @@ class TestEmbeddingStage:
 
     @pytest.mark.ollama
     @pytest.mark.skipif(
-        not os.getenv("OLLAMA_AVAILABLE", "false").lower() == "true",
+        os.getenv("OLLAMA_AVAILABLE", "false").lower() != "true",
         reason="Ollama not available",
     )
     @pytest.mark.asyncio

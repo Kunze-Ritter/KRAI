@@ -1,16 +1,15 @@
+from typing import Any
 from uuid import uuid4
-from typing import Any, Dict, List
 
 import pytest
 
 from backend.core.base_processor import ProcessingContext
 from backend.processors.link_extraction_processor_ai import LinkExtractionProcessorAI
 
-
 pytestmark = [pytest.mark.integration, pytest.mark.asyncio, pytest.mark.link_enrichment]
 
 
-def _make_context(document_id: str, file_path: str, page_texts: Dict[int, str]) -> ProcessingContext:
+def _make_context(document_id: str, file_path: str, page_texts: dict[int, str]) -> ProcessingContext:
     ctx = ProcessingContext(
         document_id=document_id,
         file_path=file_path,
@@ -47,8 +46,8 @@ class TestLinkEnrichmentFlow:
         )
 
         # Stub _save_links_to_db so that links keep their own IDs and we can observe them
-        async def fake_save_links(links: List[Dict[str, Any]], document_id: str, adapter: Any) -> Dict[str, str]:
-            mapping: Dict[str, str] = {}
+        async def fake_save_links(links: list[dict[str, Any]], document_id: str, adapter: Any) -> dict[str, str]:
+            mapping: dict[str, str] = {}
             for link in links:
                 # Ensure each link has a stable id
                 if "id" not in link:
@@ -56,16 +55,16 @@ class TestLinkEnrichmentFlow:
                 mapping[link["url"]] = link["id"]
             return mapping
 
-        async def fake_save_videos(videos: List[Dict[str, Any]], mapping: Dict[str, str], adapter: Any) -> None:
+        async def fake_save_videos(videos: list[dict[str, Any]], mapping: dict[str, str], adapter: Any) -> None:
             return None
 
         processor._save_links_to_db = fake_save_links  # type: ignore[assignment]
         processor._save_videos_to_db = fake_save_videos  # type: ignore[assignment]
 
         # Patch enrichment service to observe calls
-        called: Dict[str, Any] = {}
+        called: dict[str, Any] = {}
 
-        async def fake_enrich_links_batch(link_ids: List[str], max_concurrent: int = 3) -> Dict[str, Any]:
+        async def fake_enrich_links_batch(link_ids: list[str], max_concurrent: int = 3) -> dict[str, Any]:
             called["link_ids"] = list(link_ids)
             return {"total": len(link_ids), "enriched": len(link_ids), "failed": 0, "skipped": 0}
 
@@ -101,10 +100,10 @@ class TestLinkEnrichmentFlow:
             link_enrichment_service=None,
         )
 
-        async def fake_save_links(links: List[Dict[str, Any]], document_id: str, adapter: Any) -> Dict[str, str]:
+        async def fake_save_links(links: list[dict[str, Any]], document_id: str, adapter: Any) -> dict[str, str]:
             return {link["url"]: link.get("id", str(uuid4())) for link in links}
 
-        async def fake_save_videos(videos: List[Dict[str, Any]], mapping: Dict[str, str], adapter: Any) -> None:
+        async def fake_save_videos(videos: list[dict[str, Any]], mapping: dict[str, str], adapter: Any) -> None:
             return None
 
         processor._save_links_to_db = fake_save_links  # type: ignore[assignment]
@@ -113,7 +112,7 @@ class TestLinkEnrichmentFlow:
         # Wrap enrichment call to ensure it is not invoked
         called = {"count": 0}
 
-        async def fake_enrich_links_batch(*_args: Any, **_kwargs: Any) -> Dict[str, Any]:  # pragma: no cover
+        async def fake_enrich_links_batch(*_args: Any, **_kwargs: Any) -> dict[str, Any]:  # pragma: no cover
             called["count"] += 1
             return {"total": 0, "enriched": 0, "failed": 0, "skipped": 0}
 
@@ -151,25 +150,27 @@ class TestStructuredExtractionTrigger:
             link_enrichment_service=link_enrichment_service_with_mock_scraper,
         )
 
-        async def fake_save_links(links: List[Dict[str, Any]], document_id: str, adapter: Any) -> Dict[str, str]:
-            mapping: Dict[str, str] = {}
+        async def fake_save_links(links: list[dict[str, Any]], document_id: str, adapter: Any) -> dict[str, str]:
+            mapping: dict[str, str] = {}
             for link in links:
                 if "id" not in link:
                     link["id"] = str(uuid4())
                 mapping[link["url"]] = link["id"]
             return mapping
 
-        async def fake_save_videos(videos: List[Dict[str, Any]], mapping: Dict[str, str], adapter: Any) -> None:
+        async def fake_save_videos(videos: list[dict[str, Any]], mapping: dict[str, str], adapter: Any) -> None:
             return None
 
         processor._save_links_to_db = fake_save_links  # type: ignore[assignment]
         processor._save_videos_to_db = fake_save_videos  # type: ignore[assignment]
 
         # Provide a lightweight structured_extraction_service
-        called: Dict[str, Any] = {}
+        called: dict[str, Any] = {}
 
         class DummyStructuredService:
-            async def batch_extract(self, source_ids: List[str], source_type: str, max_concurrent: int = 2) -> Dict[str, Any]:
+            async def batch_extract(
+                self, source_ids: list[str], source_type: str, max_concurrent: int = 2
+            ) -> dict[str, Any]:
                 called["source_ids"] = list(source_ids)
                 called["source_type"] = source_type
                 return {"completed": len(source_ids), "failed": 0, "total": len(source_ids)}
@@ -177,7 +178,7 @@ class TestStructuredExtractionTrigger:
         processor.enable_structured_extraction = True
         processor.structured_extraction_service = DummyStructuredService()  # type: ignore[assignment]
 
-        async def fake_enrich_links_batch(link_ids: List[str], max_concurrent: int = 3) -> Dict[str, Any]:
+        async def fake_enrich_links_batch(link_ids: list[str], max_concurrent: int = 3) -> dict[str, Any]:
             # All links are considered enriched successfully
             return {"enriched": len(link_ids), "failed": 0, "skipped": 0}
 
@@ -216,11 +217,11 @@ class TestLinkEnrichmentErrorHandling:
         )
 
         async def fake_save_links(
-            links: List[Dict[str, Any]],
+            links: list[dict[str, Any]],
             doc_id: str,
             adapter: Any,
-        ) -> Dict[str, str]:
-            mapping: Dict[str, str] = {}
+        ) -> dict[str, str]:
+            mapping: dict[str, str] = {}
             for link in links:
                 if "id" not in link:
                     link["id"] = str(uuid4())
@@ -228,8 +229,8 @@ class TestLinkEnrichmentErrorHandling:
             return mapping
 
         async def fake_save_videos(
-            videos: List[Dict[str, Any]],
-            mapping: Dict[str, str],
+            videos: list[dict[str, Any]],
+            mapping: dict[str, str],
             adapter: Any,
         ) -> None:
             return None
@@ -238,14 +239,14 @@ class TestLinkEnrichmentErrorHandling:
         processor._save_videos_to_db = fake_save_videos  # type: ignore[assignment]
 
         async def failing_enrich_links_batch(
-            link_ids: List[str],
+            link_ids: list[str],
             max_concurrent: int = 3,
-        ) -> Dict[str, Any]:
+        ) -> dict[str, Any]:
             raise RuntimeError("enrichment failed")
 
         link_enrichment_service_with_mock_scraper.enrich_links_batch = failing_enrich_links_batch  # type: ignore[assignment]
 
-        error_messages: List[str] = []
+        error_messages: list[str] = []
 
         class StubAdapter:
             def info(self, *_args: Any, **_kwargs: Any) -> None:
@@ -310,11 +311,11 @@ class TestLinkEnrichmentErrorHandling:
         )
 
         async def fake_save_links(
-            links: List[Dict[str, Any]],
+            links: list[dict[str, Any]],
             doc_id: str,
             adapter: Any,
-        ) -> Dict[str, str]:
-            mapping: Dict[str, str] = {}
+        ) -> dict[str, str]:
+            mapping: dict[str, str] = {}
             for link in links:
                 if "id" not in link:
                     link["id"] = str(uuid4())
@@ -322,8 +323,8 @@ class TestLinkEnrichmentErrorHandling:
             return mapping
 
         async def fake_save_videos(
-            videos: List[Dict[str, Any]],
-            mapping: Dict[str, str],
+            videos: list[dict[str, Any]],
+            mapping: dict[str, str],
             adapter: Any,
         ) -> None:
             return None
@@ -334,24 +335,24 @@ class TestLinkEnrichmentErrorHandling:
         class FailingStructuredService:
             async def batch_extract(
                 self,
-                source_ids: List[str],
+                source_ids: list[str],
                 source_type: str,
                 max_concurrent: int = 2,
-            ) -> Dict[str, Any]:
+            ) -> dict[str, Any]:
                 raise RuntimeError("structured extraction failed")
 
         processor.enable_structured_extraction = True
         processor.structured_extraction_service = FailingStructuredService()  # type: ignore[assignment]
 
         async def successful_enrich_links_batch(
-            link_ids: List[str],
+            link_ids: list[str],
             max_concurrent: int = 3,
-        ) -> Dict[str, Any]:
+        ) -> dict[str, Any]:
             return {"enriched": len(link_ids), "failed": 0, "skipped": 0}
 
         link_enrichment_service_with_mock_scraper.enrich_links_batch = successful_enrich_links_batch  # type: ignore[assignment]
 
-        error_messages: List[str] = []
+        error_messages: list[str] = []
 
         class StubAdapter:
             def info(self, *_args: Any, **_kwargs: Any) -> None:
@@ -392,7 +393,4 @@ class TestLinkEnrichmentErrorHandling:
         result = await processor.process(ctx)
 
         assert result.success is True
-        assert any(
-            "Structured extraction batch failed" in message
-            for message in error_messages
-        )
+        assert any("Structured extraction batch failed" in message for message in error_messages)

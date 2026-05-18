@@ -13,19 +13,17 @@ import asyncio
 import logging
 import sys
 from pathlib import Path
-from typing import Dict, List
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from scripts._env import load_env
 from backend.core.base_processor import Stage
 from backend.pipeline.master_pipeline import KRMasterPipeline
 from backend.services.database_factory import create_database_adapter
+from scripts._env import load_env
 
-
-STAGE_NUMBER_MAP: Dict[int, Stage] = {
+STAGE_NUMBER_MAP: dict[int, Stage] = {
     1: Stage.UPLOAD,
     2: Stage.TEXT_EXTRACTION,
     3: Stage.TABLE_EXTRACTION,
@@ -43,7 +41,7 @@ STAGE_NUMBER_MAP: Dict[int, Stage] = {
     15: Stage.SEARCH_INDEXING,
 }
 
-STAGE_MARKER_MAP: Dict[Stage, str] = {
+STAGE_MARKER_MAP: dict[Stage, str] = {
     Stage.UPLOAD: "upload_processor",
     Stage.TEXT_EXTRACTION: "text_processor",
     Stage.TABLE_EXTRACTION: "table_processor",
@@ -72,8 +70,8 @@ def parse_stage_item(value: str) -> Stage:
         raise ValueError(f"Invalid stage number: {value}") from exc
 
 
-def parse_stages(stages_arg: str) -> List[Stage]:
-    stages: List[Stage] = []
+def parse_stages(stages_arg: str) -> list[Stage]:
+    stages: list[Stage] = []
     for item in stages_arg.split(","):
         if not item.strip():
             continue
@@ -83,7 +81,7 @@ def parse_stages(stages_arg: str) -> List[Stage]:
     return stages
 
 
-async def reset_stage_markers(db_adapter, document_ids: List[str], stages: List[Stage]) -> int:
+async def reset_stage_markers(db_adapter, document_ids: list[str], stages: list[Stage]) -> int:
     marker_names = [STAGE_MARKER_MAP[s] for s in stages if s in STAGE_MARKER_MAP]
     if not marker_names:
         return 0
@@ -98,7 +96,7 @@ async def reset_stage_markers(db_adapter, document_ids: List[str], stages: List[
     return int(getattr(result, "rowcount", 0))
 
 
-async def collect_metrics(db_adapter, document_id: str) -> Dict[str, int]:
+async def collect_metrics(db_adapter, document_id: str) -> dict[str, int]:
     error_code_row = await db_adapter.fetch_one(
         """
         SELECT COUNT(*)::int AS count

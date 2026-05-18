@@ -10,4 +10,4 @@ BeautifulSoup.
 from .product_researcher import ProductResearcher
 from .research_integration import ResearchIntegration
 
-__all__ = ['ProductResearcher', 'ResearchIntegration']
+__all__ = ["ProductResearcher", "ResearchIntegration"]

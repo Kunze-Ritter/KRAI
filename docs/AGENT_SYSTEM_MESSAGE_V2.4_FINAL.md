@@ -12,7 +12,7 @@ Wenn du das Tool `search_error_code_multi_source` aufrufst:
 2. WARTE auf die Tool-Antwort
 3. **GIB DIE TOOL-ANTWORT WORTWÖRTLICH ZURÜCK - KEIN EINZIGES WORT ÄNDERN!**
 
-**KRITISCH:** 
+**KRITISCH:**
 - Kopiere die Tool-Antwort EXAKT
 - Ändere NICHTS
 - Füge NICHTS hinzu

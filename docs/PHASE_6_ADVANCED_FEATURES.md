@@ -152,7 +152,7 @@ previous_chunk_id UUID,
 next_chunk_id UUID,
 error_code TEXT
 
--- krai_content.images  
+-- krai_content.images
 image_type VARCHAR(50) DEFAULT 'raster',
 svg_content TEXT,
 vector_graphic BOOLEAN DEFAULT false

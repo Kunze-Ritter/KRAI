@@ -31,21 +31,18 @@ def create_database_adapter(database_type: str | None = None) -> DatabaseAdapter
         EnvironmentError: If required environment variables are missing.
     """
     if database_type is None:
-        database_type = os.getenv('DATABASE_TYPE', 'postgresql')
+        database_type = os.getenv("DATABASE_TYPE", "postgresql")
 
     logger.info(f"Creating database adapter for type: {database_type}")
 
-    if database_type == 'postgresql':
+    if database_type == "postgresql":
         # Lazy import to reduce initial load time
         from .postgresql_adapter import PostgreSQLAdapter
 
         # Get PostgreSQL configuration from environment
         # Check multiple environment variables in order of preference
         # Prefer container/internal connection URL before local-host fallback.
-        postgres_url = (
-            os.getenv('DATABASE_CONNECTION_URL') or
-            os.getenv('POSTGRES_URL')
-        )
+        postgres_url = os.getenv("DATABASE_CONNECTION_URL") or os.getenv("POSTGRES_URL")
         if not postgres_url:
             raise OSError(
                 "Neither POSTGRES_URL nor DATABASE_CONNECTION_URL environment variable is set. "
@@ -53,14 +50,11 @@ def create_database_adapter(database_type: str | None = None) -> DatabaseAdapter
                 "Format: postgresql://user:pass@host:port/dbname"
             )
 
-        schema_prefix = os.getenv('SCHEMA_PREFIX', 'krai')
+        schema_prefix = os.getenv("SCHEMA_PREFIX", "krai")
 
         logger.info(f"Creating PostgreSQL adapter with schema prefix: {schema_prefix}")
 
-        return PostgreSQLAdapter(
-            postgres_url=postgres_url,
-            schema_prefix=schema_prefix
-        )
+        return PostgreSQLAdapter(postgres_url=postgres_url, schema_prefix=schema_prefix)
 
     raise ValueError(f"Unsupported database type: {database_type}")
 
@@ -73,8 +67,8 @@ def get_database_config() -> dict:
         dict: Database configuration parameters.
     """
     return {
-        'database_type': os.getenv('DATABASE_TYPE', 'postgresql'),
-        'postgres_url': os.getenv('POSTGRES_URL'),
-        'database_connection_url': os.getenv('DATABASE_CONNECTION_URL'),
-        'schema_prefix': os.getenv('SCHEMA_PREFIX', 'krai'),
+        "database_type": os.getenv("DATABASE_TYPE", "postgresql"),
+        "postgres_url": os.getenv("POSTGRES_URL"),
+        "database_connection_url": os.getenv("DATABASE_CONNECTION_URL"),
+        "schema_prefix": os.getenv("SCHEMA_PREFIX", "krai"),
     }

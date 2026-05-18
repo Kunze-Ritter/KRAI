@@ -1,4 +1,5 @@
 """Factory helpers for creating and registering the AuthService."""
+
 from services.auth_service import AuthService
 from services.database_factory import create_database_adapter
 

@@ -2,35 +2,37 @@
 Custom exceptions for document processing
 """
 
+
 class ProcessingError(Exception):
     """Base exception for processing errors"""
+
     pass
 
 
 class ManufacturerPatternNotFoundError(ProcessingError):
     """
     Raised when no error code patterns are configured for a manufacturer
-    
+
     This prevents false positives from generic patterns matching part numbers,
     model numbers, or other non-error-code identifiers.
     """
-    
+
     def __init__(self, manufacturer: str, stage: str = "Error Code Extraction"):
         self.manufacturer = manufacturer
         self.stage = stage
-        
+
         message = self._build_error_message()
         super().__init__(message)
-    
+
     def _build_error_message(self) -> str:
         """Build comprehensive error message with solutions"""
-        
+
         # Box drawing characters
         box_top = "╔" + "═" * 63 + "╗"
         box_mid = "╠" + "═" * 63 + "╣"
         box_bot = "╚" + "═" * 63 + "╝"
         box_line = lambda text: f"║ {text:<61} ║"
-        
+
         lines = [
             "",
             box_top,
@@ -82,15 +84,15 @@ class ManufacturerPatternNotFoundError(ProcessingError):
             "",
             "💡 TIP: After adding patterns, you can resume processing with:",
             "   python scripts/reprocess_document.py --document-id <id>",
-            ""
+            "",
         ]
-        
+
         return "\n".join(lines)
 
 
 class ManufacturerNotFoundError(ProcessingError):
     """Raised when manufacturer cannot be found or created in database"""
-    
+
     def __init__(self, manufacturer: str, reason: str = ""):
         self.manufacturer = manufacturer
         self.reason = reason
@@ -102,7 +104,7 @@ class ManufacturerNotFoundError(ProcessingError):
 
 class SeriesNotFoundError(ProcessingError):
     """Raised when product series cannot be found in database"""
-    
+
     def __init__(self, series: str, manufacturer: str = ""):
         self.series = series
         self.manufacturer = manufacturer
@@ -114,7 +116,7 @@ class SeriesNotFoundError(ProcessingError):
 
 class ProductNotFoundError(ProcessingError):
     """Raised when product cannot be found in database"""
-    
+
     def __init__(self, product: str, series: str = ""):
         self.product = product
         self.series = series

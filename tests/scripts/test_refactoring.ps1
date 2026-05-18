@@ -13,10 +13,10 @@ function Test-Endpoint {
         [string]$Url,
         [string]$Method = "GET"
     )
-    
+
     Write-Host "`n🔍 Testing: $Name" -ForegroundColor Yellow
     Write-Host "   URL: $Url"
-    
+
     try {
         $response = Invoke-RestMethod -Uri $Url -Method $Method -ErrorAction Stop
         Write-Host "   ✅ PASSED" -ForegroundColor Green

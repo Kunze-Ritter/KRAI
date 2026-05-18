@@ -10,9 +10,10 @@ import json
 import logging
 import os
 import sys
+from collections.abc import AsyncGenerator, Sequence
 from datetime import datetime
 from pathlib import Path
-from typing import Any, AsyncGenerator, List, Optional, Sequence, Union
+from typing import Any
 
 import asyncpg
 import httpx
@@ -26,9 +27,9 @@ from langgraph.prebuilt import create_react_agent
 from pydantic import BaseModel, Field
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from api.agent_scope import (  # noqa: E402
-    AgentScope,
+from api.agent_scope import (
     CURRENT_AGENT_SCOPE,
+    AgentScope,
     build_error_code_variants,
     build_scope_filters,
     build_scope_system_message,
@@ -36,9 +37,9 @@ from api.agent_scope import (  # noqa: E402
     merge_scope,
     normalize_scope,
 )
-from api.middleware.auth_middleware import require_permission  # noqa: E402
-from processors.env_loader import load_all_env_files  # noqa: E402
-from services.db_pool import get_pool  # noqa: E402
+from api.middleware.auth_middleware import require_permission
+from processors.env_loader import load_all_env_files
+from services.db_pool import get_pool
 
 project_root = Path(__file__).parent.parent.parent
 load_all_env_files(project_root)
@@ -50,7 +51,7 @@ logger = logging.getLogger(__name__)
 class ChatMessage(BaseModel):
     """Chat message from user."""
 
-    message: Union[str, List[dict]] = Field(..., description="User message (text or vision parts)")
+    message: str | list[dict] = Field(..., description="User message (text or vision parts)")
     session_id: str = Field(..., description="Unique session ID for conversation memory")
     stream: bool = Field(default=False, description="Enable streaming response")
     scope: AgentScope | None = Field(default=None, description="Optional machine/product scope")
@@ -281,8 +282,8 @@ async def _fetch_related_documents(
 def create_tools(
     pool: asyncpg.Pool,
     ollama_base_url: str,
-    ai_service=None,          # AIService | None
-    reranking_service=None,   # RerankingService | None
+    ai_service=None,  # AIService | None
+    reranking_service=None,  # RerankingService | None
 ) -> list:
     """Create agent tools bound to the shared asyncpg pool."""
 
@@ -313,9 +314,9 @@ def create_tools(
                     embedding,
                 )
             return {
-                "chunk_ids":    [str(r["chunk_id"]) for r in rows],
+                "chunk_ids": [str(r["chunk_id"]) for r in rows],
                 "document_ids": list({str(r["document_id"]) for r in rows if r["document_id"]}),
-                "product_ids":  list({str(r["product_id"]) for r in rows if r["product_id"]}),
+                "product_ids": list({str(r["product_id"]) for r in rows if r["product_id"]}),
             }
         except Exception as e:
             logger.warning("_vector_seed failed, falling back to ILIKE: %s", e)
@@ -480,7 +481,7 @@ def create_tools(
             return json.dumps({"found": False, "error": str(exc), "scope": scope}, ensure_ascii=False)
 
     @tool
-    async def search_parts(query: str, manufacturer: Optional[str] = None) -> str:
+    async def search_parts(query: str, manufacturer: str | None = None) -> str:
         """Search spare parts for the active machine scope."""
 
         scope = _serialize_scope()
@@ -717,8 +718,8 @@ class KRAIAgent:
         self,
         pool: asyncpg.Pool,
         ollama_base_url: str | None = None,
-        ai_service=None,          # AIService | None
-        reranking_service=None,   # RerankingService | None
+        ai_service=None,  # AIService | None
+        reranking_service=None,  # RerankingService | None
     ) -> None:
         if ollama_base_url is None:
             ollama_base_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
@@ -815,7 +816,7 @@ class KRAIAgent:
 
     async def chat(
         self,
-        message: Union[str, list],
+        message: str | list,
         session_id: str,
         scope: AgentScope | None = None,
         *,
@@ -845,7 +846,7 @@ class KRAIAgent:
 
     async def chat_stream(
         self,
-        message: Union[str, list],
+        message: str | list,
         session_id: str,
         scope: AgentScope | None = None,
         *,

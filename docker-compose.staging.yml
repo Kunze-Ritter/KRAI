@@ -1,5 +1,5 @@
 # Docker Compose Configuration for KRAI Staging Environment
-# 
+#
 # Purpose: Isolated staging environment for performance benchmarking and testing
 # - Separate PostgreSQL database (krai_staging) on port 5433
 # - Backend service with BENCHMARK_MODE=true on port 8001

@@ -1,11 +1,11 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """Installation script for Git hooks used in version management."""
 
-from pathlib import Path
+import os
 import shutil
 import sys
-import os
 from datetime import datetime
+from pathlib import Path
 
 HOOK_SPECS = [
     {
@@ -69,8 +69,7 @@ def install_hooks():
         else:
             wrapper_path = hook_source.with_suffix(".cmd")
             print(f"Writing Windows wrapper: {wrapper_path.name}")
-            wrapper_content = "@echo off\r\n" \
-                f"py -3 \"%~dp0\\{hook_name}\" %*\r\n"
+            wrapper_content = "@echo off\r\n" f'py -3 "%~dp0\\{hook_name}" %*\r\n'
             wrapper_path.write_text(wrapper_content, encoding="utf-8")
 
     # Verify installation
@@ -102,6 +101,7 @@ def main():
     except Exception as e:
         print(f"Error during hook installation: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

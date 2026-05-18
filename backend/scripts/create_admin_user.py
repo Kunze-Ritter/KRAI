@@ -6,13 +6,12 @@ This script creates an admin user with all necessary permissions.
 Run this script after setting up the database and before starting the application.
 """
 
-import os
-import sys
 import argparse
 import asyncio
-from pathlib import Path
-from typing import Optional
+import os
+import sys
 from getpass import getpass
+from pathlib import Path
 
 # Add project root and backend directory to sys.path before internal imports
 project_root = Path(__file__).parent.parent.parent
@@ -41,7 +40,8 @@ DEFAULT_ADMIN_FIRST_NAME = os.getenv("DEFAULT_ADMIN_FIRST_NAME", "System")
 DEFAULT_ADMIN_LAST_NAME = os.getenv("DEFAULT_ADMIN_LAST_NAME", "Administrator")
 DEFAULT_ADMIN_PASSWORD = os.getenv("DEFAULT_ADMIN_PASSWORD")
 
-async def _prompt_for_password(default_password: Optional[str]) -> str:
+
+async def _prompt_for_password(default_password: str | None) -> str:
     """Prompt operator for secure admin password when missing."""
     if default_password:
         return default_password
@@ -68,18 +68,14 @@ async def create_admin_user(
     username: str,
     first_name: str,
     last_name: str,
-    password: Optional[str] = None
+    password: str | None = None,
 ) -> tuple[bool, dict]:
     """Ensure the default admin user exists via AuthService helper."""
     secret = await _prompt_for_password(password)
 
     try:
         user = await auth_service.ensure_default_admin(
-            email=email,
-            username=username,
-            first_name=first_name,
-            last_name=last_name,
-            password=secret
+            email=email, username=username, first_name=first_name, last_name=last_name, password=secret
         )
         payload = user.model_dump(mode="json")
         success = payload.get("role") == "admin" and payload.get("is_active") and payload.get("is_verified")
@@ -170,6 +166,7 @@ def main() -> None:
 
     exit_code = asyncio.run(main_async(args))
     sys.exit(exit_code)
+
 
 if __name__ == "__main__":
     main()

@@ -6,7 +6,8 @@ consistent skip/enable logging across all processors.
 """
 
 import os
-from typing import Dict, Any
+from typing import Any
+
 from .env_loader import load_all_env_files
 
 # Load all .env.* files
@@ -15,59 +16,59 @@ load_all_env_files()
 
 class PipelineConfig:
     """Centralized pipeline configuration"""
-    
+
     def __init__(self):
         """Load all settings from .env"""
-        
+
         # Processing stages
-        self.enable_product_extraction = self._get_bool('ENABLE_PRODUCT_EXTRACTION', True)
-        self.enable_parts_extraction = self._get_bool('ENABLE_PARTS_EXTRACTION', True)
-        self.enable_error_code_extraction = self._get_bool('ENABLE_ERROR_CODE_EXTRACTION', True)
-        self.enable_version_extraction = self._get_bool('ENABLE_VERSION_EXTRACTION', True)
-        self.enable_image_extraction = self._get_bool('ENABLE_IMAGE_EXTRACTION', True)
-        self.enable_ocr = self._get_bool('ENABLE_OCR', True)
-        self.enable_vision_ai = self._get_bool('ENABLE_VISION_AI', True)
-        self.enable_link_extraction = self._get_bool('ENABLE_LINK_EXTRACTION', True)
-        self.enable_embeddings = self._get_bool('ENABLE_EMBEDDINGS', True)
-        self.enable_brightcove_enrichment = self._get_bool('ENABLE_BRIGHTCOVE_ENRICHMENT', False)
-        
+        self.enable_product_extraction = self._get_bool("ENABLE_PRODUCT_EXTRACTION", True)
+        self.enable_parts_extraction = self._get_bool("ENABLE_PARTS_EXTRACTION", True)
+        self.enable_error_code_extraction = self._get_bool("ENABLE_ERROR_CODE_EXTRACTION", True)
+        self.enable_version_extraction = self._get_bool("ENABLE_VERSION_EXTRACTION", True)
+        self.enable_image_extraction = self._get_bool("ENABLE_IMAGE_EXTRACTION", True)
+        self.enable_ocr = self._get_bool("ENABLE_OCR", True)
+        self.enable_vision_ai = self._get_bool("ENABLE_VISION_AI", True)
+        self.enable_link_extraction = self._get_bool("ENABLE_LINK_EXTRACTION", True)
+        self.enable_embeddings = self._get_bool("ENABLE_EMBEDDINGS", True)
+        self.enable_brightcove_enrichment = self._get_bool("ENABLE_BRIGHTCOVE_ENRICHMENT", False)
+
         # Storage settings (MinIO/object-storage only)
-        self.upload_images_to_storage = self._get_bool('UPLOAD_IMAGES_TO_STORAGE', False)
-        self.upload_documents_to_storage = self._get_bool('UPLOAD_DOCUMENTS_TO_STORAGE', False)
-    
+        self.upload_images_to_storage = self._get_bool("UPLOAD_IMAGES_TO_STORAGE", False)
+        self.upload_documents_to_storage = self._get_bool("UPLOAD_DOCUMENTS_TO_STORAGE", False)
+
     def _get_bool(self, key: str, default: bool = False) -> bool:
         """Get boolean value from environment"""
         value = os.getenv(key, str(default)).lower()
-        return value in ('true', '1', 'yes', 'on')
-    
-    def get_summary(self) -> Dict[str, Any]:
+        return value in ("true", "1", "yes", "on")
+
+    def get_summary(self) -> dict[str, Any]:
         """Get configuration summary"""
         return {
-            'extraction': {
-                'products': self.enable_product_extraction,
-                'parts': self.enable_parts_extraction,
-                'error_codes': self.enable_error_code_extraction,
-                'versions': self.enable_version_extraction,
-                'images': self.enable_image_extraction,
-                'links': self.enable_link_extraction,
-                'brightcove_enrichment': self.enable_brightcove_enrichment,
+            "extraction": {
+                "products": self.enable_product_extraction,
+                "parts": self.enable_parts_extraction,
+                "error_codes": self.enable_error_code_extraction,
+                "versions": self.enable_version_extraction,
+                "images": self.enable_image_extraction,
+                "links": self.enable_link_extraction,
+                "brightcove_enrichment": self.enable_brightcove_enrichment,
             },
-            'ai': {
-                'ocr': self.enable_ocr,
-                'vision': self.enable_vision_ai,
-                'embeddings': self.enable_embeddings,
+            "ai": {
+                "ocr": self.enable_ocr,
+                "vision": self.enable_vision_ai,
+                "embeddings": self.enable_embeddings,
             },
-            'storage': {
-                'images_to_storage': self.upload_images_to_storage,
-                'documents_to_storage': self.upload_documents_to_storage,
-            }
+            "storage": {
+                "images_to_storage": self.upload_images_to_storage,
+                "documents_to_storage": self.upload_documents_to_storage,
+            },
         }
 
 
 def log_stage_header(logger, stage_number: str, stage_name: str):
     """
     Log consistent stage header
-    
+
     Args:
         logger: Logger instance
         stage_number: Stage number (e.g., "2", "3c", "6-7")
@@ -81,7 +82,7 @@ def log_stage_header(logger, stage_number: str, stage_name: str):
 def log_step_header(logger, step_number: str, total_steps: int, step_name: str):
     """
     Log consistent step header
-    
+
     Args:
         logger: Logger instance
         step_number: Step number (e.g., "2", "3c")
@@ -97,7 +98,7 @@ def log_step_header(logger, step_number: str, total_steps: int, step_name: str):
 def log_stage_skip(logger, stage_number: str, stage_name: str, reason: str):
     """
     Log stage skip with consistent formatting
-    
+
     Args:
         logger: Logger instance
         stage_number: Stage number
@@ -113,7 +114,7 @@ def log_stage_skip(logger, stage_number: str, stage_name: str, reason: str):
 def log_step_skip(logger, step_number: str, total_steps: int, step_name: str, reason: str):
     """
     Log step skip with consistent formatting
-    
+
     Args:
         logger: Logger instance
         step_number: Step number
@@ -130,6 +131,7 @@ def log_step_skip(logger, step_number: str, total_steps: int, step_name: str, re
 
 # Global config instance
 _config = None
+
 
 def get_pipeline_config() -> PipelineConfig:
     """Get global pipeline configuration instance"""

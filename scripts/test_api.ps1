@@ -29,7 +29,7 @@ try {
     Write-Host "   ✅ Success!" -ForegroundColor Green
     Write-Host "   Total: $($errors.data.total)" -ForegroundColor Cyan
     Write-Host "   Page: $($errors.data.page)/$($errors.data.total_pages)" -ForegroundColor Cyan
-    
+
     if ($errors.data.errors.Count -gt 0) {
         $firstError = $errors.data.errors[0]
         Write-Host "   First error: $($firstError.error_id)" -ForegroundColor Gray

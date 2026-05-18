@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-import sys
 import subprocess
+import sys
 
 checks = [
     ("Python version", [sys.executable, "--version"]),
@@ -17,12 +17,13 @@ for name, cmd in checks:
         else:
             print(f"✗ {name}: ERROR - {result.stderr.strip()}")
     except Exception as e:
-        print(f"✗ {name}: {str(e)}")
+        print(f"✗ {name}: {e!s}")
 
 # Check Ollama
 print("\nChecking Ollama connectivity...")
 try:
     import requests
+
     response = requests.get("http://localhost:11434/api/tags", timeout=5)
     if response.status_code == 200:
         print(f"✓ Ollama API: Running (status {response.status_code})")
@@ -31,4 +32,4 @@ try:
 except requests.exceptions.ConnectionError:
     print("✗ Ollama API: Not responding (connection refused)")
 except Exception as e:
-    print(f"✗ Ollama API: {str(e)}")
+    print(f"✗ Ollama API: {e!s}")

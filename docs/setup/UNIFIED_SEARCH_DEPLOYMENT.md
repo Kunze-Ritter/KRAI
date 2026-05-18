@@ -9,7 +9,7 @@ This deployment enables technicians to find **ALL resources** for an error code 
 - ✅ External Links (priority 4)
 - ✅ Related Spare Parts (priority 5)
 
-**Version:** 2.0.44 (Commit 52+)  
+**Version:** 2.0.44 (Commit 52+)
 **Date:** 2025-10-05
 
 ---
@@ -78,7 +78,7 @@ SELECT COUNT(*) FROM krai_system.stage_tracking;
 **Verify:**
 ```sql
 -- Check links have new columns
-SELECT 
+SELECT
     COUNT(*) as total_links,
     COUNT(manufacturer_id) as with_manufacturer,
     COUNT(series_id) as with_series
@@ -302,7 +302,7 @@ Agent: [Service Bulletin MUST be mentioned first if it exists]
 **Solution:** Migration 29 not applied. Run it in Supabase SQL Editor.
 
 ### Issue: "No results returned"
-**Solution:** 
+**Solution:**
 1. Check if error codes exist: `SELECT COUNT(*) FROM krai_intelligence.error_codes;`
 2. Verify error code spelling
 3. Check manufacturer filter isn't too restrictive

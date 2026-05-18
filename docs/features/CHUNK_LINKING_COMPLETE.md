@@ -78,7 +78,7 @@ python check_enrichment_quality.py
 
 ```sql
 -- Prüfe chunk_id Verknüpfung
-SELECT 
+SELECT
     COUNT(*) FILTER (WHERE chunk_id IS NOT NULL) as with_chunk,
     COUNT(*) FILTER (WHERE chunk_id IS NULL) as without_chunk,
     COUNT(*) as total,
@@ -95,7 +95,7 @@ FROM krai_intelligence.error_codes;
 
 ```sql
 -- Finde Error Codes die Bilder haben sollten
-SELECT 
+SELECT
     ec.error_code,
     ec.error_description,
     ec.chunk_id,

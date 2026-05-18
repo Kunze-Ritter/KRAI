@@ -6,17 +6,14 @@ Tests memory protection features:
 - Maximum line length trimming
 """
 
+from typing import Any
+
 import pytest
-from typing import Dict, Any, List
 
-from backend.processors.text_extractor import (
-    TextExtractor,
-    STRUCTURED_LINE_MAX_LENGTH,
-    DEFAULT_MAX_STRUCTURED_LINES,
-)
+from backend.processors.text_extractor import DEFAULT_MAX_STRUCTURED_LINES, STRUCTURED_LINE_MAX_LENGTH, TextExtractor
 
 
-def _generate_rawdict(entries: List[str]) -> Dict[str, Any]:
+def _generate_rawdict(entries: list[str]) -> dict[str, Any]:
     """Create a minimal PyMuPDF-like rawdict structure for testing."""
     return {
         "blocks": [
@@ -39,22 +36,19 @@ def _generate_rawdict(entries: List[str]) -> Dict[str, Any]:
 
 class TestStructuredTextCap:
     """Test structured text extraction caps"""
-    
+
     def test_default_caps(self):
         """Test default cap values"""
         extractor = TextExtractor()
         assert extractor.max_structured_lines == DEFAULT_MAX_STRUCTURED_LINES
         assert extractor.max_structured_line_len == STRUCTURED_LINE_MAX_LENGTH
-    
+
     def test_custom_caps(self):
         """Test custom cap values"""
-        extractor = TextExtractor(
-            max_structured_lines=100,
-            max_structured_line_len=200
-        )
+        extractor = TextExtractor(max_structured_lines=100, max_structured_line_len=200)
         assert extractor.max_structured_lines == 100
         assert extractor.max_structured_line_len == 200
-    
+
     def test_line_count_cap(self):
         """Structured lines should be capped at configured maximum."""
         cap = 10

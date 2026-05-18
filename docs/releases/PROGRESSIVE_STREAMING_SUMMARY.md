@@ -5,7 +5,7 @@
 Die API hat jetzt eine `_process_query_progressive()` Methode die:
 
 1. **📋 Service Manuals** zuerst durchsucht und streamt
-2. **🔧 Ersatzteile** als zweites sucht und streamt  
+2. **🔧 Ersatzteile** als zweites sucht und streamt
 3. **🎥 Videos** als drittes sucht und streamt
 4. **📋 Bulletins** als letztes sucht und streamt
 
@@ -18,17 +18,17 @@ async def _process_query_progressive(self, query: str):
     # ... finde Fehlercode, Lösung, etc.
     yield "## ❌ Fehlercode: 11.00.02\n\n"
     yield "**Lösung:** ...\n\n"
-    
+
     # 2. Suche Ersatzteile
     yield "# 🔧 Suche Ersatzteile...\n\n"
     # ... finde relevante Teile
     yield "• RM2-5717-000CN - Formatter cover\n"
-    
+
     # 3. Suche Videos
     yield "# 🎥 Suche Videos...\n\n"
     # ... finde Videos
     yield "• [HP M553 Maintenance (12:45)](...)\n"
-    
+
     # 4. Suche Bulletins
     yield "# 📋 Suche Service Bulletins...\n\n"
     # ... finde Bulletins

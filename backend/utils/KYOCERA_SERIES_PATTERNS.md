@@ -10,7 +10,7 @@ Vollständige Pattern-Erkennung für alle Kyocera-Produktserien: TASKalfa, ECOSY
 
 #### TASKalfa Pro
 - **Pattern**: `(TASKALFA )?PRO \d{5}c?`
-- **Beispiele**: 
+- **Beispiele**:
   - TASKalfa Pro 15000c
   - Pro 55000c
 - **Beschreibung**: High-End Production Color Systems
@@ -22,7 +22,7 @@ Vollständige Pattern-Erkennung für alle Kyocera-Produktserien: TASKalfa, ECOSY
 
 #### TASKalfa mit ci-Suffix
 - **Pattern**: `(TASKALFA )?\d{4}CI`
-- **Beispiele**: 
+- **Beispiele**:
   - TASKalfa 2553ci, TASKalfa 5053ci
   - 2553ci, 5053ci (ohne Prefix)
 - **Beschreibung**: Color MFPs mit integrierter Technologie
@@ -30,7 +30,7 @@ Vollständige Pattern-Erkennung für alle Kyocera-Produktserien: TASKalfa, ECOSY
 
 #### TASKalfa General
 - **Pattern**: `(TASKALFA )?\d{4}[suffix]?`
-- **Beispiele**: 
+- **Beispiele**:
   - TASKalfa 2552, TASKalfa 3252
   - 2552, 3252 (ohne Prefix)
 - **Beschreibung**: A3/A4 Multifunction Printers
@@ -42,14 +42,14 @@ Vollständige Pattern-Erkennung für alle Kyocera-Produktserien: TASKalfa, ECOSY
 
 #### ECOSYS PA (Printer - Color)
 - **Pattern**: `(ECOSYS )?PA\d{4}[suffix]`
-- **Beispiele**: 
+- **Beispiele**:
   - ECOSYS PA3500cx, PA4500x
 - **Beschreibung**: ECOSYS Color Printers (Single Function)
 - **Suffixe**: cx, x
 
 #### ECOSYS MA (MFP - Color)
 - **Pattern**: `(ECOSYS )?MA\d{4}[suffix]`
-- **Beispiele**: 
+- **Beispiele**:
   - ECOSYS MA2100cfx
   - MA3500cifx
 - **Beschreibung**: ECOSYS Color MFPs
@@ -57,7 +57,7 @@ Vollständige Pattern-Erkennung für alle Kyocera-Produktserien: TASKalfa, ECOSY
 
 #### ECOSYS M (MFP - Monochrome/Color)
 - **Pattern**: `(ECOSYS )?M\d{4}[suffix]`
-- **Beispiele**: 
+- **Beispiele**:
   - ECOSYS M3860idnf
   - M4132idn, M8130cidn
 - **Beschreibung**: ECOSYS MFPs (Monochrome & Color)
@@ -69,13 +69,13 @@ Vollständige Pattern-Erkennung für alle Kyocera-Produktserien: TASKalfa, ECOSY
 
 #### FS-Serie MFP
 - **Pattern**: `FS-\d{4}MFP`
-- **Beispiele**: 
+- **Beispiele**:
   - FS-1030MFP, FS-6530MFP
 - **Beschreibung**: FS Multifunction Printers
 
 #### FS-Serie Drucker
 - **Pattern**: `FS-\d{4}[suffix]`
-- **Beispiele**: 
+- **Beispiele**:
   - FS-1000, FS-1120DN, FS-1320D
   - FS-4020DN, FS-6020DTN
 - **Beschreibung**: FS Single Function Printers
@@ -87,7 +87,7 @@ Vollständige Pattern-Erkennung für alle Kyocera-Produktserien: TASKalfa, ECOSY
 
 #### KM-Serie
 - **Pattern**: `KM-\d{4}`
-- **Beispiele**: 
+- **Beispiele**:
   - KM-2050, KM-5050
 - **Beschreibung**: Ältere Kyocera MFPs (Legacy)
 - **Hinweis**: Werden durch TASKalfa/ECOSYS ersetzt

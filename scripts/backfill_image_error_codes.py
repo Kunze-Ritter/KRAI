@@ -13,8 +13,8 @@ Usage:
     python scripts/backfill_image_error_codes.py --dry-run
 """
 
-import asyncio
 import argparse
+import asyncio
 import os
 import sys
 from pathlib import Path
@@ -22,7 +22,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import asyncpg
-
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",

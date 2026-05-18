@@ -6,15 +6,14 @@ This module focuses on:
 - Status + quality handling inside `process_document_smart_stages`
 """
 
-from types import SimpleNamespace
 from pathlib import Path
-from typing import Any, Dict, List
+from types import SimpleNamespace
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
 
 from backend.pipeline.master_pipeline import KRMasterPipeline
-
 
 pytestmark = [pytest.mark.master_pipeline, pytest.mark.status_tracking]
 
@@ -68,7 +67,9 @@ class TestGetDocumentStageStatus:
         assert status["metadata"] is False
 
     @pytest.mark.asyncio
-    async def test_get_document_stage_status_with_embeddings_and_images(self, mock_master_pipeline: KRMasterPipeline) -> None:
+    async def test_get_document_stage_status_with_embeddings_and_images(
+        self, mock_master_pipeline: KRMasterPipeline
+    ) -> None:
         """When DB has data, flags for images, chunks and embeddings should flip."""
 
         pipeline = mock_master_pipeline
@@ -174,7 +175,7 @@ class TestSmartProcessingStatusAndQuality:
         pdf_path.write_text("x")
         filename = pdf_path.name
 
-        async def fake_stage_status(doc_id: str) -> Dict[str, bool]:  # type: ignore[override]
+        async def fake_stage_status(doc_id: str) -> dict[str, bool]:  # type: ignore[override]
             assert doc_id == document_id
             return {
                 "upload": True,
@@ -236,7 +237,7 @@ class TestSmartProcessingStatusAndQuality:
             raising=False,
         )
 
-        async def fake_quality(doc_id: str) -> Dict[str, Any]:  # type: ignore[override]
+        async def fake_quality(doc_id: str) -> dict[str, Any]:  # type: ignore[override]
             return {
                 "passed": False,
                 "score": 10,
@@ -280,7 +281,7 @@ class TestPipelineStatusHelpers:
         chunks = [{"document_id": "doc-1"}]
         images = []
 
-        async def fake_execute_query(query: str, params: List[Any] | None = None):  # type: ignore[override]
+        async def fake_execute_query(query: str, params: list[Any] | None = None):  # type: ignore[override]
             q = query.lower()
             if "krai_core.documents" in q:
                 return documents
@@ -314,8 +315,7 @@ class TestMonitorHardware:
         pipeline.interactive_console = False
 
         pipeline._get_pipeline_status = AsyncMock(
-            return_value=
-            {
+            return_value={
                 "total_docs": 1,
                 "classified_docs": 1,
                 "pending_docs": 0,
@@ -330,7 +330,7 @@ class TestMonitorHardware:
         pipeline._print_detailed_pipeline_view = AsyncMock()
         pipeline._get_gpu_status = lambda: None  # type: ignore[assignment]
 
-        sleep_calls: List[float] = []
+        sleep_calls: list[float] = []
 
         async def fake_sleep(interval: float) -> None:
             sleep_calls.append(interval)

@@ -13,22 +13,21 @@ This includes:
 
 Usage:
     python scripts/delete_document_data.py <document_id1> [<document_id2> ...]
-    
+
 Examples:
     # Delete single document
     python scripts/delete_document_data.py f05a555b-626b-4e90-990e-f1108a43eccf
-    
+
     # Delete multiple documents
     python scripts/delete_document_data.py f05a555b-626b-4e90-990e-f1108a43eccf 379da86a-7294-4692-99ef-8f34e8ad17ec
-    
+
     # Interactive mode (prompts for confirmation)
     python scripts/delete_document_data.py --interactive
 """
 
-import sys
 import asyncio
+import sys
 from pathlib import Path
-from typing import List, Optional
 from uuid import UUID
 
 # Add parent directory to path
@@ -48,7 +47,7 @@ def validate_uuid(uuid_string: str) -> bool:
         return False
 
 
-async def get_document_info(adapter, document_id: str) -> Optional[dict]:
+async def get_document_info(adapter, document_id: str) -> dict | None:
     """Get document information"""
     try:
         doc = await adapter.get_document(document_id)
@@ -95,46 +94,46 @@ async def count_related_data(adapter, document_id: str) -> dict:
 async def delete_document_data(adapter, document_id: str, dry_run: bool = False) -> bool:
     """
     Delete all data associated with a document
-    
+
     Args:
         document_id: UUID of document to delete
         dry_run: If True, only show what would be deleted
-        
+
     Returns:
         True if successful, False otherwise
     """
     print(f"\n{'[DRY RUN] ' if dry_run else ''}Processing document: {document_id}")
-    
+
     # Validate UUID
     if not validate_uuid(document_id):
         print(f"❌ Invalid UUID format: {document_id}")
         return False
-    
+
     # Get document info
     doc_info = await get_document_info(adapter, document_id)
     if not doc_info:
         print(f"❌ Document not found: {document_id}")
         return False
-    
+
     print(f"📄 Document: {doc_info.get('filename', doc_info.get('original_filename', 'Unknown'))}")
     print(f"   Manufacturer: {doc_info.get('manufacturer', 'Unknown')}")
     print(f"   Uploaded: {doc_info.get('created_at', 'Unknown')}")
-    
+
     # Count related data
     print("\n📊 Related data:")
     counts = await count_related_data(adapter, document_id)
     total_items = sum(counts.values())
-    
+
     for table, count in counts.items():
         if count > 0:
             print(f"   - {table}: {count} items")
-    
+
     print(f"\n   Total items to delete: {total_items}")
-    
+
     if dry_run:
         print("\n✓ Dry run complete (no data deleted)")
         return True
-    
+
     # Delete data in correct order
     # Strategy: Delete parent first, let CASCADE handle children (faster!)
     # This avoids timeout issues with large tables like chunks
@@ -154,7 +153,7 @@ async def delete_document_data(adapter, document_id: str, dry_run: bool = False)
     except Exception as e:
         print(f"   ⚠️  Error deleting document {document_id}: {e}")
         return False
-    
+
     print(f"\n✅ Successfully deleted all data for document: {document_id}")
     return True
 
@@ -170,12 +169,12 @@ async def interactive_mode(adapter):
             print("\nEnter one or more document IDs (comma-separated), or 'q' to quit.")
             user_input = input("Your selection: ").strip()
 
-            if not user_input or user_input.lower() == 'q':
+            if not user_input or user_input.lower() == "q":
                 print("Cancelled.")
                 return
 
             # Parse IDs
-            raw_ids = [part.strip() for part in user_input.split(',') if part.strip()]
+            raw_ids = [part.strip() for part in user_input.split(",") if part.strip()]
             if not raw_ids:
                 print("❌ No valid document IDs provided")
                 continue
@@ -185,7 +184,7 @@ async def interactive_mode(adapter):
                 print(f"  - {doc_id}")
 
             confirm = input("Type 'DELETE' to confirm: ").strip()
-            if confirm != 'DELETE':
+            if confirm != "DELETE":
                 print("Cancelled.")
                 continue
 
@@ -213,15 +212,15 @@ async def main():
 
     # Parse arguments
     args = sys.argv[1:]
-    dry_run = '--dry-run' in args
-    interactive = '--interactive' in args
+    dry_run = "--dry-run" in args
+    interactive = "--interactive" in args
 
     if interactive:
         await interactive_mode(adapter)
         return
 
     # Remove flags from document IDs
-    document_ids = [arg for arg in args if not arg.startswith('--')]
+    document_ids = [arg for arg in args if not arg.startswith("--")]
 
     if not document_ids:
         print("❌ No document IDs provided")
@@ -244,5 +243,5 @@ async def main():
     print("=" * 80)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     asyncio.run(main())

@@ -86,7 +86,7 @@ for product in products:
         parts=parts,
         verbose=True
     )
-    
+
     for part in parts:
         if part.part_number in product_parts:
             part.related_products.append(product.model_number)
@@ -154,7 +154,7 @@ CREATE INDEX idx_parts_chunk_id ON krai_parts.parts_catalog(chunk_id);
 
 ```sql
 CREATE OR REPLACE VIEW vw_parts AS
-SELECT 
+SELECT
     p.id,
     p.part_number,
     p.part_name,

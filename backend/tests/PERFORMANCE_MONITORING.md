@@ -310,5 +310,5 @@ Overall Score: 70-85/100
 
 ---
 
-**Created:** Oktober 2025  
+**Created:** Oktober 2025
 **Status:** ✅ Ready to Use

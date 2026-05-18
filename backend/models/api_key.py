@@ -1,29 +1,23 @@
 """Pydantic models for API key management APIs."""
+
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List, Optional
 
 from pydantic import BaseModel, Field, validator
 
-from models.validators import (
-    ensure_min_length,
-    sanitize_string,
-    validate_uuid,
-)
+from models.validators import ensure_min_length, sanitize_string, validate_uuid
 
 
 class APIKeyBase(BaseModel):
     """Shared fields for API keys."""
 
     name: str = Field(..., description="Friendly label for the API key")
-    permissions: List[str] = Field(
+    permissions: list[str] = Field(
         default_factory=list,
         description="Permission identifiers granted to the API key",
     )
-    expires_in_days: Optional[int] = Field(
-        None, ge=1, le=365, description="Override for expiration in days"
-    )
+    expires_in_days: int | None = Field(None, ge=1, le=365, description="Override for expiration in days")
 
     @validator("name")
     def validate_name(cls, value: str) -> str:
@@ -41,12 +35,10 @@ class APIKeyBase(BaseModel):
 class APIKeyCreateRequest(APIKeyBase):
     """Payload for creating API keys."""
 
-    user_id: Optional[str] = Field(
-        None, description="Optional user ID (admins only)"
-    )
+    user_id: str | None = Field(None, description="Optional user ID (admins only)")
 
     @validator("user_id")
-    def validate_user_id(cls, value: Optional[str]) -> Optional[str]:
+    def validate_user_id(cls, value: str | None) -> str | None:
         if value is None:
             return value
         return validate_uuid(value)
@@ -55,12 +47,10 @@ class APIKeyCreateRequest(APIKeyBase):
 class APIKeyRotateRequest(BaseModel):
     """Payload for API key rotation."""
 
-    user_id: Optional[str] = Field(
-        None, description="Optional user ID to scope rotation"
-    )
+    user_id: str | None = Field(None, description="Optional user ID to scope rotation")
 
     @validator("user_id")
-    def validate_user_id(cls, value: Optional[str]) -> Optional[str]:
+    def validate_user_id(cls, value: str | None) -> str | None:
         if value is None:
             return value
         return validate_uuid(value)
@@ -75,12 +65,12 @@ class APIKeyResponse(BaseModel):
 
     id: str
     name: str
-    permissions: List[str]
+    permissions: list[str]
     version: int
     created_at: datetime
     updated_at: datetime
     expires_at: datetime
-    last_used_at: Optional[datetime]
+    last_used_at: datetime | None
     revoked: bool
 
     class Config:
@@ -108,7 +98,7 @@ class APIKeyWithSecretResponse(APIKeyResponse):
 class APIKeyListResponse(BaseModel):
     """Envelope for list responses."""
 
-    keys: List[APIKeyResponse]
+    keys: list[APIKeyResponse]
 
     class Config:
         json_schema_extra = {

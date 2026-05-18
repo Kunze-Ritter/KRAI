@@ -6,7 +6,7 @@ implementation lives in ``backend.pipeline.master_pipeline``.
 
 from backend.pipeline.master_pipeline import KRMasterPipeline
 
-__all__ = ["MasterPipeline", "KRMasterPipeline"]
+__all__ = ["KRMasterPipeline", "MasterPipeline"]
 
 # Backwards compatibility alias
 MasterPipeline = KRMasterPipeline

@@ -57,8 +57,8 @@ asyncio.run(run_migration())
 
 ```sql
 -- Prüfen ob Funktionen existieren
-SELECT proname, prosrc 
-FROM pg_proc 
+SELECT proname, prosrc
+FROM pg_proc
 WHERE proname IN (
     'get_image_by_hash',
     'count_images_by_document',

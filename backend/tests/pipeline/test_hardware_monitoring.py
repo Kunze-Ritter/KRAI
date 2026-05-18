@@ -3,11 +3,12 @@ Tests for MasterPipeline hardware monitoring: GPU status, pipeline status,
 error count, monitor_hardware loop, and hardware waker batch processing.
 """
 
-import pytest
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
 import sys
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 # Ensure backend is on path
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -84,6 +85,7 @@ def test_get_gpu_status_wmic_windows():
     """Test _get_gpu_status() with wmic (Intel/AMD) on Windows."""
     pipeline = KRMasterPipeline(database_adapter=MockDatabaseService())
     with patch("subprocess.run") as run:
+
         def side_effect(cmd, **kwargs):
             if "nvidia-smi" in str(cmd):
                 return MagicMock(returncode=1, stdout="", stderr="")
@@ -126,11 +128,11 @@ async def test_get_pipeline_status():
 async def test_get_pipeline_status_empty():
     """Test _get_pipeline_status() when no documents."""
     db = MockDatabaseService()
-    db.execute_query = AsyncMock(side_effect=lambda q, p=None: (
-        [] if "documents" in q and "COUNT" not in q else
-        [] if "chunks" in q else
-        [] if "images" in q else []
-    ))
+    db.execute_query = AsyncMock(
+        side_effect=lambda q, p=None: (
+            [] if "documents" in q and "COUNT" not in q else [] if "chunks" in q else [] if "images" in q else []
+        )
+    )
     pipeline = KRMasterPipeline(database_adapter=db)
     pipeline.database_service = db
     status = await pipeline._get_pipeline_status()
@@ -155,8 +157,10 @@ async def test_get_error_count():
 async def test_get_error_count_table_error_returns_zero():
     """Test _get_error_count() returns 0 when query fails."""
     db = MockDatabaseService()
+
     async def raise_err(*args, **kwargs):
         raise Exception("Table does not exist")
+
     db.execute_query = raise_err
     pipeline = KRMasterPipeline(database_adapter=db)
     pipeline.database_service = db
@@ -198,12 +202,16 @@ async def test_monitor_hardware_collects_cpu_ram_gpu():
                 total=16 * 1024**3,
                 available=4 * 1024**3,
             )
-            with patch.object(pipeline, "_get_gpu_status", return_value={
-                "name": "Test GPU",
-                "memory_used": 2.0,
-                "memory_total": 8.0,
-                "utilization": 25.0,
-            }):
+            with patch.object(
+                pipeline,
+                "_get_gpu_status",
+                return_value={
+                    "name": "Test GPU",
+                    "memory_used": 2.0,
+                    "memory_total": 8.0,
+                    "utilization": 25.0,
+                },
+            ):
                 await pipeline.monitor_hardware(
                     sleep_interval=0.05,
                     max_iterations=1,
@@ -219,6 +227,7 @@ async def test_process_batch_hardware_waker_structure():
     """Test process_batch_hardware_waker() returns success/failed/total_files/duration."""
     db = MockDatabaseService()
     pipeline = KRMasterPipeline(database_adapter=db)
+
     # Avoid real processing: mock process_single_document_full_pipeline
     async def mock_process(path, index, total):
         return {"success": True, "filename": path, "document_id": "doc-1"}
@@ -229,10 +238,12 @@ async def test_process_batch_hardware_waker_structure():
         side_effect=mock_process,
     ):
         with patch.object(pipeline, "monitor_hardware", new_callable=AsyncMock):
-            results = await pipeline.process_batch_hardware_waker([
-                "/fake/a.pdf",
-                "/fake/b.pdf",
-            ])
+            results = await pipeline.process_batch_hardware_waker(
+                [
+                    "/fake/a.pdf",
+                    "/fake/b.pdf",
+                ]
+            )
     assert "successful" in results
     assert "failed" in results
     assert "total_files" in results
@@ -266,9 +277,13 @@ async def test_process_batch_hardware_waker_semaphore_limit():
         side_effect=mock_process,
     ):
         with patch.object(pipeline, "monitor_hardware", new_callable=AsyncMock):
-            await pipeline.process_batch_hardware_waker([
-                "/fake/1.pdf", "/fake/2.pdf", "/fake/3.pdf",
-            ])
+            await pipeline.process_batch_hardware_waker(
+                [
+                    "/fake/1.pdf",
+                    "/fake/2.pdf",
+                    "/fake/3.pdf",
+                ]
+            )
     # All 3 should complete (structure test; semaphore limits in-flight)
     assert True
 

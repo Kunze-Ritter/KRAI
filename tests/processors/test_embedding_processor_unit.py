@@ -7,12 +7,11 @@ the `search_similar` helper without making real HTTP or Supabase calls.
 from __future__ import annotations
 
 from types import SimpleNamespace
-from typing import Any, Dict, List
+from typing import Any
 
 import pytest
 
 from backend.processors.embedding_processor import EmbeddingProcessor
-
 
 pytestmark = [pytest.mark.processor, pytest.mark.embedding]
 
@@ -121,9 +120,9 @@ class TestSearchSimilar:
 
         class StubSupabase:
             def __init__(self) -> None:
-                self.calls: List[Dict[str, Any]] = []
+                self.calls: list[dict[str, Any]] = []
 
-            def rpc(self, function_name: str, params: Dict[str, Any]):
+            def rpc(self, function_name: str, params: dict[str, Any]):
                 self.calls.append({"name": function_name, "params": params})
 
                 class _Result:
@@ -137,7 +136,7 @@ class TestSearchSimilar:
                             }
                         ]
 
-                    def execute(self) -> "_Result":
+                    def execute(self) -> _Result:
                         # Mimic Supabase RPC behaviour: .execute() returns an
                         # object with a .data attribute.
                         return self
@@ -180,8 +179,8 @@ class TestJsonHelper:
     """Smoke tests for the internal JSON-compatibility helper."""
 
     def test_make_json_safe_handles_uuid_and_datetime(self) -> None:
-        from uuid import uuid4
         from datetime import datetime
+        from uuid import uuid4
 
         raw = {
             "id": uuid4(),
@@ -195,4 +194,3 @@ class TestJsonHelper:
         assert isinstance(safe["created_at"], str)
         assert isinstance(safe["nested"]["values"][0], str)
         assert isinstance(safe["nested"]["values"][1], str)
-

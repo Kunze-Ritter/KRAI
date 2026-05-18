@@ -1,8 +1,8 @@
 # PostgreSQL-Only Architecture (Migration Complete)
 
-> **✅ Migration Complete - November 2024 (KRAI-002)**  
-> This guide is for **reference and legacy deployments only**.  
-> All new deployments should use PostgreSQL-only configuration.  
+> **✅ Migration Complete - November 2024 (KRAI-002)**
+> This guide is for **reference and legacy deployments only**.
+> All new deployments should use PostgreSQL-only configuration.
 > See [SUPABASE_DEPRECATION_NOTICE.md](SUPABASE_DEPRECATION_NOTICE.md) for current status.
 
 ## 📋 Introduction
@@ -600,6 +600,6 @@ MinIO is production-ready and used by many enterprises. For cloud deployments, y
 
 ---
 
-**Last Updated:** 2024-11-29  
-**Migration Status:** Complete (KRAI-002)  
+**Last Updated:** 2024-11-29
+**Migration Status:** Complete (KRAI-002)
 **Support:** PostgreSQL + MinIO (Production Only). Supabase support removed in KRAI-002.

@@ -127,9 +127,9 @@ Die Datei `DATABASE_SCHEMA.md` im Root-Verzeichnis (`c:\Users\haast\Docker\KRAI-
 2. Neue CSV exportieren:
 
    ```sql
-   SELECT table_schema, table_name, column_name, data_type, 
+   SELECT table_schema, table_name, column_name, data_type,
           character_maximum_length, is_nullable, column_default, udt_name
-   FROM information_schema.columns 
+   FROM information_schema.columns
    WHERE table_schema LIKE 'krai_%'
    ORDER BY table_schema, table_name, ordinal_position;
    ```

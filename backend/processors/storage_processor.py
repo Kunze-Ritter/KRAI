@@ -2,15 +2,11 @@
 
 from __future__ import annotations
 
-import asyncio
-import base64
 import io
-import json
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional
 
-from backend.core.base_processor import BaseProcessor, Stage, ProcessingContext, ProcessingResult, ProcessingError
+from backend.core.base_processor import BaseProcessor, ProcessingContext, ProcessingError, ProcessingResult, Stage
 
 
 def _to_jpeg(content_bytes: bytes, quality: int = 85) -> tuple[bytes, str]:
@@ -24,19 +20,20 @@ def _to_jpeg(content_bytes: bytes, quality: int = 85) -> tuple[bytes, str]:
     on success or '' when the content was unchanged.
     """
     try:
-        is_jpeg = content_bytes[:2] == b'\xff\xd8'
+        is_jpeg = content_bytes[:2] == b"\xff\xd8"
         if is_jpeg:
-            return content_bytes, ''
+            return content_bytes, ""
 
-        is_svg = content_bytes.lstrip()[:5].lower().startswith(b'<svg') or content_bytes[:4] == b'\xef\xbb\xbf'
+        is_svg = content_bytes.lstrip()[:5].lower().startswith(b"<svg") or content_bytes[:4] == b"\xef\xbb\xbf"
         if is_svg:
             # Rasterise SVG → JPEG using svglib + reportlab
             try:
                 import tempfile
-                from svglib.svglib import svg2rlg
-                from reportlab.graphics import renderPM
 
-                with tempfile.NamedTemporaryFile(suffix='.svg', delete=False) as tf:
+                from reportlab.graphics import renderPM
+                from svglib.svglib import svg2rlg
+
+                with tempfile.NamedTemporaryFile(suffix=".svg", delete=False) as tf:
                     tf.write(content_bytes)
                     tmp_path = tf.name
                 try:
@@ -46,34 +43,35 @@ def _to_jpeg(content_bytes: bytes, quality: int = 85) -> tuple[bytes, str]:
 
                 if drawing and drawing.width > 0 and drawing.height > 0:
                     buf = io.BytesIO()
-                    renderPM.drawToFile(drawing, buf, fmt='JPEG', bg=0xFFFFFF, dpi=150)
+                    renderPM.drawToFile(drawing, buf, fmt="JPEG", bg=0xFFFFFF, dpi=150)
                     if buf.tell() > 0:
-                        return buf.getvalue(), '.jpg'
+                        return buf.getvalue(), ".jpg"
             except Exception:
                 pass  # Fall through — return original SVG unchanged
-            return content_bytes, ''
+            return content_bytes, ""
 
         # Fallback: try PIL for any unexpected raster format
         try:
             from PIL import Image
+
             img = Image.open(io.BytesIO(content_bytes))
-            if img.mode in ('RGBA', 'LA', 'P'):
-                bg = Image.new('RGB', img.size, (255, 255, 255))
-                if img.mode == 'P':
-                    img = img.convert('RGBA')
-                bg.paste(img, mask=img.split()[-1] if img.mode in ('RGBA', 'LA') else None)
+            if img.mode in ("RGBA", "LA", "P"):
+                bg = Image.new("RGB", img.size, (255, 255, 255))
+                if img.mode == "P":
+                    img = img.convert("RGBA")
+                bg.paste(img, mask=img.split()[-1] if img.mode in ("RGBA", "LA") else None)
                 img = bg
-            elif img.mode != 'RGB':
-                img = img.convert('RGB')
+            elif img.mode != "RGB":
+                img = img.convert("RGB")
             buf = io.BytesIO()
-            img.save(buf, format='JPEG', quality=quality, optimize=True)
-            return buf.getvalue(), '.jpg'
+            img.save(buf, format="JPEG", quality=quality, optimize=True)
+            return buf.getvalue(), ".jpg"
         except Exception:
             pass
 
-        return content_bytes, ''
+        return content_bytes, ""
     except Exception:
-        return content_bytes, ''
+        return content_bytes, ""
 
 
 class StorageProcessor(BaseProcessor):
@@ -99,7 +97,7 @@ class StorageProcessor(BaseProcessor):
 
         with self.logger_context(document_id=document_id, stage=self.stage) as adapter:
             try:
-                images = getattr(context, 'images', None) or []
+                images = getattr(context, "images", None) or []
                 if images:
                     stored = await self._store_images_from_context(context, adapter)
                     return self._create_result(
@@ -118,20 +116,20 @@ class StorageProcessor(BaseProcessor):
             adapter.debug("Storage service not configured - skipping image upload")
             return 0
 
-        images = getattr(context, 'images', None) or []
+        images = getattr(context, "images", None) or []
         if not images:
             return 0
 
         stored = 0
-        document_id = str(getattr(context, 'document_id'))
-        output_dir = getattr(context, 'output_dir', None)
+        document_id = str(getattr(context, "document_id"))
+        output_dir = getattr(context, "output_dir", None)
 
         for index, image in enumerate(images):
-            image_id = image.get('id')
+            image_id = image.get("id")
             if not image_id:
                 continue
 
-            temp_path = image.get('temp_path') or image.get('path')
+            temp_path = image.get("temp_path") or image.get("path")
             if not temp_path:
                 continue
 
@@ -139,10 +137,10 @@ class StorageProcessor(BaseProcessor):
             if not path_obj.exists():
                 continue
 
-            with open(path_obj, 'rb') as fp:
+            with open(path_obj, "rb") as fp:
                 content_bytes = fp.read()
 
-            original_filename = image.get('filename') or path_obj.name
+            original_filename = image.get("filename") or path_obj.name
 
             # Convert PNG/GIF/RGBA images to JPEG with white background so they
             # render correctly in dark-mode UIs.
@@ -151,51 +149,51 @@ class StorageProcessor(BaseProcessor):
                 content_bytes = jpeg_bytes
                 stem = Path(original_filename).stem
                 original_filename = stem + new_ext
-                image['filename'] = original_filename
-                image['format'] = 'jpeg'
-                metadata_format = 'jpeg'
+                image["filename"] = original_filename
+                image["format"] = "jpeg"
+                metadata_format = "jpeg"
             else:
-                metadata_format = image.get('format')
+                metadata_format = image.get("format")
 
             metadata = {
-                'document_id': document_id,
-                'image_id': str(image_id),
-                'page_number': image.get('page_number'),
-                'image_index': int(image.get('image_index') or index),
-                'width': image.get('width'),
-                'height': image.get('height'),
-                'format': metadata_format,
-                'extracted_at': image.get('extracted_at'),
+                "document_id": document_id,
+                "image_id": str(image_id),
+                "page_number": image.get("page_number"),
+                "image_index": int(image.get("image_index") or index),
+                "width": image.get("width"),
+                "height": image.get("height"),
+                "format": metadata_format,
+                "extracted_at": image.get("extracted_at"),
             }
 
             result = await self.storage_service.upload_image(
                 content=content_bytes,
                 filename=original_filename,
-                bucket_type='document_images',
+                bucket_type="document_images",
                 metadata={k: v for k, v in metadata.items() if v is not None},
             )
 
-            if not result.get('success'):
+            if not result.get("success"):
                 continue
 
             # Use presigned URL when configured (MinIO private buckets); else public URL
-            use_presigned = os.getenv('OBJECT_STORAGE_USE_PRESIGNED_URLS', 'false').lower() == 'true'
-            presigned_url = result.get('presigned_url')
+            use_presigned = os.getenv("OBJECT_STORAGE_USE_PRESIGNED_URLS", "false").lower() == "true"
+            presigned_url = result.get("presigned_url")
             storage_url = (
                 presigned_url
                 if use_presigned and presigned_url
-                else result.get('url') or result.get('public_url') or result.get('storage_url')
+                else result.get("url") or result.get("public_url") or result.get("storage_url")
             )
-            storage_path = result.get('storage_path') or result.get('key')
-            file_hash = result.get('file_hash')
+            storage_path = result.get("storage_path") or result.get("key")
+            file_hash = result.get("file_hash")
 
             db_filename = storage_path or original_filename
 
-            image['storage_url'] = storage_url
-            image['storage_path'] = storage_path
-            image['file_hash'] = file_hash
+            image["storage_url"] = storage_url
+            image["storage_path"] = storage_path
+            image["file_hash"] = file_hash
             if presigned_url:
-                image['presigned_url'] = presigned_url
+                image["presigned_url"] = presigned_url
 
             if self.database_service:
                 if not storage_url:
@@ -258,41 +256,41 @@ class StorageProcessor(BaseProcessor):
                         original_filename,
                         storage_path,
                         storage_url,
-                        image.get('size_bytes'),
-                        image.get('format'),
-                        image.get('svg_storage_url') or image.get('metadata', {}).get('svg_storage_url'),
-                        image.get('original_svg_content'),
+                        image.get("size_bytes"),
+                        image.get("format"),
+                        image.get("svg_storage_url") or image.get("metadata", {}).get("svg_storage_url"),
+                        image.get("original_svg_content"),
                         bool(
-                            image.get('is_vector_graphic')
-                            or image.get('metadata', {}).get('is_vector_graphic')
-                            or (str(image.get('format', '')).lower() == 'svg')
+                            image.get("is_vector_graphic")
+                            or image.get("metadata", {}).get("is_vector_graphic")
+                            or (str(image.get("format", "")).lower() == "svg")
                         ),
                         bool(
-                            image.get('has_png_derivative')
-                            if image.get('has_png_derivative') is not None
-                            else image.get('metadata', {}).get('has_png_derivative', True)
+                            image.get("has_png_derivative")
+                            if image.get("has_png_derivative") is not None
+                            else image.get("metadata", {}).get("has_png_derivative", True)
                         ),
-                        image.get('width'),
-                        image.get('height'),
-                        image.get('page_number'),
-                        int(image.get('image_index') or index),
-                        image.get('image_type') or image.get('type') or 'diagram',
-                        image.get('ai_description'),
-                        image.get('ai_confidence'),
-                        bool(image.get('contains_text') or False),
-                        image.get('ocr_text'),
-                        image.get('ocr_confidence'),
-                        image.get('manual_description'),
-                        image.get('tags') or [],
+                        image.get("width"),
+                        image.get("height"),
+                        image.get("page_number"),
+                        int(image.get("image_index") or index),
+                        image.get("image_type") or image.get("type") or "diagram",
+                        image.get("ai_description"),
+                        image.get("ai_confidence"),
+                        bool(image.get("contains_text") or False),
+                        image.get("ocr_text"),
+                        image.get("ocr_confidence"),
+                        image.get("manual_description"),
+                        image.get("tags") or [],
                         file_hash,
-                        image.get('figure_number'),
-                        image.get('figure_context'),
+                        image.get("figure_number"),
+                        image.get("figure_context"),
                     ],
                 )
 
             stored += 1
 
-        if os.getenv('IMAGE_PROCESSOR_CLEANUP', '1') != '0' and output_dir:
+        if os.getenv("IMAGE_PROCESSOR_CLEANUP", "1") != "0" and output_dir:
             try:
                 output_path = Path(output_dir)
                 if output_path.exists():
@@ -305,10 +303,9 @@ class StorageProcessor(BaseProcessor):
 
         return stored
 
-    def _create_result(self, success: bool, message: str, data: Dict) -> ProcessingResult:
+    def _create_result(self, success: bool, message: str, data: dict) -> ProcessingResult:
         """Create a processing result object using BaseProcessor helpers"""
         if success:
-            return self.create_success_result(data=data, metadata={'message': message})
-        else:
-            error = ProcessingError(message, self.name, "STORAGE_ERROR")
-            return self.create_error_result(error=error, metadata={})
+            return self.create_success_result(data=data, metadata={"message": message})
+        error = ProcessingError(message, self.name, "STORAGE_ERROR")
+        return self.create_error_result(error=error, metadata={})

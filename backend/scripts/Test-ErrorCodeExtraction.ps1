@@ -4,16 +4,16 @@
 param(
     [Parameter(Mandatory=$false)]
     [string]$Pdf,
-    
+
     [Parameter(Mandatory=$false)]
     [string]$Directory,
-    
+
     [Parameter(Mandatory=$false)]
     [string]$Manufacturer,
-    
+
     [Parameter(Mandatory=$false)]
     [string]$Output = "error_code_test_$(Get-Date -Format 'yyyyMMdd_HHmmss').txt",
-    
+
     [Parameter(Mandatory=$false)]
     [string]$Pattern = "*.pdf"
 )
@@ -94,7 +94,7 @@ Push-Location $backendDir
 try {
     # Execute test
     Invoke-Expression $command
-    
+
     if ($LASTEXITCODE -eq 0) {
         Write-Host ""
         Write-Host "========================================" -ForegroundColor Green
@@ -102,7 +102,7 @@ try {
         Write-Host "========================================" -ForegroundColor Green
         Write-Host ""
         Write-Host "Report saved to: $Output" -ForegroundColor Green
-        
+
         # Show report summary
         if (Test-Path $Output) {
             Write-Host ""
@@ -111,13 +111,13 @@ try {
             Get-Content $Output | Select-String -Pattern "^(Total|Average|Codes)" | ForEach-Object {
                 Write-Host $_.Line
             }
-            
+
             Write-Host ""
             $response = Read-Host "Open full report? (Y/N)"
             if ($response -eq "Y" -or $response -eq "y") {
                 Start-Process notepad $Output
             }
-            
+
             # Also open JSON if exists
             $jsonFile = $Output.Replace('.txt', '.json')
             if (Test-Path $jsonFile) {

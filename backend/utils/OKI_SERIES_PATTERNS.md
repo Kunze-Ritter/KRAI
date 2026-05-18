@@ -27,7 +27,7 @@ Vollständige Pattern-Erkennung für alle OKI-Produktserien: Production, MFP, Pr
 
 #### MC Series
 - **Pattern**: `MC\d{3}[suffix]`
-- **Beispiele**: 
+- **Beispiele**:
   - MC363dn, MC573dn
   - MC853dn, MC883dn (High-End)
   - MC770dn, MC780dn
@@ -41,7 +41,7 @@ Vollständige Pattern-Erkennung für alle OKI-Produktserien: Production, MFP, Pr
 
 #### MB Series
 - **Pattern**: `MB\d{3}[suffix]`
-- **Beispiele**: 
+- **Beispiele**:
   - MB472dnw, MB492dn
   - MB562dnw
 - **Beschreibung**: Monochrome Multifunction Printers
@@ -53,7 +53,7 @@ Vollständige Pattern-Erkennung für alle OKI-Produktserien: Production, MFP, Pr
 
 #### C Series
 - **Pattern**: `C\d{3}[suffix]`
-- **Beispiele**: 
+- **Beispiele**:
   - C332dn, C542dn, C612dn
   - C824dn, C833dn, C843dn
 - **Beschreibung**: Color LED Printers (A4/A3)
@@ -72,7 +72,7 @@ Vollständige Pattern-Erkennung für alle OKI-Produktserien: Production, MFP, Pr
 
 #### B Series Printer
 - **Pattern**: `B\d{3}[suffix]`
-- **Beispiele**: 
+- **Beispiele**:
   - B401d, B431dn
   - B512dn, B721dn, B731dn
 - **Beschreibung**: Monochrome LED Printers

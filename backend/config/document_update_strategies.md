@@ -47,12 +47,12 @@ VALUES ('new_file.pdf', 'new_hash', 'path/to/new/file', ...);
 ### 🔧 **Implementierung:**
 ```sql
 -- 1. Alte Version als "superseded" markieren
-UPDATE krai_core.documents 
+UPDATE krai_core.documents
 SET processing_status = 'superseded'
 WHERE file_hash = 'old_hash';
 
 -- 2. Relationship erstellen
-INSERT INTO krai_core.document_relationships 
+INSERT INTO krai_core.document_relationships
 (primary_document_id, secondary_document_id, relationship_type)
 VALUES (new_doc_id, old_doc_id, 'supersedes');
 
@@ -79,12 +79,12 @@ VALUES ('new_file.pdf', 'new_hash', ...);
 ### 🔧 **Implementierung:**
 ```sql
 -- 1. Chunk-Fingerprints vergleichen
-SELECT chunk_index, fingerprint 
-FROM krai_intelligence.chunks 
+SELECT chunk_index, fingerprint
+FROM krai_intelligence.chunks
 WHERE document_id = 'old_doc_id';
 
 -- 2. Nur geänderte Chunks aktualisieren
-UPDATE krai_intelligence.chunks 
+UPDATE krai_intelligence.chunks
 SET text_chunk = 'new_content', updated_at = now()
 WHERE document_id = 'old_doc_id' AND fingerprint != 'new_fingerprint';
 
@@ -152,30 +152,30 @@ krai_core.document_relationships:
 ```python
 def update_document(new_file_path, old_file_hash):
     """Update document with complete replacement + version tracking"""
-    
+
     # 1. Altes Dokument finden
     old_doc = get_document_by_hash(old_file_hash)
-    
+
     # 2. Version-Info extrahieren
     new_version = extract_version_from_document(new_file_path)
-    
+
     # 3. Prüfen ob wirklich Update nötig
     if old_doc['cpmd_version'] == new_version:
         return {"status": "no_update_needed", "reason": "same_version"}
-    
+
     # 4. Altes Dokument als "superseded" markieren
     mark_document_superseded(old_doc['id'])
-    
+
     # 5. Neues Dokument einfügen
     new_doc = insert_new_document(new_file_path)
-    
+
     # 6. Relationship erstellen
     create_document_relationship(
         primary_doc_id=new_doc['id'],
         secondary_doc_id=old_doc['id'],
         relationship_type='supersedes'
     )
-    
+
     # 7. Alle Chunks und Embeddings werden automatisch neu erstellt
     return {"status": "updated", "new_doc_id": new_doc['id']}
 ```
@@ -205,10 +205,10 @@ version_patterns = [
 ```python
 def extract_version_enhanced(text_content):
     """Enhanced version extraction with date support"""
-    
+
     # Standard version patterns
     version_patterns = [...]
-    
+
     # Date patterns (oft als Version verwendet)
     date_patterns = [
         r'(\d{4}-\d{2}-\d{2})',        # 2024-01-15
@@ -216,19 +216,19 @@ def extract_version_enhanced(text_content):
         r'(\d{2}/\d{2}/\d{4})',        # 15/01/2024
         r'(\d{4}\.\d{2}\.\d{2})',      # 2024.01.15
     ]
-    
+
     # Check for version patterns first
     for pattern in version_patterns:
         match = re.search(pattern, text_content, re.IGNORECASE)
         if match:
             return match.group(1)
-    
+
     # Check for date patterns
     for pattern in date_patterns:
         match = re.search(pattern, text_content)
         if match:
             return match.group(1)
-    
+
     return None
 ```
 

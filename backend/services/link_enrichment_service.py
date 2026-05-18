@@ -13,14 +13,12 @@ import asyncio
 import hashlib
 import json
 import logging
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Sequence
+from collections.abc import Sequence
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from .config_service import ConfigService
-from .web_scraping_service import (
-    FirecrawlUnavailableError,
-    WebScrapingService,
-)
+from .web_scraping_service import FirecrawlUnavailableError, WebScrapingService
 
 
 class LinkEnrichmentService:
@@ -30,7 +28,7 @@ class LinkEnrichmentService:
         self,
         web_scraping_service: WebScrapingService,
         database_service: Any,
-        config_service: Optional[ConfigService] = None,
+        config_service: ConfigService | None = None,
     ) -> None:
         self._scraper = web_scraping_service
         self._database_service = database_service
@@ -52,7 +50,7 @@ class LinkEnrichmentService:
         url: str,
         *,
         force_refresh: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Scrape a single link and persist enrichment artefacts.
 
         Args:
@@ -75,7 +73,7 @@ class LinkEnrichmentService:
             WHERE id = $1::uuid
             LIMIT 1
         """
-        
+
         try:
             existing = await self._database_service.execute_query(query, (str(link_id),))
         except Exception as exc:
@@ -90,12 +88,7 @@ class LinkEnrichmentService:
         scraped_content = row.get("scraped_content")
         content_hash = row.get("content_hash")
 
-        if (
-            scrape_status == "success"
-            and scraped_content
-            and content_hash
-            and not force_refresh
-        ):
+        if scrape_status == "success" and scraped_content and content_hash and not force_refresh:
             self._logger.debug("Link %s already enriched; skipping", link_id)
             return {"success": True, "link_id": link_id, "skipped": True}
 
@@ -110,7 +103,7 @@ class LinkEnrichmentService:
         except FirecrawlUnavailableError as exc:  # pragma: no cover - defensive
             self._logger.warning("Firecrawl unavailable for %s: %s", url, exc)
             result = await self._scraper.scrape_url(url, force_backend="beautifulsoup")
-        except asyncio.TimeoutError as exc:
+        except TimeoutError as exc:
             self._logger.warning("Scrape timed out for %s", url)
             await self._mark_link_failed(
                 link_id,
@@ -138,8 +131,8 @@ class LinkEnrichmentService:
             )
             return {"success": False, "link_id": link_id, "error": error_message}
 
-        content: Optional[str] = result.get("content")
-        html: Optional[str] = result.get("html")
+        content: str | None = result.get("content")
+        html: str | None = result.get("html")
         backend = result.get("backend")
         scrape_metadata = result.get("metadata") or {}
 
@@ -158,7 +151,7 @@ class LinkEnrichmentService:
                 "backend": backend,
                 "status_code": scrape_metadata.get("status_code"),
                 "content_type": scrape_metadata.get("content_type"),
-                "retrieved_at": datetime.now(timezone.utc).isoformat(),
+                "retrieved_at": datetime.now(UTC).isoformat(),
                 "retry_count": 0,
             }
         )
@@ -175,18 +168,18 @@ class LinkEnrichmentService:
                 updated_at = $3
             WHERE id = $6::uuid
         """
-        
+
         try:
             await self._database_service.execute_query(
                 update_query,
                 (
                     content,
                     json.dumps(metadata),  # Serialize dict to JSON string
-                    datetime.now(timezone.utc),
+                    datetime.now(UTC),
                     "success",
                     content_hash,
-                    str(link_id)
-                )
+                    str(link_id),
+                ),
             )
         except Exception as exc:
             self._logger.error("Failed to persist enrichment for %s: %s", link_id, exc)
@@ -209,9 +202,9 @@ class LinkEnrichmentService:
         self,
         link_ids: Sequence[str],
         *,
-        max_concurrent: Optional[int] = None,
+        max_concurrent: int | None = None,
         force_refresh: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Enrich multiple links concurrently while respecting concurrency limits."""
 
         if not link_ids:
@@ -224,23 +217,20 @@ class LinkEnrichmentService:
             FROM krai_system.link_scraping_jobs
             WHERE id IN ({placeholders})
         """
-        
+
         if not force_refresh:
             query += " AND scrape_status IN ('pending', 'failed')"
-        
+
         try:
-            records = await self._database_service.execute_query(
-                query,
-                tuple(str(link_id) for link_id in link_ids)
-            )
+            records = await self._database_service.execute_query(query, tuple(str(link_id) for link_id in link_ids))
         except Exception as exc:
             self._logger.error("Failed to fetch links for batch: %s", exc)
             return {"total": 0, "enriched": 0, "failed": len(link_ids), "skipped": 0, "results": []}
-        
+
         links = {str(row["id"]): row for row in records or []}
 
         semaphore = asyncio.Semaphore(max_concurrent or self._max_concurrent_enrichments)
-        results: List[Dict[str, Any]] = []
+        results: list[dict[str, Any]] = []
 
         async def _worker(link_id: str) -> None:
             link = links.get(link_id)
@@ -275,16 +265,16 @@ class LinkEnrichmentService:
             "results": results,
         }
 
-    async def enrich_document_links(self, document_id: str) -> Dict[str, Any]:
+    async def enrich_document_links(self, document_id: str) -> dict[str, Any]:
         """Enrich all links belonging to the supplied document identifier."""
-        
+
         query = """
             SELECT id
             FROM krai_system.link_scraping_jobs
             WHERE document_id = $1::uuid
               AND scrape_status IN ('pending', 'failed')
         """
-        
+
         try:
             response = await self._database_service.execute_query(query, (str(document_id),))
             link_ids = [row["id"] for row in response or []]
@@ -293,17 +283,17 @@ class LinkEnrichmentService:
             self._logger.error("Failed to fetch document links: %s", exc)
             return {"total": 0, "enriched": 0, "failed": 0, "skipped": 0, "results": []}
 
-    async def refresh_stale_links(self, days_old: int = 90) -> Dict[str, Any]:
+    async def refresh_stale_links(self, days_old: int = 90) -> dict[str, Any]:
         """Re-enrich links whose content is older than the configured threshold."""
-        
-        cutoff = datetime.now(timezone.utc) - timedelta(days=days_old)
+
+        cutoff = datetime.now(UTC) - timedelta(days=days_old)
         query = """
             SELECT id
             FROM krai_system.link_scraping_jobs
             WHERE scraped_at < $1
               AND scrape_status = 'success'
         """
-        
+
         try:
             response = await self._database_service.execute_query(query, (cutoff,))
             link_ids = [row["id"] for row in response or []]
@@ -312,46 +302,46 @@ class LinkEnrichmentService:
             self._logger.error("Failed to fetch stale links: %s", exc)
             return {"total": 0, "enriched": 0, "failed": 0, "skipped": 0, "results": []}
 
-    async def retry_failed_links(self, max_retries: int = 3) -> Dict[str, Any]:
+    async def retry_failed_links(self, max_retries: int = 3) -> dict[str, Any]:
         """Retry enrichment for links that previously failed within retry budget."""
-        
+
         query = """
             SELECT id, scraped_metadata, retry_count
             FROM krai_system.link_scraping_jobs
             WHERE scrape_status = 'failed'
               AND COALESCE(retry_count, 0) < $1
         """
-        
+
         try:
             response = await self._database_service.execute_query(query, (max_retries,))
         except Exception as exc:
             self._logger.error("Failed to fetch failed links: %s", exc)
             return {"total": 0, "enriched": 0, "failed": 0, "skipped": 0, "results": []}
-        
-        eligible_ids: List[str] = []
-        threshold = datetime.now(timezone.utc) - timedelta(hours=self._retry_failed_after_hours)
-        
+
+        eligible_ids: list[str] = []
+        threshold = datetime.now(UTC) - timedelta(hours=self._retry_failed_after_hours)
+
         for row in response or []:
             metadata = self._parse_metadata(row.get("scraped_metadata"))
             last_error_iso = metadata.get("last_error_at")
             last_error_at = None
-            
+
             if last_error_iso:
                 try:
                     last_error_at = datetime.fromisoformat(last_error_iso)
                 except ValueError:
                     pass
-            
+
             if last_error_at is None or last_error_at <= threshold:
                 eligible_ids.append(row["id"])
-        
+
         return await self.enrich_links_batch(eligible_ids)
 
-    async def get_enrichment_stats(self) -> Dict[str, Any]:
+    async def get_enrichment_stats(self) -> dict[str, Any]:
         """Return aggregated statistics for monitoring dashboards."""
-        
+
         stats_query = """
-            SELECT 
+            SELECT
                 COUNT(*) as total_links,
                 COUNT(*) FILTER (WHERE scrape_status = 'success') as enriched_links,
                 COUNT(*) FILTER (WHERE scrape_status = 'pending') as pending_links,
@@ -359,25 +349,25 @@ class LinkEnrichmentService:
                 AVG(LENGTH(scraped_content)) FILTER (WHERE scraped_content IS NOT NULL) as avg_content_length
             FROM krai_system.link_scraping_jobs
         """
-        
+
         backend_query = """
             SELECT scraped_metadata
             FROM krai_system.link_scraping_jobs
             WHERE scraped_metadata IS NOT NULL
         """
-        
+
         try:
             stats_result = await self._database_service.execute_query(stats_query)
             backend_result = await self._database_service.execute_query(backend_query)
-            
+
             stats = stats_result[0] if stats_result else {}
-            
-            backend_distribution: Dict[str, int] = {}
+
+            backend_distribution: dict[str, int] = {}
             for row in backend_result or []:
                 metadata = self._parse_metadata(row.get("scraped_metadata"))
                 backend = metadata.get("backend") or "unknown"
                 backend_distribution[backend] = backend_distribution.get(backend, 0) + 1
-            
+
             return {
                 "total_links": int(stats.get("total_links") or 0),
                 "enriched_links": int(stats.get("enriched_links") or 0),
@@ -393,7 +383,7 @@ class LinkEnrichmentService:
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
-    def _parse_metadata(self, metadata: Any) -> Dict[str, Any]:
+    def _parse_metadata(self, metadata: Any) -> dict[str, Any]:
         """Parse metadata - handle both dict and JSON string."""
         if metadata is None:
             return {}
@@ -406,8 +396,8 @@ class LinkEnrichmentService:
                 self._logger.warning("Failed to parse metadata JSON: %s", metadata[:100])
                 return {}
         return {}
-    
-    def _load_config(self) -> Dict[str, Any]:
+
+    def _load_config(self) -> dict[str, Any]:
         if self._config_service:
             try:
                 config = self._config_service.get_scraping_config()
@@ -431,12 +421,12 @@ class LinkEnrichmentService:
         link_id: str,
         *,
         error_message: str,
-        metadata: Dict[str, Any],
+        metadata: dict[str, Any],
     ) -> None:
         """Mark a link scraping job as failed in database."""
         metadata = metadata or {}
-        metadata["last_error_at"] = datetime.now(timezone.utc).isoformat()
-        
+        metadata["last_error_at"] = datetime.now(UTC).isoformat()
+
         query = """
             UPDATE krai_system.link_scraping_jobs
             SET scrape_status = $1,
@@ -447,7 +437,7 @@ class LinkEnrichmentService:
                 retry_count = COALESCE(retry_count, 0) + 1
             WHERE id = $5::uuid
         """
-        
+
         try:
             await self._database_service.execute_query(
                 query,
@@ -455,9 +445,9 @@ class LinkEnrichmentService:
                     "failed",
                     error_message,
                     json.dumps(metadata),  # Serialize dict to JSON string
-                    datetime.now(timezone.utc),
-                    str(link_id)
-                )
+                    datetime.now(UTC),
+                    str(link_id),
+                ),
             )
         except Exception as exc:
             self._logger.debug("Failed updating failure state for %s: %s", link_id, exc)

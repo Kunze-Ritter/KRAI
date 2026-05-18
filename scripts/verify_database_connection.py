@@ -2,6 +2,7 @@
 Verify PostgreSQL connection and stage-tracking RPC functions.
 Run from project root with env loaded (e.g. .env with POSTGRES_URL).
 """
+
 import asyncio
 import os
 import sys
@@ -13,6 +14,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from dotenv import load_dotenv
+
 load_dotenv(PROJECT_ROOT / ".env")
 
 from backend.services.postgresql_adapter import PostgreSQLAdapter

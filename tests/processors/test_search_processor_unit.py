@@ -12,9 +12,8 @@ from uuid import uuid4
 
 import pytest
 
-from backend.processors.search_processor import SearchProcessor
 from backend.core.base_processor import ProcessingContext
-
+from backend.processors.search_processor import SearchProcessor
 
 pytestmark = [pytest.mark.processor, pytest.mark.search]
 
@@ -128,4 +127,3 @@ class TestSearchProcessorErrorHandling:
         # successful result rather than propagating the exception.
         assert result.success is True
         assert result.message == "Search indexing completed"
-

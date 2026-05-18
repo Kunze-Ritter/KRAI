@@ -5,8 +5,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from processors.storage_processor import StorageProcessor
 from processors.search_processor import SearchProcessor
+from processors.storage_processor import StorageProcessor
 
 
 class SupabaseResponse:
@@ -104,18 +104,20 @@ class StorageServiceStub:
         self.calls = []
         self.client = object()
 
-    async def upload_image(self, content, filename, bucket_type='document_images', metadata=None):
-        self.calls.append({
-            'content': content,
-            'filename': filename,
-            'bucket_type': bucket_type,
-            'metadata': metadata or {},
-        })
+    async def upload_image(self, content, filename, bucket_type="document_images", metadata=None):
+        self.calls.append(
+            {
+                "content": content,
+                "filename": filename,
+                "bucket_type": bucket_type,
+                "metadata": metadata or {},
+            }
+        )
         return {
-            'success': True,
-            'url': f'https://storage.example/{filename}',
-            'storage_path': filename,
-            'file_hash': 'mockhash',
+            "success": True,
+            "url": f"https://storage.example/{filename}",
+            "storage_path": filename,
+            "file_hash": "mockhash",
         }
 
 
@@ -123,10 +125,9 @@ class StorageServiceStub:
 async def test_storage_processor_handles_empty_queue():
     client = SupabaseClientStub(queue_data=[])
     database_service = DatabaseServiceStub(client)
-    storage_service = SimpleNamespace(upload_image=lambda *args, **kwargs: {
-        "success": True,
-        "url": "https://example.com/mock"
-    })
+    storage_service = SimpleNamespace(
+        upload_image=lambda *args, **kwargs: {"success": True, "url": "https://example.com/mock"}
+    )
 
     processor = StorageProcessor(database_service, storage_service)
     context = SimpleNamespace(document_id="doc-001")
@@ -249,12 +250,14 @@ async def test_storage_processor_persists_link_artifact():
 
     client = SupabaseClientStub(queue_data=[queue_entry])
     database_service = DatabaseServiceStub(client)
-    storage_service = SimpleNamespace(upload_image=lambda *args, **kwargs: {
-        "success": True,
-        "url": "https://example.com/mock",
-        "storage_path": "mock/path",
-        "file_hash": "hash",
-    })
+    storage_service = SimpleNamespace(
+        upload_image=lambda *args, **kwargs: {
+            "success": True,
+            "url": "https://example.com/mock",
+            "storage_path": "mock/path",
+            "file_hash": "hash",
+        }
+    )
 
     processor = StorageProcessor(database_service, storage_service)
     context = SimpleNamespace(document_id="doc-123")

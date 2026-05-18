@@ -123,7 +123,7 @@ if ($response->successful()) {
       "processing_time": 2.5
     },
     {
-      "stage": "image_processing", 
+      "stage": "image_processing",
       "success": true,
       "data": {"images_extracted": 5},
       "error": null,
@@ -160,7 +160,7 @@ $response = Http::withToken($token)
 {
   "stages": [
     "upload",
-    "text_extraction", 
+    "text_extraction",
     "table_extraction",
     "svg_processing",
     "image_processing",
@@ -340,12 +340,12 @@ class DocumentProcessor
     public function processDocumentProgressively($documentId, $userRequirements)
     {
         $stages = $this->determineRequiredStages($userRequirements);
-        
+
         foreach ($stages as $stage) {
             $response = Http::post(
                 "http://krai-engine:8000/api/v1/documents/{$documentId}/process/stage/{$stage}"
             );
-            
+
             if (!$response->successful()) {
                 Log::error("Stage {$stage} failed: " . $response->json('error'));
                 if ($userRequirements['strict_mode']) {
@@ -353,30 +353,30 @@ class DocumentProcessor
                 }
                 continue;
             }
-            
+
             // Update UI with progress
             $this->broadcastProgress($documentId, $stage, $response->json());
         }
     }
-    
+
     private function determineRequiredStages($requirements)
     {
         $stages = ['text_extraction']; // Always need text
-        
+
         if ($requirements['images_needed']) {
             $stages[] = 'image_processing';
         }
-        
+
         if ($requirements['search_enabled']) {
             $stages[] = 'embedding';
             $stages[] = 'search_indexing';
         }
-        
+
         if ($requirements['parts_catalog']) {
             $stages[] = 'parts_extraction';
             $stages[] = 'series_detection';
         }
-        
+
         return $stages;
     }
 }
@@ -432,22 +432,22 @@ class DocumentProcessor
 function processWithRetry($documentId, $stage, $maxRetries = 3)
 {
     $attempts = 0;
-    
+
     while ($attempts < $maxRetries) {
         $response = Http::post(
             "http://krai-engine:8000/api/v1/documents/{$documentId}/process/stage/{$stage}"
         );
-        
+
         if ($response->successful()) {
             return $response->json();
         }
-        
+
         $attempts++;
         if ($attempts < $maxRetries) {
             sleep(pow(2, $attempts)); // Exponential backoff
         }
     }
-    
+
     throw new Exception("Stage {$stage} failed after {$maxRetries} attempts");
 }
 ```
@@ -502,7 +502,7 @@ function logProcessingMetrics($documentId, $stage, $processingTime, $success)
         'stage' => $stage,
         'success' => $success
     ]);
-    
+
     Metrics::histogram('document.stage.duration', $processingTime, [
         'stage' => $stage
     ]);
@@ -582,13 +582,13 @@ class DocumentStageService
 {
     private $baseUrl;
     private $apiToken;
-    
+
     public function __construct()
     {
         $this->baseUrl = config('services.krai_engine.url');
         $this->apiToken = config('services.krai_engine.token');
     }
-    
+
     public function processStages(string $documentId, array $stages, bool $stopOnError = true): array
     {
         $response = Http::withToken($this->apiToken)
@@ -596,30 +596,30 @@ class DocumentStageService
                 'stages' => $stages,
                 'stop_on_error' => $stopOnError
             ]);
-        
+
         if (!$response->successful()) {
             Log::error("Stage processing failed", [
                 'document_id' => $documentId,
                 'stages' => $stages,
                 'error' => $response->json('detail')
             ]);
-            
+
             throw new \Exception("Stage processing failed: " . $response->json('detail'));
         }
-        
+
         return $response->json();
     }
-    
+
     public function generateThumbnail(string $documentId, array $size = [300, 400]): array
     {
         $response = Http::withToken($this->apiToken)
             ->post("{$this->baseUrl}/api/v1/documents/{$documentId}/process/thumbnail", [
                 'size' => $size
             ]);
-        
+
         return $response->json();
     }
-    
+
     public function processVideo(string $documentId, string $videoUrl, ?string $manufacturerId = null): array
     {
         $response = Http::withToken($this->apiToken)
@@ -627,15 +627,15 @@ class DocumentStageService
                 'video_url' => $videoUrl,
                 'manufacturer_id' => $manufacturerId
             ]);
-        
+
         return $response->json();
     }
-    
+
     public function getStageStatus(string $documentId): array
     {
         $response = Http::withToken($this->apiToken)
             ->get("{$this->baseUrl}/api/v1/documents/{$documentId}/stages/status");
-        
+
         return $response->json();
     }
 }

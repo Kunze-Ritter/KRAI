@@ -84,7 +84,7 @@ GRANT SELECT, UPDATE ON krai_core.documents TO service_role;
 ✅ Saubere Trennung von Metadaten
 ✅ Alle Ergebnisse strukturiert an einem Ort:
    - Products
-   - Error Codes  
+   - Error Codes
    - Versions
    - Links
    - Videos
@@ -99,7 +99,7 @@ GRANT SELECT, UPDATE ON krai_core.documents TO service_role;
 
 ```sql
 -- Finde alle Dokumente mit mehr als 10 Products:
-SELECT id, file_name, 
+SELECT id, file_name,
        jsonb_array_length(processing_results->'products') as product_count
 FROM krai_core.documents
 WHERE processing_results->'products' IS NOT NULL
@@ -108,7 +108,7 @@ WHERE processing_results->'products' IS NOT NULL
 -- Finde alle Dokumente mit Videos:
 SELECT id, file_name,
        processing_results->'videos' as videos
-FROM krai_core.documents  
+FROM krai_core.documents
 WHERE processing_results->'videos' IS NOT NULL
   AND jsonb_array_length(processing_results->'videos') > 0;
 

@@ -250,5 +250,5 @@ E:\AI\Manual2Vector\
 
 ---
 
-**Bei Fragen:** Siehe KRAI Development Team Lead  
+**Bei Fragen:** Siehe KRAI Development Team Lead
 **Version:** 1.0 Universal (Oktober 2025)

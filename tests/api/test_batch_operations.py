@@ -2,6 +2,7 @@
 import pytest
 from httpx import AsyncClient
 
+
 @pytest.mark.asyncio
 async def test_batch_delete_documents(async_client: AsyncClient, admin_token: str):
     headers = {"Authorization": f"Bearer {admin_token}"}
@@ -12,7 +13,9 @@ async def test_batch_delete_documents(async_client: AsyncClient, admin_token: st
     resp2 = await async_client.post("/api/v1/documents", json=payload2, headers=headers)
     ids = [resp1.json()["id"], resp2.json()["id"]]
     # Batch delete
-    delete_resp = await async_client.post("/api/v1/batch/delete", json={"ids": ids, "resource": "documents"}, headers=headers)
+    delete_resp = await async_client.post(
+        "/api/v1/batch/delete", json={"ids": ids, "resource": "documents"}, headers=headers
+    )
     assert delete_resp.status_code == 200
     result = delete_resp.json()
     assert result.get("deleted") == len(ids)

@@ -10,13 +10,11 @@ exercising the critical paths.
 
 from pathlib import Path
 from uuid import uuid4
-from typing import Dict, Any
 
 import pytest
 
-from backend.processors.table_processor import TableProcessor
 from backend.core.base_processor import ProcessingContext
-
+from backend.processors.table_processor import TableProcessor
 
 pytestmark = [pytest.mark.processor, pytest.mark.table]
 
@@ -110,10 +108,7 @@ class TestTableStorageE2E:
         assert len(tables) == result["tables_extracted"]
 
         # At least some tables should have embeddings stored
-        any_embeddings = any(
-            await mock_database_adapter.get_embeddings_by_source(t["id"], "table")
-            for t in tables
-        )
+        any_embeddings = any(await mock_database_adapter.get_embeddings_by_source(t["id"], "table") for t in tables)
         assert any_embeddings
 
 

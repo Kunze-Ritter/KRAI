@@ -591,6 +591,6 @@ Input: Firecrawl-Service nicht verfügbar
 
 ---
 
-**Autor:** KRAI Development Team  
-**Version:** 1.1  
+**Autor:** KRAI Development Team
+**Version:** 1.1
 **Letzte Aktualisierung:** 6. November 2025

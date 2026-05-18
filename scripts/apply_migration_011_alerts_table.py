@@ -3,6 +3,7 @@ Apply migration 011: rename alert_queue to alerts, create backward-compat view.
 Uses POSTGRES_URL from environment (.env / env.database).
 Run from project root: python scripts/apply_migration_011_alerts_table.py
 """
+
 import asyncio
 import os
 import sys
@@ -13,6 +14,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from backend.processors.env_loader import load_all_env_files
+
 load_all_env_files(PROJECT_ROOT)
 
 try:
@@ -143,10 +145,7 @@ def read_statements(path: Path) -> list:
             current.append(c)
         elif c == ";" and depth == 0:
             stmt = "".join(current).strip()
-            if stmt and not all(
-                line.strip().startswith("--") or not line.strip()
-                for line in stmt.splitlines()
-            ):
+            if stmt and not all(line.strip().startswith("--") or not line.strip() for line in stmt.splitlines()):
                 statements.append(stmt + ";")
             current = []
         else:
@@ -160,11 +159,7 @@ def read_statements(path: Path) -> list:
 
 
 async def main():
-    postgres_url = (
-        os.getenv("POSTGRES_URL")
-        or os.getenv("DATABASE_CONNECTION_URL")
-        or os.getenv("DATABASE_URL")
-    )
+    postgres_url = os.getenv("POSTGRES_URL") or os.getenv("DATABASE_CONNECTION_URL") or os.getenv("DATABASE_URL")
     if not postgres_url:
         print("POSTGRES_URL (or DATABASE_CONNECTION_URL / DATABASE_URL) not set.")
         sys.exit(1)
@@ -187,8 +182,9 @@ async def main():
                 # Idempotent: skip if alert_queue already renamed (now a view or missing)
                 msg = str(e).lower()
                 stmt_lower = stmt.lower()
-                if ("rename" in stmt_lower and
-                        ("is not a table" in msg or "does not exist" in msg or "already exists" in msg)):
+                if "rename" in stmt_lower and (
+                    "is not a table" in msg or "does not exist" in msg or "already exists" in msg
+                ):
                     print(f"  [{i}/{len(statements)}] SKIP (already applied): {first_line}")
                 else:
                     raise

@@ -21,7 +21,7 @@ flowchart TD
     A --> C[TABLE_EXTRACTION]
     A --> D[SVG_PROCESSING]
     A --> E[IMAGE_PROCESSING]
-    
+
     B --> F[LINK_EXTRACTION]
     F --> F2[VIDEO_ENRICHMENT]
     B --> G[CHUNK_PREP]
@@ -29,21 +29,21 @@ flowchart TD
     D --> H
     E --> I[VISUAL_EMBEDDING]
     E --> H
-    
+
     G --> J[CLASSIFICATION]
     G --> K[METADATA_EXTRACTION]
     F2 --> K
-    
+
     J --> L[PARTS_EXTRACTION]
     J --> M[SERIES_DETECTION]
     K --> N[EMBEDDING]
     I --> N
-    
+
     L --> O[SEARCH_INDEXING]
     M --> O
     N --> O
     H --> O
-    
+
     style A fill:#e1f5fe
     style B fill:#f3e5f5
     style C fill:#f3e5f5
@@ -99,32 +99,32 @@ graph TD
     UPLOAD --> TABLE_EXTRACTION
     UPLOAD --> SVG_PROCESSING
     UPLOAD --> IMAGE_PROCESSING
-    
+
     TEXT_EXTRACTION --> LINK_EXTRACTION
     LINK_EXTRACTION --> VIDEO_ENRICHMENT
     TEXT_EXTRACTION --> CHUNK_PREP
-    
+
     IMAGE_PROCESSING --> VISUAL_EMBEDDING
-    
+
     TABLE_EXTRACTION --> STORAGE
     SVG_PROCESSING --> STORAGE
     IMAGE_PROCESSING --> STORAGE
-    
+
     CHUNK_PREP --> CLASSIFICATION
     CHUNK_PREP --> METADATA_EXTRACTION
     VIDEO_ENRICHMENT --> METADATA_EXTRACTION
-    
+
     CLASSIFICATION --> PARTS_EXTRACTION
     CLASSIFICATION --> SERIES_DETECTION
-    
+
     METADATA_EXTRACTION --> EMBEDDING
     VISUAL_EMBEDDING --> EMBEDDING
-    
+
     PARTS_EXTRACTION --> SEARCH_INDEXING
     SERIES_DETECTION --> SEARCH_INDEXING
     EMBEDDING --> SEARCH_INDEXING
     STORAGE --> SEARCH_INDEXING
-    
+
     style UPLOAD fill:#e1f5fe
     style TEXT_EXTRACTION fill:#f3e5f5
     style TABLE_EXTRACTION fill:#f3e5f5
@@ -250,8 +250,8 @@ python scripts/pipeline_processor.py --batch --directory /path/to/documents/
 Stage status is tracked in the `stage_status` JSONB column in `krai_core.documents`:
 
 ```sql
-SELECT id, filename, stage_status 
-FROM krai_core.documents 
+SELECT id, filename, stage_status
+FROM krai_core.documents
 WHERE id = 'your-document-uuid';
 ```
 
@@ -294,7 +294,7 @@ WHERE stage_status ? 'failed'
 AND stage_status->>'status' = 'failed';
 
 -- Get processing progress
-SELECT 
+SELECT
     id,
     filename,
     (SELECT COUNT(*) FROM jsonb_object_keys(stage_status)) as total_stages,
@@ -327,13 +327,13 @@ Orchestrates stage execution:
 class KRMasterPipeline:
     async def run_full_pipeline(self, document_id: str) -> ProcessResult:
         # Execute all 16 stages
-    
+
     async def run_single_stage(self, document_id: str, stage_name: str) -> ProcessResult:
         # Execute specific stage
-    
+
     async def run_stages(self, document_id: str, stages: List[str]) -> ProcessResult:
         # Execute multiple stages
-    
+
     async def smart_process_document(self, document_id: str) -> ProcessResult:
         # Skip completed stages
 ```
@@ -515,7 +515,7 @@ GET /documents/{id}/stages
 # FastAPI BackgroundTasks for async processing
 @router.post("/documents/{document_id}/process/stage/{stage_name}")
 async def process_single_stage(
-    document_id: str, 
+    document_id: str,
     stage_name: str,
     background_tasks: BackgroundTasks
 ):

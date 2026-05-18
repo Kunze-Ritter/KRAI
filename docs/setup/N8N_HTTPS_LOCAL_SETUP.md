@@ -131,10 +131,10 @@ services:
 server {
     listen 443 ssl http2;
     server_name localhost;
-    
+
     ssl_certificate /etc/nginx/ssl/localhost.crt;
     ssl_certificate_key /etc/nginx/ssl/localhost.key;
-    
+
     location / {
         proxy_pass http://n8n:5678;
         # WebSocket support für n8n

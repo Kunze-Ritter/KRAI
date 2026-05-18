@@ -3,31 +3,30 @@
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from processors.text_extractor import extract_text_from_pdf
-from uuid import uuid4
 import re
+from uuid import uuid4
+
+from processors.text_extractor import extract_text_from_pdf
 
 print("Loading HP PDF...")
-pdf_text, meta = extract_text_from_pdf(
-    Path(r"C:\Manuals\HP\HP_E778_CPMD.pdf"),
-    uuid4()
-)
+pdf_text, meta = extract_text_from_pdf(Path(r"C:\Manuals\HP\HP_E778_CPMD.pdf"), uuid4())
 
 page = pdf_text[418]
 
-print(f"=== PAGE 418 ===")
+print("=== PAGE 418 ===")
 print(f"Length: {len(page)} chars\n")
 
 # Show full text
 print("FULL TEXT:")
-print("="*80)
+print("=" * 80)
 print(page)
-print("="*80)
+print("=" * 80)
 
 # Find all XX.XX.XX codes
-pattern = re.compile(r'\b(\d{2}\.\d{2}\.?\d{0,2})\b')
+pattern = re.compile(r"\b(\d{2}\.\d{2}\.?\d{0,2})\b")
 matches = pattern.finditer(page)
 
 print("\nALL MATCHES:")

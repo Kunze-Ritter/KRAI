@@ -17,42 +17,42 @@ product_patterns:
     examples: ["VersaLink C405", "VersaLink B7035"]
     series: "VersaLink"
     type: "multifunction"
-  
+
   # AltaLink Series
   - pattern: '\bAltaLink\s+[BC]\d{3,4}[a-z]{0,3}\b'
     flags: IGNORECASE
     examples: ["AltaLink C8035", "AltaLink B8090"]
     series: "AltaLink"
     type: "multifunction"
-  
+
   # WorkCentre Series
   - pattern: '\bWorkCentre\s+\d{3,4}[a-z]{0,3}\b'
     flags: IGNORECASE
     examples: ["WorkCentre 3335", "WorkCentre 7845"]
     series: "WorkCentre"
     type: "multifunction"
-  
+
   # Phaser Series
   - pattern: '\bPhaser\s+\d{3,4}[a-z]{0,3}\b'
     flags: IGNORECASE
     examples: ["Phaser 3330", "Phaser 6510"]
     series: "Phaser"
     type: "printer"
-  
+
   # ColorQube Series
   - pattern: '\bColorQube\s+\d{3,4}[a-z]{0,3}\b'
     flags: IGNORECASE
     examples: ["ColorQube 8570", "ColorQube 8900"]
     series: "ColorQube"
     type: "printer"
-  
+
   # Versant Series (Production)
   - pattern: '\bVersant\s+\d{3,4}[a-z]{0,3}\b'
     flags: IGNORECASE
     examples: ["Versant 180", "Versant 280", "Versant 4100"]
     series: "Versant"
     type: "printer"
-  
+
   # iGen Series (Production)
   - pattern: '\biGen\s+\d{1}\b'
     flags: IGNORECASE
@@ -66,32 +66,32 @@ series:
     patterns: ["VersaLink"]
     type: "multifunction"
     description: "Xerox VersaLink Multifunction Printers"
-  
+
   - name: "AltaLink"
     patterns: ["AltaLink"]
     type: "multifunction"
     description: "Xerox AltaLink Multifunction Printers"
-  
+
   - name: "WorkCentre"
     patterns: ["WorkCentre"]
     type: "multifunction"
     description: "Xerox WorkCentre Multifunction Printers"
-  
+
   - name: "Phaser"
     patterns: ["Phaser"]
     type: "printer"
     description: "Xerox Phaser Laser Printers"
-  
+
   - name: "ColorQube"
     patterns: ["ColorQube"]
     type: "printer"
     description: "Xerox ColorQube Solid Ink Printers"
-  
+
   - name: "Versant"
     patterns: ["Versant"]
     type: "printer"
     description: "Xerox Versant Production Printers"
-  
+
   - name: "iGen"
     patterns: ["iGen"]
     type: "printer"
@@ -104,53 +104,53 @@ part_prefixes:
     type: "toner_cartridge"
     pattern: "^006R\\d{5}$"
     examples: ["006R01513", "006R01514", "006R01515", "006R01516"]
-  
+
   - prefix: "106R"
     type: "toner_cartridge"
     pattern: "^106R\\d{5}$"
     examples: ["106R03623", "106R03624", "106R03625", "106R03626"]
-  
+
   # Drum Units
   - prefix: "013R"
     type: "drum_unit"
     pattern: "^013R\\d{5}$"
     examples: ["013R00662", "013R00663"]
-  
+
   - prefix: "101R"
     type: "drum_unit"
     pattern: "^101R\\d{5}$"
     examples: ["101R00555", "101R00556"]
-  
+
   # Waste Toner Container
   - prefix: "008R"
     type: "waste_toner_box"
     pattern: "^008R\\d{5}$"
     examples: ["008R13089", "008R13090"]
-  
+
   # Fuser Units
   - prefix: "115R"
     type: "fuser_unit"
     pattern: "^115R\\d{5}$"
     examples: ["115R00085", "115R00086"]
-  
+
   # Transfer Units
   - prefix: "001R"
     type: "transfer_unit"
     pattern: "^001R\\d{5}$"
     examples: ["001R00613", "001R00614"]
-  
+
   # Finishers
   - prefix: "097S"
     type: "finisher"
     pattern: "^097S\\d{5}$"
     examples: ["097S04400", "097S04401"]
-  
+
   # Paper Trays
   - prefix: "097S"
     type: "paper_tray"
     pattern: "^097S\\d{5}$"
     examples: ["097S04907", "097S04908"]
-  
+
   # Staple Cartridges
   - prefix: "008R"
     type: "staple_cartridge"

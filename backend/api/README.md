@@ -410,10 +410,10 @@ async def my_endpoint(
 ):
     """
     My endpoint description
-    
+
     Args:
         request: Request parameters
-        
+
     Returns:
         Result data
     """

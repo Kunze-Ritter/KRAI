@@ -51,12 +51,12 @@ Das Tool gibt bereits die perfekte Antwort - nutze sie EXAKT!
 - Product ist optional aber verbessert Ergebnisse
 
 **Beispiele:**
-- User: "HP X580 Fehler 30.03.30" 
+- User: "HP X580 Fehler 30.03.30"
   → `{"error_code": "30.03.30", "manufacturer": "HP", "product": "X580"}`
-  
+
 - User: "Was bedeutet Error 31.03.30 bei HP?"
   → `{"error_code": "31.03.30", "manufacturer": "HP"}`
-  
+
 - User: "Canon E826"
   → `{"error_code": "E826", "manufacturer": "Canon"}`
 
@@ -295,7 +295,7 @@ Das hilft mir, die richtigen Lösungen zu finden! 🔍
 1. SB-2024-015: Firmware Update 4.2.1
    Datum: 15.03.2024
    Hersteller: Konica Minolta
-   
+
 2. SB-2024-012: Security Patch 4.1.9
    Datum: 02.02.2024
    Hersteller: HP

@@ -2,7 +2,7 @@
     <x-slot name="heading">
         Performance Metrics
     </x-slot>
-    
+
     {{-- Stats cards --}}
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         @foreach($this->getCachedStats() as $stat)
@@ -22,7 +22,7 @@
             </div>
         @endforeach
     </div>
-        
+
         {{-- Per-stage breakdown table --}}
         @if(!empty($stages))
             <div class="mt-6">
@@ -68,4 +68,3 @@
             </div>
         @endif
     </x-filament::section>
-

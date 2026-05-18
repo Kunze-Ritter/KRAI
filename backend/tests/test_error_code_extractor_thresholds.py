@@ -1,6 +1,5 @@
 import inspect
 
-import pytest
 from backend.processors import error_code_extractor as ece_module
 from backend.processors.error_code_extractor import ErrorCodeExtractor
 from backend.processors.models import ExtractedErrorCode

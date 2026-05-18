@@ -2,6 +2,7 @@
 import pytest
 from httpx import AsyncClient
 
+
 @pytest.mark.asyncio
 async def test_create_document(async_client: AsyncClient, admin_token: str):
     headers = {"Authorization": f"Bearer {admin_token}"}
@@ -16,6 +17,7 @@ async def test_create_document(async_client: AsyncClient, admin_token: str):
     data = response.json()
     assert data["title"] == payload["title"]
 
+
 @pytest.mark.asyncio
 async def test_get_documents(async_client: AsyncClient, admin_token: str):
     headers = {"Authorization": f"Bearer {admin_token}"}
@@ -23,6 +25,7 @@ async def test_get_documents(async_client: AsyncClient, admin_token: str):
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
+
 
 @pytest.mark.asyncio
 async def test_update_document(async_client: AsyncClient, admin_token: str):
@@ -36,6 +39,7 @@ async def test_update_document(async_client: AsyncClient, admin_token: str):
     resp = await async_client.patch(f"/api/v1/documents/{doc_id}", json=update_payload, headers=headers)
     assert resp.status_code == 200
     assert resp.json()["title"] == "Updated Title"
+
 
 @pytest.mark.asyncio
 async def test_delete_document(async_client: AsyncClient, admin_token: str):

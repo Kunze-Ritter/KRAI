@@ -7,7 +7,7 @@ search stage match what the embedding stage has written.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any
 from uuid import uuid4
 
 import pytest
@@ -45,8 +45,8 @@ class E2EEmbeddingProcessor(EmbeddingProcessor):
         self,
         chunk_id: str,
         document_id,
-        embedding: List[float],
-        chunk_data: Dict[str, Any],
+        embedding: list[float],
+        chunk_data: dict[str, Any],
     ) -> bool:
         """Synchronously persist embedding into mock adapter stores.
 
@@ -112,7 +112,7 @@ class TestEmbeddingSearchPipelineE2E:
         document_id = sample_chunks_with_content[0]["document_id"]
 
         # Prepare text chunks for embedding stage
-        embed_chunks: List[Dict[str, Any]] = []
+        embed_chunks: list[dict[str, Any]] = []
         for chunk in sample_chunks_with_content[:6]:
             embed_chunks.append(
                 {
@@ -148,7 +148,7 @@ class TestEmbeddingSearchPipelineE2E:
         search_processor = SearchProcessor(database_adapter=mock_database_adapter)
 
         # Stub SearchAnalytics.log_document_indexed to avoid asyncio.run issues
-        analytics_calls: Dict[str, Any] = {}
+        analytics_calls: dict[str, Any] = {}
 
         def fake_log_document_indexed(
             *,
@@ -190,4 +190,3 @@ class TestEmbeddingSearchPipelineE2E:
         assert status["search_ready"] is True
         assert status["chunks_count"] == len(embed_chunks)
         assert status["embeddings_count"] == len(embed_chunks)
-

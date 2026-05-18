@@ -598,8 +598,8 @@ UPDATE krai_core.documents SET
     models = detected_models,
     document_type = detected_type,
     extracted_metadata = jsonb_set(
-        extracted_metadata, 
-        '{classification}', 
+        extracted_metadata,
+        '{classification}',
         classification_data
     )
 WHERE id = document_id;
@@ -816,7 +816,7 @@ INSERT INTO krai_core.product_series (
     uuid, series_name, manufacturer_id, description,
     now(), now()
 )
-ON CONFLICT (name, manufacturer_id) 
+ON CONFLICT (name, manufacturer_id)
 DO UPDATE SET updated_at = now();
 
 UPDATE krai_core.documents SET
@@ -1007,8 +1007,8 @@ UPDATE krai_intelligence.chunks SET
 WHERE document_id = document_id;
 
 -- Update pgvector indexes
-CREATE INDEX IF NOT EXISTS idx_chunks_embedding_vector 
-ON krai_intelligence.chunks 
+CREATE INDEX IF NOT EXISTS idx_chunks_embedding_vector
+ON krai_intelligence.chunks
 USING ivfflat (embedding vector_cosine_ops);
 
 -- Mark document as fully processed

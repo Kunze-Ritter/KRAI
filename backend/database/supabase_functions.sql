@@ -18,12 +18,12 @@ RETURNS TABLE (
 ) AS $$
 BEGIN
   RETURN QUERY
-  SELECT 
+  SELECT
     c.id,
     d.filename,
     c.content,
     (c.embedding <=> (
-      SELECT embedding 
+      SELECT embedding
       FROM krai_intelligence.embeddings e
       WHERE e.chunk_id = c.id
       LIMIT 1
@@ -55,7 +55,7 @@ RETURNS TABLE (
 ) AS $$
 BEGIN
   RETURN QUERY
-  SELECT 
+  SELECT
     p.id,
     p.name,
     p.model,
@@ -65,7 +65,7 @@ BEGIN
   FROM krai_core.products p
   JOIN krai_core.manufacturers m ON p.manufacturer_id = m.id
   LEFT JOIN krai_core.product_series ps ON p.product_series_id = ps.id
-  WHERE 
+  WHERE
     p.model ILIKE '%' || search_term || '%' OR
     p.name ILIKE '%' || search_term || '%' OR
     m.name ILIKE '%' || search_term || '%'
@@ -92,7 +92,7 @@ RETURNS TABLE (
 ) AS $$
 BEGIN
   RETURN QUERY
-  SELECT 
+  SELECT
     ec.id,
     ec.error_code,
     ec.description,
@@ -103,7 +103,7 @@ BEGIN
   FROM krai_intelligence.error_codes ec
   JOIN krai_core.manufacturers m ON ec.manufacturer_id = m.id
   LEFT JOIN krai_core.products p ON ec.product_id = p.id
-  WHERE 
+  WHERE
     ec.error_code ILIKE '%' || search_term || '%' OR
     ec.description ILIKE '%' || search_term || '%' OR
     ec.solution ILIKE '%' || search_term || '%'
@@ -130,7 +130,7 @@ RETURNS TABLE (
 ) AS $$
 BEGIN
   RETURN QUERY
-  SELECT 
+  SELECT
     (SELECT COUNT(*)::INTEGER FROM krai_core.documents) as total_documents,
     (SELECT COUNT(*)::INTEGER FROM krai_core.documents WHERE processing_status = 'completed') as completed_documents,
     (SELECT COUNT(*)::INTEGER FROM krai_core.documents WHERE processing_status = 'pending') as pending_documents,
@@ -159,7 +159,7 @@ RETURNS TABLE (
 ) AS $$
 BEGIN
   RETURN QUERY
-  SELECT 
+  SELECT
     al.id,
     al.event_type as activity_type,
     al.description,
@@ -183,7 +183,7 @@ RETURNS TABLE (
 ) AS $$
 BEGIN
   RETURN QUERY
-  SELECT 
+  SELECT
     m.name as manufacturer_name,
     COUNT(DISTINCT d.id)::INTEGER as document_count,
     COUNT(DISTINCT p.id)::INTEGER as product_count,

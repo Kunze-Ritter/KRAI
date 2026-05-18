@@ -11,7 +11,7 @@ API keys are validated via APIKeyService and take precedence over IP-based limit
 from __future__ import annotations
 
 import logging
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from fastapi import HTTPException, Request, status
 from fastapi.responses import JSONResponse
@@ -37,19 +37,19 @@ def _client_ip(request: Request) -> str:
         real_ip = request.headers.get("X-Real-IP")
         if real_ip:
             return real_ip.strip()
-        
+
         # Safety check for request.client
         if not request.client or not request.client.host:
             return "127.0.0.1"
-            
+
         return get_remote_address(request)
     except Exception:
         return "127.0.0.1"
 
 
-def _extract_api_key(request: Request) -> Optional[str]:
+def _extract_api_key(request: Request) -> str | None:
     """Extract API key from X-API-Key header (case-insensitive).
-    
+
     Returns:
         API key string if found, None otherwise
     """
@@ -58,24 +58,24 @@ def _extract_api_key(request: Request) -> Optional[str]:
         api_key = request.headers.get("X-API-Key")
         if api_key:
             return api_key.strip()
-        
+
         # Fallback to lowercase variant
         api_key = request.headers.get("x-api-key")
         if api_key:
             return api_key.strip()
-        
+
         return None
     except Exception as e:
         logger.debug("Failed to extract API key: %s", e)
         return None
 
 
-def _get_api_key_identifier(request: Request) -> Optional[str]:
+def _get_api_key_identifier(request: Request) -> str | None:
     """Check if request has a valid API key and return rate limit identifier.
-    
+
     This function checks request.state.api_key_user_id which should be set
     by the APIKeyValidationMiddleware that runs before rate limiting.
-    
+
     Returns:
         Rate limit key like 'apikey:{user_id}' if valid API key, None otherwise
     """
@@ -92,7 +92,7 @@ def _get_api_key_identifier(request: Request) -> Optional[str]:
 
 def _user_or_ip_key(request: Request) -> str:
     """Rate limit key with precedence: API key > JWT user > IP address.
-    
+
     Precedence order:
     1. API Key: If X-API-Key header is valid → 'apikey:{user_id}'
     2. JWT User: If JWT token is valid → '{user_id}'
@@ -103,14 +103,14 @@ def _user_or_ip_key(request: Request) -> str:
         api_key_id = _get_api_key_identifier(request)
         if api_key_id:
             return api_key_id
-        
+
         # Priority 2: Check for JWT authenticated user
         user = getattr(request.state, "user", None)
         if isinstance(user, dict):
             user_id = user.get("id")
             if user_id:
                 return str(user_id)
-        
+
         # Priority 3: Fall back to IP address
         return _client_ip(request)
     except Exception:
@@ -154,17 +154,18 @@ def rate_limit_exempt(*args, **kwargs) -> bool:
 
     return _client_ip(request) in _WHITELIST
 
+
 # Register the exempt function with the limiter
 limiter._request_filters.append(rate_limit_exempt)
 
 
 class APIKeyValidationMiddleware(BaseHTTPMiddleware):
     """Middleware that validates API keys and stores user_id in request.state.
-    
+
     This middleware runs before rate limiting to validate API keys.
     If a valid API key is found, it stores the user_id in request.state.api_key_user_id
     which is then used by the rate limiting key function.
-    
+
     Invalid API keys are silently ignored (no error response) to avoid information disclosure.
     The request will fall back to IP-based rate limiting.
     """
@@ -173,33 +174,27 @@ class APIKeyValidationMiddleware(BaseHTTPMiddleware):
         try:
             # Extract API key from headers
             api_key = _extract_api_key(request)
-            
+
             if api_key:
                 # Get database pool from app state
                 db_pool = getattr(request.app.state, "db_pool", None)
-                
+
                 if db_pool:
                     try:
                         # Validate API key using APIKeyService
                         api_key_service = APIKeyService(db_pool)
                         key_record = await api_key_service.validate_api_key(api_key)
-                        
+
                         if key_record:
                             # Store user_id in request.state for rate limiting
                             request.state.api_key_user_id = key_record.get("user_id")
                             # Store full API key info for later use by endpoints
                             request.state.api_key = key_record
-                            logger.debug(
-                                "Valid API key for user %s on %s",
-                                key_record.get("user_id"),
-                                request.url.path
-                            )
+                            logger.debug("Valid API key for user %s on %s", key_record.get("user_id"), request.url.path)
                         else:
                             # Invalid API key - log but don't block request
                             logger.warning(
-                                "Invalid API key attempt from %s on %s",
-                                _client_ip(request),
-                                request.url.path
+                                "Invalid API key attempt from %s on %s", _client_ip(request), request.url.path
                             )
                     except Exception as e:
                         # API key validation failed - log and fall back to IP-based rate limiting
@@ -209,7 +204,7 @@ class APIKeyValidationMiddleware(BaseHTTPMiddleware):
         except Exception as e:
             # Catch-all to prevent middleware from breaking the request
             logger.error("APIKeyValidationMiddleware error: %s", e, exc_info=True)
-        
+
         return await call_next(request)
 
 
@@ -275,13 +270,14 @@ def rate_limit_api_key() -> str:
 
 def dynamic_rate_limit(endpoint_limit_func: Callable[[], str]) -> Callable[[Request | None], str]:
     """Create a dynamic rate limit function that uses API key limits when available.
-    
+
     Args:
         endpoint_limit_func: Function that returns the standard endpoint limit
-        
+
     Returns:
         Callable that takes a Request and returns the appropriate rate limit string
     """
+
     def _get_limit(request: Request | None = None) -> str:
         # Check if request has a validated API key
         api_key_user_id = getattr(getattr(request, "state", None), "api_key_user_id", None)
@@ -290,6 +286,7 @@ def dynamic_rate_limit(endpoint_limit_func: Callable[[], str]) -> Callable[[Requ
             return rate_limit_api_key()
         # Fall back to standard endpoint limit
         return endpoint_limit_func()
+
     return _get_limit
 
 

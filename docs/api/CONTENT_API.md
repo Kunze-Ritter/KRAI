@@ -318,5 +318,3 @@ The enrichment service is optional; when disabled or unavailable, `/videos/enric
 ## Changelog
 
 - **2025-11-01** — Initial publication of Content API documentation covering error codes, videos, and images with enrichment and object storage upload workflows.
-
-

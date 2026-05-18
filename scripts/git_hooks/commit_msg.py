@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 
-def _load_pre_commit_module() -> "module":
+def _load_pre_commit_module() -> module:
     """Ensure the shared pre_commit module is importable and return it."""
 
     repo_root = Path(__file__).resolve().parents[2]

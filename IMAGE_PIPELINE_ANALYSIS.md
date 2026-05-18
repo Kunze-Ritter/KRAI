@@ -38,7 +38,7 @@ Matches: 01.02.03, 44.55.66, etc.
 Returns dict with:
 {
     'context_caption': None,
-    'figure_reference': None, 
+    'figure_reference': None,
     'page_header': None,
     'related_error_codes': [],  # <-- POPULATED HERE
     'related_products': [],
@@ -198,4 +198,3 @@ Key columns set by image_processor:
 - ai_description: LLaVA vision AI description
 - ocr_text: Tesseract OCR results
 - contains_text: Boolean if text detected
-

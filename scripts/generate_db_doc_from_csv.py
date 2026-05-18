@@ -5,46 +5,47 @@ Reads column data from CSV export and creates documentation.
 """
 
 import csv
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+
 
 def generate_doc():
     """Generate documentation from CSV data"""
-    
+
     # Find CSV file
     project_root = Path(__file__).parent.parent
     csv_files = list(project_root.glob("*Columns.csv"))
-    
+
     if not csv_files:
         print("ERROR: No CSV file found!")
         print("Expected file like: 'PostgreSQL_Columns.csv'")
         return
-    
+
     csv_files.sort(key=lambda path: path.stat().st_mtime, reverse=True)
     csv_file = csv_files[0]
     print(f"Reading: {csv_file.name}")
-    
+
     # Read CSV
     columns = []
-    with open(csv_file, 'r', encoding='utf-8') as f:
+    with open(csv_file, encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
             columns.append(row)
-    
+
     print(f"Found {len(columns)} columns")
-    
+
     # Group by schema and table
     tables = {}
     for col in columns:
-        schema = col['table_schema']
-        table = col['table_name']
+        schema = col["table_schema"]
+        table = col["table_name"]
         key = f"{schema}.{table}"
-        
+
         if key not in tables:
             tables[key] = []
-        
+
         tables[key].append(col)
-    
+
     # Build documentation
     doc = []
     doc.append("# KRAI Database Schema Documentation")
@@ -81,63 +82,63 @@ def generate_doc():
     doc.append("")
     doc.append("## Table of Contents")
     doc.append("")
-    
+
     # Group by schema
     schemas = {}
     for table_key in sorted(tables.keys()):
-        schema, table = table_key.split('.', 1)
+        schema, table = table_key.split(".", 1)
         if schema not in schemas:
             schemas[schema] = []
         schemas[schema].append(table)
-    
+
     # Add TOC
     for schema in sorted(schemas.keys()):
         doc.append(f"- [{schema}](#{schema.replace('_', '-')}) ({len(schemas[schema])} Tabellen)")
-    
+
     doc.append("")
     doc.append("---")
     doc.append("")
-    
+
     # Document each schema
     for schema in sorted(schemas.keys()):
         doc.append(f"## {schema}")
         doc.append("")
-        
+
         for table in sorted(schemas[schema]):
             table_key = f"{schema}.{table}"
             doc.append(f"### {table_key}")
             doc.append("")
-            
+
             cols = tables[table_key]
-            
+
             doc.append("| Spalte | Typ | Nullable | Default |")
             doc.append("|--------|-----|----------|---------|")
-            
+
             for col in cols:
-                col_name = col['column_name']
-                
+                col_name = col["column_name"]
+
                 # Build type string
-                data_type = col['data_type']
-                char_len = col['character_maximum_length']
-                if char_len and char_len != 'null':
+                data_type = col["data_type"]
+                char_len = col["character_maximum_length"]
+                if char_len and char_len != "null":
                     data_type = f"{data_type}({char_len})"
-                elif col['udt_name'] and col['udt_name'] != col['data_type']:
-                    data_type = col['udt_name']
-                
+                elif col["udt_name"] and col["udt_name"] != col["data_type"]:
+                    data_type = col["udt_name"]
+
                 # Nullable
-                nullable = col['is_nullable']
-                
+                nullable = col["is_nullable"]
+
                 # Default
-                default = col['column_default']
-                if not default or default == 'null':
+                default = col["column_default"]
+                if not default or default == "null":
                     default = "-"
                 elif len(default) > 40:
                     default = default[:37] + "..."
-                
+
                 doc.append(f"| `{col_name}` | {data_type} | {nullable} | {default} |")
-            
+
             doc.append("")
-    
+
     # Add views section
     doc.append("---")
     doc.append("")
@@ -145,7 +146,7 @@ def generate_doc():
     doc.append("")
     doc.append("Alle Views nutzen `vw_` Prefix und zeigen auf Tabellen in krai_* Schemas:")
     doc.append("")
-    
+
     existing_views = [
         ("vw_agent_memory", "krai_agent.memory"),
         ("vw_audit_log", "krai_system.audit_log"),
@@ -168,10 +169,10 @@ def generate_doc():
         ("vw_videos", "krai_content.videos"),
         ("vw_webhook_logs", "krai_integrations.webhook_logs"),
     ]
-    
+
     doc.append("| View | Zeigt auf | Hinweis |")
     doc.append("|------|-----------|---------|")
-    
+
     for view_info in existing_views:
         if len(view_info) == 3:
             view, table, note = view_info
@@ -179,7 +180,7 @@ def generate_doc():
         else:
             view, table = view_info
             doc.append(f"| `{view}` | `{table}` | - |")
-    
+
     doc.append("")
     doc.append("---")
     doc.append("")
@@ -189,17 +190,18 @@ def generate_doc():
     doc.append(f"- **Tabellen:** {len(tables)}")
     doc.append(f"- **Spalten:** {len(columns)}")
     doc.append("")
-    
+
     # Write to file
     output_file = project_root / "DATABASE_SCHEMA.md"
-    with open(output_file, 'w', encoding='utf-8') as f:
-        f.write('\n'.join(doc))
-    
+    with open(output_file, "w", encoding="utf-8") as f:
+        f.write("\n".join(doc))
+
     print(f"\n✅ Dokumentation geschrieben nach: {output_file}")
     print(f"   Schemas: {len(schemas)}")
     print(f"   Tabellen: {len(tables)}")
     print(f"   Spalten: {len(columns)}")
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
+
 
 if __name__ == "__main__":
     generate_doc()

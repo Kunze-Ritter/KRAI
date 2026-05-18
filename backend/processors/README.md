@@ -4,13 +4,13 @@ Clean, modular rewrite of document processing pipeline with strict validation.
 
 ## Features
 
-✅ **Type-safe** - Pydantic models with built-in validation  
-✅ **Beautiful logging** - Rich console output with progress bars  
-✅ **Unified processor base** - Shared `BaseProcessor` with centralized Stage enum + contextual logging  
-✅ **Strict validation** - No filenames as products, no random words as error codes  
-✅ **Real confidence** - Context-based scoring, not fake values  
-✅ **Modular design** - Easy to test and extend  
-✅ **Smart chunking** - Overlap for context preservation  
+✅ **Type-safe** - Pydantic models with built-in validation
+✅ **Beautiful logging** - Rich console output with progress bars
+✅ **Unified processor base** - Shared `BaseProcessor` with centralized Stage enum + contextual logging
+✅ **Strict validation** - No filenames as products, no random words as error codes
+✅ **Real confidence** - Context-based scoring, not fake values
+✅ **Modular design** - Easy to test and extend
+✅ **Smart chunking** - Overlap for context preservation
 
 ---
 
@@ -301,8 +301,8 @@ TextChunk(
 
 ```sql
 -- 1. Error codes should be numeric only
-SELECT error_code, COUNT(*) 
-FROM krai_intelligence.error_codes 
+SELECT error_code, COUNT(*)
+FROM krai_intelligence.error_codes
 WHERE error_code !~ '^\d{2}\.\d{2}(\.\d{2})?$'
 GROUP BY error_code;
 -- Should return 0 rows!
@@ -315,8 +315,8 @@ GROUP BY model_number;
 -- Should return 0 rows!
 
 -- 3. Confidence distribution
-SELECT 
-    CASE 
+SELECT
+    CASE
         WHEN confidence_score >= 0.9 THEN 'High (0.9+)'
         WHEN confidence_score >= 0.7 THEN 'Medium (0.7-0.9)'
         ELSE 'Low (<0.7)'

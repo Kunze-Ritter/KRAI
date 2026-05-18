@@ -59,7 +59,7 @@ pipeline = KRMasterPipeline(database_adapter=db_adapter, force_continue_on_error
   [6/8] Storage ✅
   [7/8] Embedding ❌ (failed)
   [8/8] Search ❌ (failed)
-  
+
   ⚠️ Document example.pdf partially processed (✅ 4 stages, ❌ 3 failed)
   Status: COMPLETED ✅ (statt FAILED ❌)
 ```
@@ -77,7 +77,7 @@ pipeline = KRMasterPipeline(database_adapter=db_adapter, force_continue_on_error
   [3/8] Image Processing ❌
   [4/8] Classification ❌
   ... (alle Stages failed)
-  
+
   ❌ Document broken.pdf completely failed (all stages failed)
   Status: FAILED ❌
 ```

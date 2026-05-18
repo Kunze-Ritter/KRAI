@@ -1,6 +1,7 @@
 """
 Apply migration 019: add the missing stage column to krai_system.processing_queue.
 """
+
 import asyncio
 import os
 import sys
@@ -141,10 +142,7 @@ def read_statements(path: Path) -> list[str]:
             current.append(c)
         elif c == ";" and depth == 0:
             stmt = "".join(current).strip()
-            if stmt and not all(
-                line.strip().startswith("--") or not line.strip()
-                for line in stmt.splitlines()
-            ):
+            if stmt and not all(line.strip().startswith("--") or not line.strip() for line in stmt.splitlines()):
                 statements.append(stmt + ";")
             current = []
         else:
@@ -159,11 +157,7 @@ def read_statements(path: Path) -> list[str]:
 
 
 async def main():
-    postgres_url = (
-        os.getenv("POSTGRES_URL")
-        or os.getenv("DATABASE_CONNECTION_URL")
-        or os.getenv("DATABASE_URL")
-    )
+    postgres_url = os.getenv("POSTGRES_URL") or os.getenv("DATABASE_CONNECTION_URL") or os.getenv("DATABASE_URL")
     if not postgres_url:
         print("POSTGRES_URL (or DATABASE_CONNECTION_URL / DATABASE_URL) not set.")
         sys.exit(1)
@@ -183,11 +177,7 @@ async def main():
                 print(f"  [{i}/{len(statements)}] OK")
             except asyncpg.PostgresError as exc:
                 msg = str(exc).lower()
-                if (
-                    "column \"stage\"" in msg
-                    and "already exists" in msg
-                    or "column stage already exists" in msg
-                ):
+                if ('column "stage"' in msg and "already exists" in msg) or "column stage already exists" in msg:
                     print(f"  [{i}/{len(statements)}] SKIP (stage column already present)")
                     continue
                 raise

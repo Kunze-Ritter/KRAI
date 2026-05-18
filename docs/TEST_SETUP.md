@@ -200,7 +200,7 @@ python -m pytest backend/tests/integration/ -v -m "integration and not firecrawl
 ```
 
 ### Database Connection Errors
-**Lösung**: 
+**Lösung**:
 1. Prüfe ob Docker Container laufen: `docker ps`
 2. Prüfe `.env.test` oder `.env` Konfiguration
 3. Teste DB-Verbindung: `psql -h localhost -U postgres -d krai_test`

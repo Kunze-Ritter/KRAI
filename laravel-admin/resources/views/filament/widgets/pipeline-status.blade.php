@@ -18,12 +18,12 @@
                     class="h-12 w-12 text-danger-500 mx-auto mb-4"
                 />
                 <p class="text-danger-600 font-medium text-lg mb-2">Unable to fetch pipeline data</p>
-                
+
                 @php
                     $errorType = $data['error_type'] ?? 'unknown';
                     $configUrl = $data['config_url'] ?? 'Not configured';
                 @endphp
-                
+
                 {{-- User-friendly error message based on type --}}
                 <div class="bg-danger-50 dark:bg-danger-900/20 rounded-lg p-4 mb-4 max-w-2xl mx-auto">
                     @if($errorType === 'dns_failure')
@@ -63,7 +63,7 @@
                         </p>
                     @endif
                 </div>
-                
+
                 {{-- Technical details --}}
                 <details class="text-left max-w-2xl mx-auto">
                     <summary class="text-sm text-gray-600 dark:text-gray-400 cursor-pointer hover:text-gray-800 dark:hover:text-gray-200">
@@ -76,7 +76,7 @@
                         <pre class="whitespace-pre-wrap break-words">{{ $data['error'] ?? 'No error message' }}</pre>
                     </div>
                 </details>
-                
+
                 {{-- Retry button --}}
                 <div class="mt-4">
                     <x-filament::button
@@ -223,4 +223,3 @@
             @endif
         @endif
     </x-filament::section>
-

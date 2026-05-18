@@ -30,7 +30,7 @@ Comprehensive test suite for `RetryOrchestrator` class covering all public metho
 | `test_update_error_status_delegates_to_error_logger` | ✅ 100% | Tests error status delegation |
 | `test_spawn_background_retry_creates_task` | ✅ 100% | Tests async task creation |
 
-**Total Tests:** 16  
+**Total Tests:** 16
 **Coverage:** All public methods covered
 
 ### 2. `backend/tests/integration/test_retry_orchestrator_integration.py`
@@ -49,7 +49,7 @@ Comprehensive test suite for `RetryOrchestrator` class covering all public metho
 | `test_lock_survives_orchestrator_recreation` | `@pytest.mark.database` | Lock persistence across instances |
 | `test_background_retry_with_real_delays` | `@pytest.mark.database`, `@pytest.mark.slow` | Real delays timing test |
 
-**Total Tests:** 10  
+**Total Tests:** 10
 **Coverage:** Real database operations, advisory locks, concurrency
 
 ## Method Coverage Summary
@@ -93,9 +93,9 @@ Comprehensive test suite for `RetryOrchestrator` class covering all public metho
 
 ### 📊 Coverage Metrics
 
-**Estimated Line Coverage:** >85%  
-**Branch Coverage:** >80%  
-**Public Method Coverage:** 100%  
+**Estimated Line Coverage:** >85%
+**Branch Coverage:** >80%
+**Public Method Coverage:** 100%
 **Error Path Coverage:** >80%
 
 ## Test Execution

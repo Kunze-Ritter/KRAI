@@ -21,7 +21,7 @@ echo [3] Use CPU-only mode (slower but stable)
 echo [4] Check Ollama logs
 echo [5] Exit
 echo.
-set /p CHOICE=Enter choice (1-5): 
+set /p CHOICE=Enter choice (1-5):
 
 if "%CHOICE%"=="1" goto RESTART
 if "%CHOICE%"=="2" goto DISABLE

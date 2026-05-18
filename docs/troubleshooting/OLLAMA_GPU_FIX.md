@@ -206,5 +206,5 @@ Falls Ollama weiter Probleme macht, können wir Image-Processing als **non-criti
 
 ---
 
-**Created:** Oktober 2025  
+**Created:** Oktober 2025
 **Status:** ✅ Ready to Fix

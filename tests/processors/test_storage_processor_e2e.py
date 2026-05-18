@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import json
 from types import SimpleNamespace
-from typing import Any, Dict, List
+from typing import Any
 
 import pytest
 
@@ -11,24 +11,24 @@ from backend.processors.storage_processor import StorageProcessor
 
 
 class MockResult:
-    def __init__(self, data: List[Dict[str, Any]]):
+    def __init__(self, data: list[dict[str, Any]]):
         self.data = data
 
 
 class MockTable:
-    def __init__(self, storage: List[Dict[str, Any]]):
+    def __init__(self, storage: list[dict[str, Any]]):
         self._storage = storage
-        self._filters: Dict[str, Any] = {}
-        self._insert_buffer: List[Dict[str, Any]] | None = None
+        self._filters: dict[str, Any] = {}
+        self._insert_buffer: list[dict[str, Any]] | None = None
 
-    def select(self, *_args, **_kwargs) -> "MockTable":
+    def select(self, *_args, **_kwargs) -> MockTable:
         return self
 
-    def eq(self, key: str, value: Any) -> "MockTable":
+    def eq(self, key: str, value: Any) -> MockTable:
         self._filters[key] = value
         return self
 
-    def insert(self, payload: Dict[str, Any] | List[Dict[str, Any]]) -> "MockTable":
+    def insert(self, payload: dict[str, Any] | list[dict[str, Any]]) -> MockTable:
         if isinstance(payload, list):
             self._insert_buffer = payload
         else:
@@ -42,7 +42,7 @@ class MockTable:
             self._insert_buffer = None
             return MockResult(data)
 
-        data: List[Dict[str, Any]] = []
+        data: list[dict[str, Any]] = []
         for row in self._storage:
             match = True
             for key, value in self._filters.items():
@@ -56,7 +56,7 @@ class MockTable:
 
 class MockClient:
     def __init__(self):
-        self.tables: Dict[str, List[Dict[str, Any]]] = {
+        self.tables: dict[str, list[dict[str, Any]]] = {
             "vw_processing_queue": [],
             "vw_links": [],
             "vw_videos": [],
@@ -81,15 +81,15 @@ class AsyncStorageService:
     def __init__(self, success: bool = True) -> None:
         self.client = object()
         self.success = success
-        self.upload_calls: List[Dict[str, Any]] = []
+        self.upload_calls: list[dict[str, Any]] = []
 
     async def upload_image(
         self,
         content: bytes,
         filename: str,
         bucket_type: str = "document_images",
-        metadata: Dict[str, Any] | None = None,
-    ) -> Dict[str, Any]:
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         self.upload_calls.append(
             {
                 "content": content,
@@ -122,7 +122,9 @@ def storage_service() -> AsyncStorageService:
 @pytest.mark.e2e
 class TestStorageProcessorE2E:
     @pytest.mark.asyncio
-    async def test_process_persists_all_artifact_types(self, db_service: MockDatabaseService, storage_service: AsyncStorageService):
+    async def test_process_persists_all_artifact_types(
+        self, db_service: MockDatabaseService, storage_service: AsyncStorageService
+    ):
         queue = db_service.client.tables["vw_processing_queue"]
         document_id = "doc-all"
 
@@ -250,7 +252,9 @@ class TestStorageProcessorE2E:
         assert images[0]["document_id"] == document_id
 
     @pytest.mark.asyncio
-    async def test_process_no_pending_artifacts_returns_zero(self, db_service: MockDatabaseService, storage_service: AsyncStorageService):
+    async def test_process_no_pending_artifacts_returns_zero(
+        self, db_service: MockDatabaseService, storage_service: AsyncStorageService
+    ):
         processor = StorageProcessor(database_service=db_service, storage_service=storage_service)
         context = SimpleNamespace(document_id="doc-empty")
 
@@ -261,7 +265,9 @@ class TestStorageProcessorE2E:
         assert "No pending artifacts" in result.message
 
     @pytest.mark.asyncio
-    async def test_process_skips_unsupported_artifact_type(self, db_service: MockDatabaseService, storage_service: AsyncStorageService):
+    async def test_process_skips_unsupported_artifact_type(
+        self, db_service: MockDatabaseService, storage_service: AsyncStorageService
+    ):
         queue = db_service.client.tables["vw_processing_queue"]
         document_id = "doc-unsupported"
 
@@ -339,7 +345,9 @@ class TestStorageProcessorE2E:
         assert images == []
 
     @pytest.mark.asyncio
-    async def test_process_with_invalid_json_payload(self, db_service: MockDatabaseService, storage_service: AsyncStorageService):
+    async def test_process_with_invalid_json_payload(
+        self, db_service: MockDatabaseService, storage_service: AsyncStorageService
+    ):
         queue = db_service.client.tables["vw_processing_queue"]
         document_id = "doc-invalid-json"
 
@@ -368,7 +376,9 @@ class TestStorageProcessorE2E:
         assert links[0]["url"] is None
 
     @pytest.mark.asyncio
-    async def test_process_with_missing_document_id_raises(self, db_service: MockDatabaseService, storage_service: AsyncStorageService):
+    async def test_process_with_missing_document_id_raises(
+        self, db_service: MockDatabaseService, storage_service: AsyncStorageService
+    ):
         processor = StorageProcessor(database_service=db_service, storage_service=storage_service)
         context = SimpleNamespace()
 

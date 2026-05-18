@@ -1,12 +1,11 @@
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 from uuid import uuid4
 
 import pytest
 
 from backend.core.base_processor import ProcessingContext
 from backend.processors.classification_processor import ClassificationProcessor
-
 
 pytestmark = [pytest.mark.e2e, pytest.mark.asyncio, pytest.mark.classification]
 
@@ -29,7 +28,7 @@ class TestManufacturerDetection:
         ctx = _make_context(str(uuid4()), pdf_path)
 
         # We call the internal helper directly to avoid DB coupling
-        meta: Dict[str, Any] = {"title": "", "filename": pdf_path.name}
+        meta: dict[str, Any] = {"title": "", "filename": pdf_path.name}
         manufacturer = await processor._detect_manufacturer(pdf_path, meta, ctx, processor.logger)  # type: ignore[attr-defined]
 
         assert manufacturer is not None
@@ -42,7 +41,7 @@ class TestManufacturerDetection:
         processor = ClassificationProcessor(database_service=None, ai_service=None, features_service=None)
         ctx = _make_context(str(uuid4()), pdf_path)
 
-        meta: Dict[str, Any] = {"title": "Canon imageRUNNER ADVANCE C5560 User Guide", "filename": pdf_path.name}
+        meta: dict[str, Any] = {"title": "Canon imageRUNNER ADVANCE C5560 User Guide", "filename": pdf_path.name}
         manufacturer = await processor._detect_manufacturer(pdf_path, meta, ctx, processor.logger)  # type: ignore[attr-defined]
 
         assert manufacturer is not None
@@ -57,7 +56,7 @@ class TestManufacturerDetection:
                 self._text = text
 
             class _Result:
-                def __init__(self, data: List[Dict[str, Any]]) -> None:
+                def __init__(self, data: list[dict[str, Any]]) -> None:
                     self.data = data
 
             class _Table:
@@ -77,9 +76,7 @@ class TestManufacturerDetection:
                     return self
 
                 def execute(self) -> "DummyClient._Result":
-                    return DummyClient._Result([
-                        {"content": "Konica Minolta bizhub C4080"}
-                    ])
+                    return DummyClient._Result([{"content": "Konica Minolta bizhub C4080"}])
 
             def table(self, _name: str) -> "DummyClient._Table":
                 return DummyClient._Table(self._text)
@@ -89,10 +86,12 @@ class TestManufacturerDetection:
                 self.client = DummyClient(text)
 
         document_id = str(uuid4())
-        processor = ClassificationProcessor(database_service=DummyDB("Konica Minolta"), ai_service=mock_ai_service, features_service=object())
+        processor = ClassificationProcessor(
+            database_service=DummyDB("Konica Minolta"), ai_service=mock_ai_service, features_service=object()
+        )
         ctx = _make_context(document_id, pdf_path)
 
-        meta: Dict[str, Any] = {"title": "", "filename": pdf_path.name}
+        meta: dict[str, Any] = {"title": "", "filename": pdf_path.name}
         manufacturer = await processor._detect_manufacturer(pdf_path, meta, ctx, processor.logger)  # type: ignore[attr-defined]
 
         assert manufacturer is not None
@@ -110,7 +109,7 @@ class TestDocumentTypeAndVersion:
 
         # Stub DB client for content statistics
         class DummyResult:
-            def __init__(self, data: List[Dict[str, Any]] | None = None) -> None:
+            def __init__(self, data: list[dict[str, Any]] | None = None) -> None:
                 self.data = data or []
 
         class DummyTable:
@@ -136,7 +135,9 @@ class TestDocumentTypeAndVersion:
 
         mock_database_adapter.client = DummyClient()
 
-        processor = ClassificationProcessor(database_service=mock_database_adapter, ai_service=None, features_service=None)
+        processor = ClassificationProcessor(
+            database_service=mock_database_adapter, ai_service=None, features_service=None
+        )
         ctx = _make_context(str(uuid4()), pdf_path)
 
         doc_meta = {
@@ -164,7 +165,9 @@ class TestDocumentTypeAndVersion:
         pdf_path = tmp_path / "HP_E877_CPMD.pdf"
         pdf_path.write_text("Dummy content")
 
-        processor = ClassificationProcessor(database_service=mock_database_adapter, ai_service=None, features_service=None)
+        processor = ClassificationProcessor(
+            database_service=mock_database_adapter, ai_service=None, features_service=None
+        )
         ctx = _make_context(str(uuid4()), pdf_path)
 
         doc_meta = {
@@ -205,18 +208,18 @@ class TestClassificationProcessorEndToEnd:
         }
 
         class DummyClient:
-            def __init__(self, storage: Dict[str, Dict[str, Any]]) -> None:
+            def __init__(self, storage: dict[str, dict[str, Any]]) -> None:
                 self._storage = storage
 
             class _Result:
-                def __init__(self, data: List[Dict[str, Any]]) -> None:
+                def __init__(self, data: list[dict[str, Any]]) -> None:
                     self.data = data
 
             class _Table:
-                def __init__(self, storage: Dict[str, Dict[str, Any]]) -> None:
+                def __init__(self, storage: dict[str, dict[str, Any]]) -> None:
                     self._storage = storage
                     self._id: str | None = None
-                    self._payload: Dict[str, Any] | None = None
+                    self._payload: dict[str, Any] | None = None
 
                 def select(self, *_args: Any) -> "ClassificationProcessorEndToEnd.DummyClient._Table":  # type: ignore[name-defined]
                     return self
@@ -234,7 +237,7 @@ class TestClassificationProcessorEndToEnd:
                         return ClassificationProcessorEndToEnd.DummyClient._Result([])  # type: ignore[name-defined]
                     return ClassificationProcessorEndToEnd.DummyClient._Result([self._storage[self._id]])  # type: ignore[name-defined]
 
-                def update(self, payload: Dict[str, Any]) -> "ClassificationProcessorEndToEnd.DummyClient._Table":  # type: ignore[name-defined]
+                def update(self, payload: dict[str, Any]) -> "ClassificationProcessorEndToEnd.DummyClient._Table":  # type: ignore[name-defined]
                     self._payload = payload
                     return self
 
@@ -244,7 +247,9 @@ class TestClassificationProcessorEndToEnd:
 
         mock_database_adapter.client = DummyClient(mock_database_adapter.documents)
 
-        processor = ClassificationProcessor(database_service=mock_database_adapter, ai_service=None, features_service=None)
+        processor = ClassificationProcessor(
+            database_service=mock_database_adapter, ai_service=None, features_service=None
+        )
         ctx = _make_context(doc_id, pdf_path)
 
         result = await processor.process(ctx)

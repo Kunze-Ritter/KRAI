@@ -12,7 +12,7 @@ The database is organized into **5 core schemas** with Phase 6 enhancements:
 
 ```sql
 krai_core          - Documents, manufacturers, products, product_series
-krai_content       - Chunks, images, videos, links, structured tables  
+krai_content       - Chunks, images, videos, links, structured tables
 krai_intelligence  - Chunk embeddings (`chunks.embedding`), error_codes, search_analytics, context data
 krai_system        - Processing_queue, audit_log, system_metrics
 krai_parts         - Parts catalog and accessories
@@ -144,9 +144,9 @@ CREATE EXTENSION IF NOT EXISTS vector;
 \ir database/migrations/01_schema_and_tables.sql
 
 -- Verify schemas created
-SELECT schema_name 
-FROM information_schema.schemata 
-WHERE schema_name LIKE 'krai_%' 
+SELECT schema_name
+FROM information_schema.schemata
+WHERE schema_name LIKE 'krai_%'
 ORDER BY schema_name;
 ```
 
@@ -161,7 +161,7 @@ ORDER BY schema_name;
 
 -- Verify indexes created
 SELECT schemaname, COUNT(*) as index_count
-FROM pg_indexes 
+FROM pg_indexes
 WHERE schemaname LIKE 'krai_%'
 GROUP BY schemaname;
 ```
@@ -190,15 +190,15 @@ GROUP BY schemaname;
 
 ```sql
 -- 1. Check all schemas exist
-SELECT schema_name 
-FROM information_schema.schemata 
-WHERE schema_name LIKE 'krai_%' 
+SELECT schema_name
+FROM information_schema.schemata
+WHERE schema_name LIKE 'krai_%'
 ORDER BY schema_name;
 -- Expected: krai_core, krai_content, krai_intelligence, krai_system, krai_parts
 
 -- 2. Check table count
 SELECT schemaname, COUNT(*) as table_count
-FROM pg_tables 
+FROM pg_tables
 WHERE schemaname LIKE 'krai_%'
 GROUP BY schemaname
 ORDER BY schemaname;
@@ -210,28 +210,28 @@ ORDER BY schemaname;
 ```sql
 -- 1. Check chunk embedding column
 SELECT column_name, data_type, is_nullable
-FROM information_schema.columns 
-WHERE table_name = 'chunks' 
+FROM information_schema.columns
+WHERE table_name = 'chunks'
 AND table_schema = 'krai_intelligence'
 AND column_name = 'embedding';
 
 -- 2. Check hierarchical chunking columns
-SELECT column_name, data_type 
-FROM information_schema.columns 
-WHERE table_name = 'chunks' 
+SELECT column_name, data_type
+FROM information_schema.columns
+WHERE table_name = 'chunks'
 AND table_schema = 'krai_intelligence'
 AND column_name IN ('section_hierarchy', 'section_level', 'previous_chunk_id', 'next_chunk_id');
 
 -- 3. Check context extraction columns
-SELECT column_name, data_type 
-FROM information_schema.columns 
+SELECT column_name, data_type
+FROM information_schema.columns
 WHERE table_schema = 'krai_content'
 AND table_name = 'images'
 AND column_name LIKE '%context%';
 
 -- 4. Check SVG support columns
-SELECT column_name, data_type 
-FROM information_schema.columns 
+SELECT column_name, data_type
+FROM information_schema.columns
 WHERE table_schema = 'krai_content'
 AND table_name = 'images'
 AND column_name IN ('image_type', 'svg_content', 'vector_graphic');
@@ -363,12 +363,12 @@ The system tracks applied migrations:
 
 ```sql
 -- Check migration status
-SELECT * FROM krai_system.migrations 
+SELECT * FROM krai_system.migrations
 ORDER BY applied_at DESC;
 
 -- Check pending migrations
-SELECT migration_file 
-FROM krai_system.pending_migrations 
+SELECT migration_file
+FROM krai_system.pending_migrations
 ORDER BY migration_number;
 ```
 
@@ -381,7 +381,7 @@ python scripts/test_postgresql_migrations.py --verbose
 # Expected output:
 # ✅ Database: Connected
 # ✅ Schemas: 5 found
-# ✅ Tables: 32 found  
+# ✅ Tables: 32 found
 # ✅ Indexes: 127 found
 # ✅ Functions: 12 found
 # ✅ Phase 6: All features enabled
@@ -467,7 +467,7 @@ Before proceeding with application deployment:
 - [ ] Database user with proper permissions
 - [ ] All core migrations (000-03) applied successfully
 
-### Phase 6 Features  
+### Phase 6 Features
 - [ ] Migration 116: Context-aware media support
 - [ ] Migration 117: chunks.embedding support (planned separate embeddings table was never implemented)
 - [ ] Migration 118: Structured tables enhancement
@@ -488,7 +488,7 @@ Before proceeding with application deployment:
 
 ---
 
-**🎉 Migration Complete!** 
+**🎉 Migration Complete!**
 
 Your KRAI database is now ready with all Phase 1-6 features. The system supports multimodal document processing, hierarchical chunking, SVG extraction, context extraction, and advanced search capabilities.
 

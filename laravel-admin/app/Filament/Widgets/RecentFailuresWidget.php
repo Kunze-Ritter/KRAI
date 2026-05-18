@@ -25,7 +25,7 @@ class RecentFailuresWidget extends Widget
     {
         try {
             $limit = config('krai.error_monitoring.recent_failures_limit', 10);
-            
+
             return PipelineError::with([
                 'document:id,filename',
                 'resolvedBy:id,name'

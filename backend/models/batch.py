@@ -1,9 +1,10 @@
 """Pydantic models supporting batch operations and task management."""
+
 from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field, root_validator, validator
 
@@ -24,8 +25,8 @@ class BatchOperationRequest(BaseModel):
 
     resource_type: str = Field(..., description="Target resource type for the batch operation")
     operation: str = Field(..., description="Operation to perform across all items")
-    items: List[Dict[str, Any]] = Field(..., min_items=1, max_items=100)
-    options: Dict[str, Any] = Field(default_factory=dict)
+    items: list[dict[str, Any]] = Field(..., min_items=1, max_items=100)
+    options: dict[str, Any] = Field(default_factory=dict)
 
     @validator("resource_type")
     def _validate_resource_type(cls, value: str) -> str:
@@ -42,7 +43,7 @@ class BatchOperationRequest(BaseModel):
         return value
 
     @root_validator(skip_on_failure=True)
-    def _validate_item_count(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+    def _validate_item_count(cls, values: dict[str, Any]) -> dict[str, Any]:
         items = values.get("items") or []
         if not items:
             raise ValueError("items must contain at least one entry")
@@ -66,7 +67,7 @@ class BatchDeleteRequest(BaseModel):
     """Request payload for synchronous/asynchronous batch deletions."""
 
     resource_type: str = Field(..., description="Target resource type for deletion")
-    ids: List[str] = Field(..., min_items=1, max_items=100, description="Identifiers to delete")
+    ids: list[str] = Field(..., min_items=1, max_items=100, description="Identifiers to delete")
 
     @validator("resource_type")
     def _validate_resource_type(cls, value: str) -> str:
@@ -76,7 +77,7 @@ class BatchDeleteRequest(BaseModel):
         return value
 
     @validator("ids")
-    def _validate_ids(cls, value: List[str]) -> List[str]:
+    def _validate_ids(cls, value: list[str]) -> list[str]:
         if not value:
             raise ValueError("ids must contain at least one identifier")
         if len(value) > 100:
@@ -100,7 +101,7 @@ class BatchUpdateRequest(BaseModel):
     """Request payload for batch updates."""
 
     resource_type: str = Field(..., description="Target resource type for update")
-    updates: List[Dict[str, Any]] = Field(
+    updates: list[dict[str, Any]] = Field(
         ...,
         min_items=1,
         max_items=100,
@@ -115,7 +116,7 @@ class BatchUpdateRequest(BaseModel):
         return value
 
     @validator("updates")
-    def _validate_updates(cls, value: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _validate_updates(cls, value: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if not value:
             raise ValueError("updates must contain at least one entry")
         if len(value) > 100:
@@ -148,9 +149,9 @@ class BatchStatusChangeRequest(BaseModel):
     """Request payload for bulk status changes."""
 
     resource_type: str = Field(..., description="Target resource type for status change")
-    ids: List[str] = Field(..., min_items=1, max_items=100, description="Identifiers to update")
+    ids: list[str] = Field(..., min_items=1, max_items=100, description="Identifiers to update")
     new_status: str = Field(..., min_length=1, description="Status value to apply")
-    reason: Optional[str] = Field(None, max_length=500, description="Optional reason for the change")
+    reason: str | None = Field(None, max_length=500, description="Optional reason for the change")
 
     @validator("resource_type")
     def _validate_resource_type(cls, value: str) -> str:
@@ -160,7 +161,7 @@ class BatchStatusChangeRequest(BaseModel):
         return value
 
     @validator("ids")
-    def _validate_ids(cls, value: List[str]) -> List[str]:
+    def _validate_ids(cls, value: list[str]) -> list[str]:
         if not value:
             raise ValueError("ids must contain at least one identifier")
         if len(value) > 100:
@@ -192,10 +193,10 @@ class BatchOperationResultStatus(str, Enum):
 class BatchOperationResult(BaseModel):
     """Detailed outcome for a single batch item."""
 
-    id: Optional[str] = Field(None, description="Identifier processed in the operation")
+    id: str | None = Field(None, description="Identifier processed in the operation")
     status: BatchOperationResultStatus = Field(..., description="Outcome for the specific item")
-    error: Optional[str] = Field(None, description="Optional error message when status=failed")
-    rollback_data: Optional[Dict[str, Any]] = Field(
+    error: str | None = Field(None, description="Optional error message when status=failed")
+    rollback_data: dict[str, Any] | None = Field(
         None, description="Payload required to roll back a successful operation"
     )
 
@@ -217,9 +218,9 @@ class BatchOperationResponse(BaseModel):
     total: int = Field(..., ge=0, description="Total number of items processed")
     successful: int = Field(..., ge=0, description="Number of successful items")
     failed: int = Field(..., ge=0, description="Number of failed items")
-    results: List[BatchOperationResult] = Field(default_factory=list)
-    task_id: Optional[str] = Field(None, description="Task identifier when executed asynchronously")
-    execution_time_ms: Optional[int] = Field(
+    results: list[BatchOperationResult] = Field(default_factory=list)
+    task_id: str | None = Field(None, description="Task identifier when executed asynchronously")
+    execution_time_ms: int | None = Field(
         None, ge=0, description="Execution time in milliseconds for synchronous operations"
     )
 
@@ -255,7 +256,7 @@ class BatchTaskRequest(BaseModel):
 
     operation_type: str = Field(..., description="Logical operation type (delete/update/status_change)")
     resource_type: str = Field(..., description="Target resource type for the operation")
-    payload: Dict[str, Any] = Field(default_factory=dict, description="Serialized payload for execution")
+    payload: dict[str, Any] = Field(default_factory=dict, description="Serialized payload for execution")
     priority: int = Field(5, ge=0, le=10, description="Task priority (higher executes earlier)")
     user_id: str = Field(..., description="User initiating the task")
 
@@ -296,12 +297,10 @@ class BatchTaskResponse(BaseModel):
     processed_items: int = Field(0, ge=0, description="Number of items processed so far")
     successful_items: int = Field(0, ge=0, description="Number of items processed successfully")
     failed_items: int = Field(0, ge=0, description="Number of items that failed")
-    started_at: Optional[datetime] = Field(None, description="Timestamp when task started")
-    completed_at: Optional[datetime] = Field(None, description="Timestamp when task completed")
-    error: Optional[str] = Field(None, description="Error message if the task failed")
-    results: Optional[List[BatchOperationResult]] = Field(
-        None, description="Detailed results collected during execution"
-    )
+    started_at: datetime | None = Field(None, description="Timestamp when task started")
+    completed_at: datetime | None = Field(None, description="Timestamp when task completed")
+    error: str | None = Field(None, description="Error message if the task failed")
+    results: list[BatchOperationResult] | None = Field(None, description="Detailed results collected during execution")
 
     class Config:
         from_attributes = True

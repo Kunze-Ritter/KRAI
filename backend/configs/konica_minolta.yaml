@@ -26,49 +26,49 @@ product_patterns:
     examples: ["bizhub C454e", "bizhub 454e", "bizhub PRESS C1070"]
     series: "bizhub"
     type: "laser_multifunction"
-  
+
   # AccurioPress Series (Production Printer)
   - pattern: '\bC(4080|4070|3080|3070|2070|1060|6100|6085|7100|7090|6272|6272P|12000|14000|16000)[LNPX]?\b'
     flags: IGNORECASE
     examples: ["C4080", "C4070", "C3080", "C7100", "C6272P", "C12000"]
     series: "AccurioPress"
     type: "laser_production_printer"
-  
+
   # AccurioPress numeric identifiers (APxxxx)
   - pattern: '\bAP\d{4}[A-Z]?\b'
     flags: IGNORECASE
     examples: ["AP7136", "AP7136P", "AP7120"]
     series: "AccurioPress"
     type: "laser_production_printer"
-  
+
   # AccurioPrint Series (Production Printer)
   - pattern: '\bC(10500|12010|14010|2060|2070|4065|659|759)[SWOX]{0,2}\b'
     flags: IGNORECASE
     examples: ["C10500", "C12010", "C14010", "C2060", "C659"]
     series: "AccurioPrint"
     type: "laser_production_printer"
-  
+
   # AccurioPrint numeric identifiers (e.g., 2100, 850i)
   - pattern: '\bAccurioPrint\s+\d{3,4}[A-Z]?\b'
     flags: IGNORECASE
     examples: ["AccurioPrint 2100", "AccurioPrint 850i", "AccurioPrint 950i"]
     series: "AccurioPrint"
     type: "laser_production_printer"
-  
+
   # AccurioJet Series
   - pattern: '\bAccurioJet\s+[A-Z0-9-]+\b'
     flags: IGNORECASE
     examples: ["AccurioJet KM-1e"]
     series: "AccurioJet"
     type: "inkjet_production_printer"
-  
+
   # AccurioWide Series (Wide-format / plotter)
   - pattern: '\bAccurioWide\s+[A-Z0-9-]+\b'
     flags: IGNORECASE
     examples: ["AccurioWide 160"]
     series: "AccurioWide"
     type: "inkjet_plotter"
-  
+
   # Standalone C-Series (without bizhub prefix)
   - pattern: '\bC(\d{3,4})[a-z]{0,3}\b'
     flags: IGNORECASE
@@ -83,17 +83,17 @@ series:
     patterns: ["bizhub\\s+(?:C|i-)?\\d{3,4}"]
     type: "laser_multifunction"
     description: "Konica Minolta bizhub Multifunction Printers"
-  
+
   - name: "bizhub PRESS"
     patterns: ["bizhub\\s+PRESS\\s+C\\d{4}"]
     type: "laser_production_multifunction"
     description: "Konica Minolta bizhub PRESS Production Printers"
-  
+
   - name: "AccurioPress"
     patterns: ["AccurioPress", "C(4080|4070|3080|3070|6100|12000|14000|16000)"]
     type: "laser_production_multifunction"
     description: "Konica Minolta AccurioPress High-End Production Printers"
-  
+
   - name: "AccurioPrint"
     patterns: ["AccurioPrint", "C(10500|12010|14010|2060|659|759)"]
     type: "laser_production_multifunction"
@@ -116,43 +116,43 @@ part_prefixes:
     type: "toner_cartridge"
     pattern: "^TN\\d{3}[KCMY]?$"
     examples: ["TN328K", "TN626C", "TN715Y", "TN328M"]
-  
+
   # Drum Units
   - prefix: "DR"
     type: "drum_unit"
     pattern: "^DR\\d{3}[KCMY]?$"
     examples: ["DR012", "DR316K", "DR618C"]
-  
+
   # Developer Units
   - prefix: "DV"
     type: "developer_unit"
     pattern: "^DV\\d{3}[KCMY]?$"
     examples: ["DV012", "DV315C", "DV621K"]
-  
+
   # Working Table
   - prefix: "WT"
     type: "work_table"
     pattern: "^WT-\\d{3}$"
     examples: ["WT-515", "WT-506"]
-  
+
   # Folding Units
   - prefix: "FU"
     type: "folding_unit"
     pattern: "^FU-\\d{3}$"
     examples: ["FU-515", "FU-506"]
-  
+
   # Trimmer Units
   - prefix: "TU"
     type: "trimmer_unit"
     pattern: "^TU-\\d{3}[A-Za-z]?$"
     examples: ["TU-515", "TU-506", "TU-510e"]
-  
+
   # Finishers
   - prefix: "FS"
     type: "finisher"
     pattern: "^FS-\\d{3}$"
     examples: ["FS-533", "FS-534"]
-  
+
   - prefix: "SD"
     type: "saddle_finisher"
     pattern: "^SD-(506|513|650)$"
@@ -164,136 +164,136 @@ part_prefixes:
     pattern: "^SD-(510|511|512)$"
     examples: ["SD-510", "SD-511", "SD-512"]
     note: "Add-on saddle stitch modules requiring FS base finisher"
-  
+
   # Paper Trays
   - prefix: "PC"
     type: "paper_cabinet"
     pattern: "^PC-\\d{3}$"
     examples: ["PC-410", "PC-414"]
-  
+
   - prefix: "PF"
     type: "paper_cabinet"
     pattern: "^PF-\\d{3}$"
     examples: ["PF-707", "PF-708"]
-  
+
   # Punch Units
   - prefix: "PK"
     type: "punch_unit"
     pattern: "^PK-\\d{3}$"
     examples: ["PK-520", "PK-521"]
-  
+
   # Relay Units
   - prefix: "RU"
     type: "relay_unit"
     pattern: "^RU-\\d{3}[a-z]?$"
     examples: ["RU-702", "RU-703", "RU-518m"]
-  
+
   # Perfect Binders
   - prefix: "PB"
     type: "perfect_binder"
     pattern: "^PB-\\d{3}$"
     examples: ["PB-503"]
-  
+
   # Large Capacity Units
   - prefix: "LU"
     type: "large_capacity_tray"
     pattern: "^LU-\\d{3}$"
     examples: ["LU-301", "LU-302"]
-  
+
   # Bridge / stacker units
   - prefix: "LS"
     type: "stacker"
     pattern: "^LS-\\d{3}$"
     examples: ["LS-507"]
-  
+
   # Booklet Makers
   - prefix: "JS"
     type: "job_separator"
     pattern: "^JS-\\d{3}$"
     examples: ["JS-506", "JS-507"]
-  
+
   # Document feeders
   - prefix: "DF"
     type: "document_feeder"
     pattern: "^DF-\\d{3}$"
     examples: ["DF-633"]
-  
+
   # Output trays / conveyors
   - prefix: "OC"
     type: "output_tray"
     pattern: "^OC-\\d{3}$"
     examples: ["OC-513"]
-  
+
   - prefix: "OT"
     type: "output_tray"
     pattern: "^OT-\\d{3}$"
     examples: ["OT-512", "OT-506"]
-  
+
   # Heater / humidifier units
   - prefix: "HT"
     type: "humidifier_unit"
     pattern: "^HT-\\d{3}$"
     examples: ["HT-506", "HT-509"]
-  
+
   # Desk / cabinet kits
   - prefix: "DK"
     type: "cabinet"
     pattern: "^DK-\\d{3}$"
     examples: ["DK-518"]
-  
+
   - prefix: "BT"
     type: "cabinet"
     pattern: "^BT-[A-Z0-9]+$"
     examples: ["BT-C1e"]
-  
-  # Post Inserter 
+
+  # Post Inserter
   - prefix: "PI"
     type: "post_inserter"
     pattern: "^PI-[A-Z0-9]+$"
     examples: ["PI-PFU", "PI-502"]
-  
+
   # Inline Finisher GBC (General Binding Corporation)
   - prefix: "GBC"
     type: "inline_finisher"
     pattern: "^GBC-[A-Z0-9]+$"
     examples: ["GBC-G3", "GBC-G1"]
-  
+
   - prefix: "HM"
     type: "humidifier_unit"
     pattern: "^HM-\\d{3}$"
     examples: ["HM-103"]
-  
+
   - prefix: "FD"
     type: "finisher"
     pattern: "^FD-\\d{3}$"
     examples: ["FD-503", "FD-504"]
-  
+
   - prefix: "CR"
     type: "creaser_unit"
     pattern: "^CR-\\d{3}$"
     examples: ["CR-101", "CR-102", "CR-103"]
-  
+
   - prefix: "EF"
     type: "finisher_accessory"
     pattern: "^EF-\\d{3}$"
     examples: ["EF-109"]
-  
+
   - prefix: "IQ"
     type: "iq_sensor"
     pattern: "^IQ-\\d{3}$"
     examples: ["IQ-501"]
-  
+
   - prefix: "UK"
     type: "upgrade_kit"
     pattern: "^UK-\\d{3}$"
     examples: ["UK-301"]
-  
+
   # Hard Drives
   - prefix: "HD"
     type: "hard_drive"
     pattern: "^HD-\\d{3}$"
     examples: ["HD-524", "HD-525"]
-  
+
   # Media Sensors
   - prefix: "IM"
     type: "media_sensor"

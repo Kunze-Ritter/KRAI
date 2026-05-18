@@ -63,14 +63,14 @@ increment_exit_code() {
 
 cleanup_test_data() {
     print_status "info" "Cleaning up test data..."
-    
+
     # Remove test document from PostgreSQL
     if [ -n "$TEST_DOCUMENT_ID" ]; then
         docker exec krai-postgres-prod psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c \
             "DELETE FROM krai_core.documents WHERE document_id = '$TEST_DOCUMENT_ID'" >/dev/null 2>&1 || true
         print_status "info" "Removed test document: $TEST_DOCUMENT_ID"
     fi
-    
+
     # Remove test image from MinIO via backend API
     if [ -n "$TEST_IMAGE_ID" ] && [ -n "$BACKEND_TOKEN" ]; then
         curl -sf -X DELETE "$BACKEND_URL/api/v1/images/$TEST_IMAGE_ID?delete_from_storage=true" \
@@ -82,7 +82,7 @@ cleanup_test_data() {
 # Backend → PostgreSQL Tests
 test_backend_postgres() {
     print_status "info" "Testing Backend → PostgreSQL integration..."
-    
+
     # Query test - check backend health
     if response=$(curl -sf "$BACKEND_URL/health" 2>/dev/null); then
         if echo "$response" | grep -q '"database".*"healthy"'; then
@@ -96,7 +96,7 @@ test_backend_postgres() {
         increment_exit_code "critical"
         return
     fi
-    
+
     # Read manufacturers test
     if mfr_count=$(docker exec krai-postgres-prod psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -t -c \
         "SELECT COUNT(*) FROM krai_core.manufacturers" 2>/dev/null | tr -d ' '); then
@@ -110,14 +110,14 @@ test_backend_postgres() {
         print_status "error" "Manufacturers query failed"
         increment_exit_code "critical"
     fi
-    
+
     # Write test - create test document (requires authentication)
     if [ -z "$BACKEND_TOKEN" ]; then
         print_status "warning" "Backend token not set - skipping write tests (set BACKEND_API_TOKEN env var)"
         increment_exit_code "warning"
         return
     fi
-    
+
     TEST_DOCUMENT_ID="test_integration_$(date +%s)"
     test_doc_json=$(cat <<EOF
 {
@@ -130,12 +130,12 @@ test_backend_postgres() {
 }
 EOF
 )
-    
+
     if response=$(curl -sf -X POST "$BACKEND_URL/api/v1/documents" \
         -H "Content-Type: application/json" \
         -H "Authorization: Bearer $BACKEND_TOKEN" \
         -d "$test_doc_json" 2>/dev/null); then
-        
+
         # Verify document created in database
         if doc_exists=$(docker exec krai-postgres-prod psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -t -c \
             "SELECT COUNT(*) FROM krai_core.documents WHERE document_id = '$TEST_DOCUMENT_ID'" 2>/dev/null | tr -d ' '); then
@@ -150,7 +150,7 @@ EOF
         print_status "error" "Document creation failed (check authentication)"
         increment_exit_code "critical"
     fi
-    
+
     # Transaction rollback test - attempt invalid document
     invalid_doc_json='{"filename": "invalid.pdf"}'
     if curl -sf -X POST "$BACKEND_URL/api/v1/documents" \
@@ -161,7 +161,7 @@ EOF
         increment_exit_code "warning"
     else
         print_status "success" "Transaction rollback test passed (invalid document rejected)"
-        
+
         # Verify no stray rows inserted
         if stray_count=$(docker exec krai-postgres-prod psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -t -c \
             "SELECT COUNT(*) FROM krai_core.documents WHERE filename = 'invalid.pdf'" 2>/dev/null | tr -d ' '); then
@@ -178,28 +178,28 @@ EOF
 # Backend → MinIO Tests
 test_backend_minio() {
     print_status "info" "Testing Backend → MinIO integration..."
-    
+
     if [ -z "$BACKEND_TOKEN" ]; then
         print_status "warning" "Backend token not set - skipping MinIO tests (set BACKEND_API_TOKEN env var)"
         increment_exit_code "warning"
         return
     fi
-    
+
     # Upload test - create temporary test file
     test_file="/tmp/integration_test_$(date +%s).png"
     echo "test image content $(date +%s)" > "$test_file"
-    
+
     if response=$(curl -sf -X POST "$BACKEND_URL/api/v1/images/upload" \
         -H "Authorization: Bearer $BACKEND_TOKEN" \
         -F "file=@$test_file" 2>/dev/null); then
-        
+
         if echo "$response" | grep -q "image_id"; then
             TEST_IMAGE_ID=$(echo "$response" | grep -o '"image_id":"[^"]*"' | cut -d'"' -f4)
             storage_path=$(echo "$response" | grep -o '"storage_path":"[^"]*"' | cut -d'"' -f4)
             public_url=$(echo "$response" | grep -o '"public_url":"[^"]*"' | cut -d'"' -f4)
-            
+
             print_status "success" "File upload successful: image_id=$TEST_IMAGE_ID, storage_path=$storage_path"
-            
+
             # Download test - verify file exists via public URL
             if [ -n "$public_url" ]; then
                 if curl -sf -I "$public_url" >/dev/null 2>&1; then
@@ -220,10 +220,10 @@ test_backend_minio() {
         print_status "error" "File upload failed (check authentication and endpoint)"
         increment_exit_code "critical"
     fi
-    
+
     # Cleanup temporary file
     rm -f "$test_file"
-    
+
     # Delete test
     if [ -n "$TEST_IMAGE_ID" ]; then
         if curl -sf -X DELETE "$BACKEND_URL/api/v1/images/$TEST_IMAGE_ID?delete_from_storage=true" \
@@ -240,7 +240,7 @@ test_backend_minio() {
 # Backend → Ollama Tests
 test_backend_ollama() {
     print_status "info" "Testing Backend → Ollama integration..."
-    
+
     # Check AI service health
     if response=$(curl -sf "$BACKEND_URL/health" 2>/dev/null); then
         if echo "$response" | grep -q '"ai".*"healthy"'; then
@@ -250,14 +250,14 @@ test_backend_ollama() {
             increment_exit_code "warning"
         fi
     fi
-    
+
     # Embedding generation test
     embed_json='{"model":"nomic-embed-text","prompt":"integration test"}'
-    
+
     if response=$(curl -sf -X POST "$OLLAMA_URL/api/embeddings" \
         -H "Content-Type: application/json" \
         -d "$embed_json" 2>/dev/null); then
-        
+
         # Count embedding dimensions (rough check)
         embed_count=$(echo "$response" | grep -o '\-\?[0-9]\+\.[0-9]\+' | wc -l)
         if [ "$embed_count" -ge 700 ]; then
@@ -270,7 +270,7 @@ test_backend_ollama() {
         print_status "error" "Embedding generation failed"
         increment_exit_code "critical"
     fi
-    
+
     # Model availability check
     if response=$(curl -sf "$OLLAMA_URL/api/tags" 2>/dev/null); then
         if echo "$response" | grep -q "nomic-embed-text"; then
@@ -288,17 +288,17 @@ test_backend_ollama() {
 # Laravel → Backend Tests
 test_laravel_backend() {
     print_status "info" "Testing Laravel → Backend integration..."
-    
+
     # JWT authentication test - mint or retrieve token
     print_status "info" "Attempting to retrieve JWT token from Laravel..."
-    
+
     # Try to get JWT token via artisan command (adjust command as needed)
     if jwt_output=$(docker exec krai-laravel-admin php artisan tinker --execute="echo (new \App\Services\JwtService())->generateToken(['user_id' => 1, 'role' => 'admin']);" 2>/dev/null); then
         LARAVEL_JWT_TOKEN=$(echo "$jwt_output" | tail -1 | tr -d '"' | tr -d "'" | xargs)
-        
+
         if [ -n "$LARAVEL_JWT_TOKEN" ] && [ "$LARAVEL_JWT_TOKEN" != "null" ]; then
             print_status "success" "JWT token retrieved from Laravel"
-            
+
             # Test valid JWT token
             if response=$(curl -sf "$BACKEND_URL/api/v1/pipeline/errors?page=1&page_size=10" \
                 -H "Authorization: Bearer $LARAVEL_JWT_TOKEN" 2>/dev/null); then
@@ -312,7 +312,7 @@ test_laravel_backend() {
                 print_status "error" "Valid JWT token rejected"
                 increment_exit_code "critical"
             fi
-            
+
             # Test invalid JWT token
             invalid_token="invalid.jwt.token"
             if curl -sf "$BACKEND_URL/api/v1/pipeline/errors?page=1&page_size=10" \
@@ -330,7 +330,7 @@ test_laravel_backend() {
         print_status "warning" "JWT service not available - testing without authentication"
         increment_exit_code "warning"
     fi
-    
+
     # REST API call test with valid token (if available)
     if [ -n "$LARAVEL_JWT_TOKEN" ]; then
         if response=$(docker exec krai-laravel-admin curl -sf "$BACKEND_URL/api/v1/pipeline/errors?page=1&page_size=10" \
@@ -364,7 +364,7 @@ test_laravel_backend() {
 # Laravel → PostgreSQL Tests
 test_laravel_postgres() {
     print_status "info" "Testing Laravel → PostgreSQL integration..."
-    
+
     # Direct query test - Manufacturer count
     if mfr_count=$(docker exec krai-laravel-admin php artisan tinker --execute="echo App\\Models\\Manufacturer::count();" 2>/dev/null | tail -1 | tr -d ' '); then
         if [ "$mfr_count" -ge 14 ]; then
@@ -377,7 +377,7 @@ test_laravel_postgres() {
         print_status "error" "Laravel Eloquent query failed"
         increment_exit_code "critical"
     fi
-    
+
     # Product model test
     if docker exec krai-laravel-admin php artisan tinker --execute="echo App\\Models\\Product::count();" >/dev/null 2>&1; then
         print_status "success" "Product model test passed"
@@ -385,7 +385,7 @@ test_laravel_postgres() {
         print_status "warning" "Product model test failed"
         increment_exit_code "warning"
     fi
-    
+
     # User model test
     if user_count=$(docker exec krai-laravel-admin php artisan tinker --execute="echo App\\Models\\User::count();" 2>/dev/null | tail -1 | tr -d ' '); then
         if [ "$user_count" -ge 1 ]; then
@@ -398,7 +398,7 @@ test_laravel_postgres() {
         print_status "warning" "User model test failed"
         increment_exit_code "warning"
     fi
-    
+
     # PipelineError model test
     if docker exec krai-laravel-admin php artisan tinker --execute="echo App\\Models\\PipelineError::count();" >/dev/null 2>&1; then
         print_status "success" "PipelineError model test passed"
@@ -414,19 +414,19 @@ generate_report() {
     echo -e "${CYAN}╔═══════════════════════════════════════════════════════════╗${NC}"
     echo -e "${CYAN}║  Integration Test Results                                 ║${NC}"
     echo -e "${CYAN}╠═══════════════════════════════════════════════════════════╣${NC}"
-    
+
     total_tests=$((TESTS_PASSED + TESTS_FAILED))
-    
+
     if [ $TESTS_FAILED -eq 0 ]; then
         echo -e "${CYAN}║  ${GREEN}Total:                       ✅ $TESTS_PASSED/$total_tests passed${CYAN}             ║${NC}"
     else
         echo -e "${CYAN}║  ${RED}Total:                       ❌ $TESTS_PASSED/$total_tests passed${CYAN}             ║${NC}"
         echo -e "${CYAN}║  ${RED}Failed:                      $TESTS_FAILED tests${CYAN}                        ║${NC}"
     fi
-    
+
     echo -e "${CYAN}╚═══════════════════════════════════════════════════════════╝${NC}"
     echo ""
-    
+
     if [ $EXIT_CODE -eq 0 ]; then
         print_status "success" "All integration tests passed successfully!"
     elif [ $EXIT_CODE -eq 1 ]; then
@@ -434,7 +434,7 @@ generate_report() {
     else
         print_status "error" "Critical integration test failures detected"
     fi
-    
+
     echo ""
     echo "Exit code: $EXIT_CODE"
 }
@@ -445,7 +445,7 @@ main() {
     echo -e "${GREEN}║  KRAI Docker Integration Tests                            ║${NC}"
     echo -e "${GREEN}╚═══════════════════════════════════════════════════════════╝${NC}"
     echo ""
-    
+
     test_backend_postgres
     echo ""
     test_backend_minio
@@ -455,7 +455,7 @@ main() {
     test_laravel_backend
     echo ""
     test_laravel_postgres
-    
+
     generate_report
 }
 

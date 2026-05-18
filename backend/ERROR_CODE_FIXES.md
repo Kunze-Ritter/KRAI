@@ -1,7 +1,7 @@
 # Error Code Extraction - Fixes & Issues
 
-**Date:** 2025-10-06  
-**Version:** V2.1  
+**Date:** 2025-10-06
+**Version:** V2.1
 **Status:** 🔧 Fixed
 
 ---
@@ -153,7 +153,7 @@ WHERE manufacturer_id IS NULL
    OR error_code IN ('49', '34', '50', '51', '52');
 
 -- Prüfe verbleibende
-SELECT error_code, COUNT(*) 
+SELECT error_code, COUNT(*)
 FROM krai_intelligence.error_codes
 GROUP BY error_code
 HAVING COUNT(*) > 10
@@ -179,7 +179,7 @@ python processors/process_production.py --reprocess
 
 ### **Test 1: Manufacturer ID gesetzt**
 ```sql
-SELECT 
+SELECT
     COUNT(*) as total,
     COUNT(manufacturer_id) as with_manufacturer,
     COUNT(*) FILTER (WHERE manufacturer_id IS NULL) as without_manufacturer
@@ -202,7 +202,7 @@ ORDER BY count DESC;
 
 ### **Test 3: Confidence Scores**
 ```sql
-SELECT 
+SELECT
     AVG(confidence_score) as avg_confidence,
     MIN(confidence_score) as min_confidence,
     MAX(confidence_score) as max_confidence

@@ -10,7 +10,7 @@ UTAX ist ein **Kyocera-Rebrand** (TA Triumph-Adler). Die Pattern-Erkennung unter
 
 #### P-Serie MFP mit i-Suffix (Neuere Modelle)
 - **Pattern**: `P-\d{4}I MFP`
-- **Beispiele**: 
+- **Beispiele**:
   - P-4532i MFP, P-4539i MFP
   - P-5539i MFP, P-6039i MFP
 - **Beschreibung**: Multifunction Printers mit integrierter Technologie
@@ -18,13 +18,13 @@ UTAX ist ein **Kyocera-Rebrand** (TA Triumph-Adler). Die Pattern-Erkennung unter
 
 #### P-Serie MFP ohne i-Suffix
 - **Pattern**: `P-\d{4} MFP`
-- **Beispiele**: 
+- **Beispiele**:
   - P-4532 MFP, P-4539 MFP
 - **Beschreibung**: Standard Multifunction Printers
 
 #### P-Serie Drucker (Single Function)
 - **Pattern**: `P-\d{4}[DN|suffix]`
-- **Beispiele**: 
+- **Beispiele**:
   - P-4534DN, P-5034DN
   - P-5534DN, P-6034DN
 - **Beschreibung**: Single Function Drucker
@@ -36,7 +36,7 @@ UTAX ist ein **Kyocera-Rebrand** (TA Triumph-Adler). Die Pattern-Erkennung unter
 
 #### LP-Serie
 - **Pattern**: `LP \d{4}[suffix]`
-- **Beispiele**: 
+- **Beispiele**:
   - LP 3130DN, LP 4155DN
   - LP 3245, LP 4345
 - **Beschreibung**: A3 Monochrom-Laserdrucker
@@ -48,7 +48,7 @@ UTAX ist ein **Kyocera-Rebrand** (TA Triumph-Adler). Die Pattern-Erkennung unter
 
 #### CDC Serie - Color MFP
 - **Pattern**: `CDC \d{4}`
-- **Beispiele**: 
+- **Beispiele**:
   - CDC 1720, CDC 2240
 - **Beschreibung**: Color Multifunction Printers
 
@@ -68,7 +68,7 @@ UTAX ist ein **Kyocera-Rebrand** (TA Triumph-Adler). Die Pattern-Erkennung unter
 
 #### xxxci Serie
 - **Pattern**: `\d{4}ci`
-- **Beispiele**: 
+- **Beispiele**:
   - 5006ci, 4006ci
   - 3206ci, 2506ci
 - **Beschreibung**: Kyocera TASKalfa Rebrands

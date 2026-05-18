@@ -1,8 +1,8 @@
 """Pydantic models for error code management APIs."""
+
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, PositiveInt, model_validator, validator
 
@@ -15,7 +15,6 @@ from models.validators import (
     validate_no_sql_injection,
     validate_uuid,
 )
-
 
 ALLOWED_SEARCH_FIELDS = {"error_code", "error_description", "solution_text"}
 
@@ -42,51 +41,33 @@ class ExtractionMethod(str, Enum):
 class ErrorCodeBase(BaseModel):
     """Base shared attributes for error codes."""
 
-    chunk_id: Optional[str] = Field(None, description="Identifier of the originating chunk.")
-    document_id: Optional[str] = Field(
-        None, description="Identifier of the document associated with the error code."
-    )
-    manufacturer_id: Optional[str] = Field(
-        None, description="Identifier of the manufacturer related to the error."
-    )
-    error_code: Optional[str] = Field(
+    chunk_id: str | None = Field(None, description="Identifier of the originating chunk.")
+    document_id: str | None = Field(None, description="Identifier of the document associated with the error code.")
+    manufacturer_id: str | None = Field(None, description="Identifier of the manufacturer related to the error.")
+    error_code: str | None = Field(
         None,
         max_length=20,
         description="Short error code identifier (e.g., E23).",
     )
-    error_description: Optional[str] = Field(
-        None, description="Detailed description of the error condition."
-    )
-    solution_text: Optional[str] = Field(
-        None, description="Suggested remediation steps for resolving the error."
-    )
-    page_number: Optional[int] = Field(
-        None, ge=0, description="Document page number where the error was found."
-    )
-    confidence_score: Optional[float] = Field(
+    error_description: str | None = Field(None, description="Detailed description of the error condition.")
+    solution_text: str | None = Field(None, description="Suggested remediation steps for resolving the error.")
+    page_number: int | None = Field(None, ge=0, description="Document page number where the error was found.")
+    confidence_score: float | None = Field(
         None,
         ge=0.0,
         le=1.0,
         description="Confidence score for automatically extracted error codes (0-1).",
     )
-    extraction_method: Optional[ExtractionMethod] = Field(
-        None, description="Source method used to derive the error code."
-    )
-    requires_technician: Optional[bool] = Field(
-        None, description="Whether technician intervention is required."
-    )
-    requires_parts: Optional[bool] = Field(
-        None, description="Whether hardware parts are required to resolve the error."
-    )
-    estimated_fix_time_minutes: Optional[int] = Field(
+    extraction_method: ExtractionMethod | None = Field(None, description="Source method used to derive the error code.")
+    requires_technician: bool | None = Field(None, description="Whether technician intervention is required.")
+    requires_parts: bool | None = Field(None, description="Whether hardware parts are required to resolve the error.")
+    estimated_fix_time_minutes: int | None = Field(
         None,
         ge=0,
         description="Estimated time to resolve the error in minutes.",
     )
-    severity_level: Optional[SeverityLevel] = Field(
-        None, description="Categorised severity of the error."
-    )
-    ai_notes: Optional[str] = Field(
+    severity_level: SeverityLevel | None = Field(None, description="Categorised severity of the error.")
+    ai_notes: str | None = Field(
         None,
         description="Supplementary notes produced by AI assisted extraction or analysis.",
     )
@@ -94,20 +75,20 @@ class ErrorCodeBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     @validator("chunk_id", "document_id", "manufacturer_id")
-    def validate_related_ids(cls, value: Optional[str]) -> Optional[str]:
+    def validate_related_ids(cls, value: str | None) -> str | None:
         if value is None:
             return value
         return validate_uuid(value)
 
     @validator("error_code", pre=True)
-    def sanitize_error_code(cls, value: Optional[str]) -> Optional[str]:
+    def sanitize_error_code(cls, value: str | None) -> str | None:
         if value is None:
             return value
         sanitized = sanitize_string(value)
         return validate_error_code(sanitized)
 
     @validator("error_description", "solution_text", "ai_notes", pre=True)
-    def sanitize_text_fields(cls, value: Optional[str]) -> Optional[str]:
+    def sanitize_text_fields(cls, value: str | None) -> str | None:
         if value is None:
             return value
         sanitized = sanitize_string(value)
@@ -122,13 +103,9 @@ class ErrorCodeCreateRequest(ErrorCodeBase):
     error_description: str = Field(..., min_length=1)
 
     @model_validator(mode="after")
-    def validate_relationships(cls, values: "ErrorCodeCreateRequest") -> "ErrorCodeCreateRequest":
-        if not any(
-            [values.chunk_id, values.document_id, values.manufacturer_id]
-        ):
-            raise ValueError(
-                "At least one of chunk_id, document_id, or manufacturer_id must be provided."
-            )
+    def validate_relationships(cls, values: ErrorCodeCreateRequest) -> ErrorCodeCreateRequest:
+        if not any([values.chunk_id, values.document_id, values.manufacturer_id]):
+            raise ValueError("At least one of chunk_id, document_id, or manufacturer_id must be provided.")
         if not values.error_code.strip():
             raise ValueError("error_code must not be empty.")
         return values
@@ -153,17 +130,13 @@ class ErrorCodeCreateRequest(ErrorCodeBase):
 class ErrorCodeUpdateRequest(ErrorCodeBase):
     """Payload for updating an existing error code."""
 
-    error_code: Optional[str] = Field(None, max_length=20)
+    error_code: str | None = Field(None, max_length=20)
 
     @model_validator(mode="after")
-    def validate_optional_fields(cls, values: "ErrorCodeUpdateRequest") -> "ErrorCodeUpdateRequest":
+    def validate_optional_fields(cls, values: ErrorCodeUpdateRequest) -> ErrorCodeUpdateRequest:
         if values.error_code is not None and not values.error_code.strip():
             raise ValueError("error_code must not be empty if provided.")
-        if (
-            values.chunk_id is None
-            and values.document_id is None
-            and values.manufacturer_id is None
-        ):
+        if values.chunk_id is None and values.document_id is None and values.manufacturer_id is None:
             # Updates may intentionally remove relations, so only enforce when all fields missing
             pass
         return values
@@ -183,18 +156,14 @@ class ErrorCodeUpdateRequest(ErrorCodeBase):
 class ErrorCodeFilterParams(BaseModel):
     """Query parameters for filtering error codes."""
 
-    manufacturer_id: Optional[str] = Field(None, description="Filter by manufacturer ID.")
-    document_id: Optional[str] = Field(None, description="Filter by document ID.")
-    chunk_id: Optional[str] = Field(None, description="Filter by chunk ID.")
-    error_code: Optional[str] = Field(None, description="Filter by exact error code identifier.")
-    severity_level: Optional[SeverityLevel] = Field(
-        None, description="Filter by severity classification."
-    )
-    requires_technician: Optional[bool] = Field(
-        None, description="Filter by technician requirement."
-    )
-    requires_parts: Optional[bool] = Field(None, description="Filter by parts requirement.")
-    search: Optional[str] = Field(
+    manufacturer_id: str | None = Field(None, description="Filter by manufacturer ID.")
+    document_id: str | None = Field(None, description="Filter by document ID.")
+    chunk_id: str | None = Field(None, description="Filter by chunk ID.")
+    error_code: str | None = Field(None, description="Filter by exact error code identifier.")
+    severity_level: SeverityLevel | None = Field(None, description="Filter by severity classification.")
+    requires_technician: bool | None = Field(None, description="Filter by technician requirement.")
+    requires_parts: bool | None = Field(None, description="Filter by parts requirement.")
+    search: str | None = Field(
         None,
         description="Full-text search across error_code, error_description, and solution_text.",
     )
@@ -211,20 +180,20 @@ class ErrorCodeFilterParams(BaseModel):
     )
 
     @validator("manufacturer_id", "document_id", "chunk_id")
-    def validate_filter_ids(cls, value: Optional[str]) -> Optional[str]:
+    def validate_filter_ids(cls, value: str | None) -> str | None:
         if value is None:
             return value
         return validate_uuid(value)
 
     @validator("error_code", pre=True)
-    def sanitize_error_code_filter(cls, value: Optional[str]) -> Optional[str]:
+    def sanitize_error_code_filter(cls, value: str | None) -> str | None:
         if value is None:
             return value
         sanitized = sanitize_string(value)
         return validate_error_code(sanitized)
 
     @validator("search")
-    def validate_search(cls, value: Optional[str]) -> Optional[str]:
+    def validate_search(cls, value: str | None) -> str | None:
         if value is None:
             return value
         if len(value) > 200:
@@ -240,9 +209,7 @@ class ErrorCodeSortParams(BaseModel):
         "created_at",
         description="Column to sort by, e.g. created_at, severity_level, error_code.",
     )
-    sort_order: SortOrder = Field(
-        SortOrder.DESC, description="Sort direction: asc or desc."
-    )
+    sort_order: SortOrder = Field(SortOrder.DESC, description="Sort direction: asc or desc.")
 
 
 class ErrorCodeResponse(ErrorCodeBase):
@@ -251,12 +218,8 @@ class ErrorCodeResponse(ErrorCodeBase):
     id: str = Field(..., description="Unique error code identifier.")
     error_code: str = Field(..., max_length=20)
     error_description: str = Field(...)
-    created_at: Optional[str] = Field(
-        None, description="Timestamp when the error code was created."
-    )
-    updated_at: Optional[str] = Field(
-        None, description="Timestamp when the error code was last updated."
-    )
+    created_at: str | None = Field(None, description="Timestamp when the error code was created.")
+    updated_at: str | None = Field(None, description="Timestamp when the error code was last updated.")
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -278,11 +241,9 @@ class ErrorCodeResponse(ErrorCodeBase):
 class ChunkExcerpt(BaseModel):
     """Represents related chunk context."""
 
-    text_chunk: Optional[str] = Field(
-        None, description="Extracted text chunk associated with the error code."
-    )
-    page_start: Optional[int] = Field(None, ge=0, description="Starting page number.")
-    page_end: Optional[int] = Field(None, ge=0, description="Ending page number.")
+    text_chunk: str | None = Field(None, description="Extracted text chunk associated with the error code.")
+    page_start: int | None = Field(None, ge=0, description="Starting page number.")
+    page_end: int | None = Field(None, ge=0, description="Ending page number.")
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -290,15 +251,9 @@ class ChunkExcerpt(BaseModel):
 class ErrorCodeWithRelationsResponse(ErrorCodeResponse):
     """Error code response enriched with related resources."""
 
-    document: Optional[DocumentResponse] = Field(
-        None, description="Associated document details if available."
-    )
-    manufacturer: Optional[ManufacturerResponse] = Field(
-        None, description="Associated manufacturer details if available."
-    )
-    chunk: Optional[ChunkExcerpt] = Field(
-        None, description="Related chunk snippet providing additional context."
-    )
+    document: DocumentResponse | None = Field(None, description="Associated document details if available.")
+    manufacturer: ManufacturerResponse | None = Field(None, description="Associated manufacturer details if available.")
+    chunk: ChunkExcerpt | None = Field(None, description="Related chunk snippet providing additional context.")
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -322,13 +277,11 @@ class ErrorCodeWithRelationsResponse(ErrorCodeResponse):
 class ErrorCodeListResponse(BaseModel):
     """Paginated error code listing."""
 
-    error_codes: List[ErrorCodeResponse] = Field(..., description="List of error codes.")
+    error_codes: list[ErrorCodeResponse] = Field(..., description="List of error codes.")
     total: int = Field(..., ge=0, description="Total number of matching records.")
     page: int = Field(..., ge=1, description="Current page number.")
     page_size: int = Field(..., ge=1, description="Number of records per page.")
-    total_pages: int = Field(
-        ..., ge=1, description="Total number of pages based on the current page size."
-    )
+    total_pages: int = Field(..., ge=1, description="Total number of pages based on the current page size.")
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -353,17 +306,13 @@ class ErrorCodeSearchRequest(BaseModel):
     """Payload for multi-source error code search."""
 
     query: str = Field(..., min_length=1, description="Search query string.")
-    search_in: List[str] = Field(
+    search_in: list[str] = Field(
         default_factory=lambda: ["error_code", "error_description", "solution_text"],
         description="Fields to search across.",
     )
-    manufacturer_id: Optional[str] = Field(None, description="Filter by manufacturer ID.")
-    severity_level: Optional[SeverityLevel] = Field(
-        None, description="Filter search by severity level."
-    )
-    limit: PositiveInt = Field(
-        20, description="Maximum number of search results to return (default 20)."
-    )
+    manufacturer_id: str | None = Field(None, description="Filter by manufacturer ID.")
+    severity_level: SeverityLevel | None = Field(None, description="Filter search by severity level.")
+    limit: PositiveInt = Field(20, description="Maximum number of search results to return (default 20).")
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -377,7 +326,7 @@ class ErrorCodeSearchRequest(BaseModel):
     )
 
     @validator("manufacturer_id")
-    def validate_manufacturer(cls, value: Optional[str]) -> Optional[str]:
+    def validate_manufacturer(cls, value: str | None) -> str | None:
         if value is None:
             return value
         return validate_uuid(value)
@@ -390,7 +339,7 @@ class ErrorCodeSearchRequest(BaseModel):
         return validate_no_sql_injection(sanitized)
 
     @validator("search_in")
-    def validate_search_in(cls, value: List[str]) -> List[str]:
+    def validate_search_in(cls, value: list[str]) -> list[str]:
         allowed = ensure_allowed_fields(value, ALLOWED_SEARCH_FIELDS, "search_in")
         if not allowed:
             raise ValueError("search_in must include at least one field")
@@ -400,14 +349,12 @@ class ErrorCodeSearchRequest(BaseModel):
 class ErrorCodeSearchResponse(BaseModel):
     """Response structure for multi-source search."""
 
-    results: List[ErrorCodeWithRelationsResponse] = Field(
+    results: list[ErrorCodeWithRelationsResponse] = Field(
         default_factory=list, description="Search results with related entities."
     )
     total: int = Field(..., ge=0, description="Total number of matches returned.")
     query: str = Field(..., description="Echoed search query string.")
-    search_duration_ms: int = Field(
-        ..., ge=0, description="Duration of the search execution in milliseconds."
-    )
+    search_duration_ms: int = Field(..., ge=0, description="Duration of the search execution in milliseconds.")
 
     model_config = ConfigDict(
         json_schema_extra={

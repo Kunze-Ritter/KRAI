@@ -1,6 +1,8 @@
 """Test OpenAI-compatible endpoint"""
-import requests
+
 import json
+
+import requests
 
 API_URL = "http://localhost:8000"
 
@@ -17,7 +19,7 @@ try:
     if response.status_code == 200:
         data = response.json()
         print(f"✅ Models available: {len(data.get('data', []))}")
-        for model in data.get('data', []):
+        for model in data.get("data", []):
             print(f"   - {model['id']}")
     else:
         print(f"❌ Error {response.status_code}")
@@ -29,34 +31,28 @@ except Exception as e:
 print("\n📝 Test 2: Chat Completion (Non-Streaming)")
 print("-" * 80)
 
-test_messages = [
-    {"role": "user", "content": "Konica Minolta C3320i Fehler C9402"}
-]
+test_messages = [{"role": "user", "content": "Konica Minolta C3320i Fehler C9402"}]
 
 try:
     response = requests.post(
         f"{API_URL}/v1/chat/completions",
-        json={
-            "model": "krai-assistant",
-            "messages": test_messages,
-            "stream": False
-        },
-        timeout=30
+        json={"model": "krai-assistant", "messages": test_messages, "stream": False},
+        timeout=30,
     )
-    
+
     if response.status_code == 200:
         data = response.json()
         print(f"✅ Response ID: {data.get('id')}")
         print(f"✅ Model: {data.get('model')}")
-        
-        if data.get('choices'):
-            message = data['choices'][0]['message']
-            print(f"\n📌 Assistant Response:")
+
+        if data.get("choices"):
+            message = data["choices"][0]["message"]
+            print("\n📌 Assistant Response:")
             print("-" * 40)
-            print(message['content'])
+            print(message["content"])
             print("-" * 40)
-        
-        usage = data.get('usage', {})
+
+        usage = data.get("usage", {})
         print(f"\n📊 Tokens: {usage.get('total_tokens', 0)}")
     else:
         print(f"❌ Error {response.status_code}")
@@ -74,33 +70,33 @@ try:
         json={
             "model": "krai-assistant",
             "messages": [{"role": "user", "content": "HP Fehler 10.00.33"}],
-            "stream": True
+            "stream": True,
         },
         stream=True,
-        timeout=30
+        timeout=30,
     )
-    
+
     if response.status_code == 200:
         print("✅ Streaming response:")
         print("-" * 40)
-        
+
         for line in response.iter_lines():
             if line:
-                line_str = line.decode('utf-8')
-                if line_str.startswith('data: '):
+                line_str = line.decode("utf-8")
+                if line_str.startswith("data: "):
                     data_str = line_str[6:]  # Remove 'data: ' prefix
-                    if data_str == '[DONE]':
+                    if data_str == "[DONE]":
                         break
                     try:
                         chunk = json.loads(data_str)
-                        if chunk.get('choices'):
-                            delta = chunk['choices'][0].get('delta', {})
-                            content = delta.get('content', '')
+                        if chunk.get("choices"):
+                            delta = chunk["choices"][0].get("delta", {})
+                            content = delta.get("content", "")
                             if content:
-                                print(content, end='', flush=True)
+                                print(content, end="", flush=True)
                     except json.JSONDecodeError:
                         pass
-        
+
         print("\n" + "-" * 40)
     else:
         print(f"❌ Error {response.status_code}")

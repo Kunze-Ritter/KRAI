@@ -7,14 +7,13 @@ SearchAnalytics persistence layer so no real database is required.
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 from uuid import uuid4
 
 import pytest
 
 from backend.core.base_processor import ProcessingContext
 from backend.processors.search_processor import SearchProcessor
-
 
 pytestmark = [pytest.mark.processor, pytest.mark.search]
 
@@ -64,7 +63,7 @@ class TestSearchProcessorE2E:
         processor = SearchProcessor(database_adapter=mock_database_adapter)
 
         # Stub SearchAnalytics.log_document_indexed to avoid asyncio.run issues
-        analytics_calls: Dict[str, Any] = {}
+        analytics_calls: dict[str, Any] = {}
 
         def fake_log_document_indexed(
             *,
@@ -103,4 +102,3 @@ class TestSearchProcessorE2E:
         assert analytics_calls["chunks_count"] == data["chunks_indexed"]
         assert analytics_calls["embeddings_count"] == data["embeddings_indexed"]
         assert analytics_calls["processing_time_seconds"] >= 0.0
-

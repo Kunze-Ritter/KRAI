@@ -55,13 +55,13 @@ if (-not $opensslPath) {
 if (-not $opensslPath) {
     Write-Host "[INFO] OpenSSL nicht gefunden. Nutze Docker-basierte Lösung..." -ForegroundColor Yellow
     Write-Host ""
-    
+
     # Erstelle Zertifikat mit Docker
     Write-Host "[CREATE] Erstelle Zertifikat mit Docker..." -ForegroundColor Yellow
-    
+
     $certPath = Join-Path $sslDir "localhost.crt"
     $keyPath = Join-Path $sslDir "localhost.key"
-    
+
     # Erstelle OpenSSL-Konfigurationsdatei
     $opensslConf = @"
 [req]
@@ -90,10 +90,10 @@ DNS.2 = *.localhost
 IP.1 = 127.0.0.1
 IP.2 = ::1
 "@
-    
+
     $confPath = Join-Path $sslDir "openssl.cnf"
     $opensslConf | Out-File -FilePath $confPath -Encoding ASCII
-    
+
     # Erstelle Zertifikat mit Docker
     docker run --rm -v "${sslDir}:/ssl" alpine/openssl req `
         -x509 `
@@ -103,20 +103,20 @@ IP.2 = ::1
         -keyout /ssl/localhost.key `
         -out /ssl/localhost.crt `
         -config /ssl/openssl.cnf
-    
+
     # Lösche Konfigurationsdatei
     Remove-Item $confPath -Force
-    
+
 } else {
     Write-Host "[OK] OpenSSL gefunden: $opensslPath" -ForegroundColor Green
     Write-Host ""
-    
+
     # Erstelle Zertifikat mit lokalem OpenSSL
     Write-Host "[CREATE] Erstelle Zertifikat..." -ForegroundColor Yellow
-    
+
     $certPath = Join-Path $sslDir "localhost.crt"
     $keyPath = Join-Path $sslDir "localhost.key"
-    
+
     # Erstelle OpenSSL-Konfigurationsdatei
     $opensslConf = @"
 [req]
@@ -145,16 +145,16 @@ DNS.2 = *.localhost
 IP.1 = 127.0.0.1
 IP.2 = ::1
 "@
-    
+
     $confPath = Join-Path $sslDir "openssl.cnf"
     $opensslConf | Out-File -FilePath $confPath -Encoding ASCII
-    
+
     # Generiere Zertifikat
     & $opensslPath req -x509 -nodes -days 365 -newkey rsa:2048 `
         -keyout $keyPath `
         -out $certPath `
         -config $confPath
-    
+
     # Lösche Konfigurationsdatei
     Remove-Item $confPath -Force
 }

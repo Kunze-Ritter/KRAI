@@ -27,13 +27,13 @@ tests/auth/
    ```
 
 2. **Set up test database:**
-   
+
    Option A: SQLite (Quick & Easy)
    ```bash
    # Add to .env.test
    TEST_DATABASE_URL=sqlite:///./test_auth.db
    ```
-   
+
    Option B: PostgreSQL (Recommended)
    ```bash
    # Add to .env.test
@@ -167,10 +167,10 @@ def test_my_auth_feature(auth_service):
         "username": "testuser",
         "password": "TestPass123!"
     }
-    
+
     # Act
     result = auth_service.create_user(user_data)
-    
+
     # Assert
     assert result["email"] == user_data["email"]
     assert "id" in result
@@ -183,10 +183,10 @@ def test_my_endpoint(test_app, user_access_token):
     """Test endpoint description."""
     # Arrange
     headers = {"Authorization": f"Bearer {user_access_token}"}
-    
+
     # Act
     response = test_app.get("/api/v1/auth/me", headers=headers)
-    
+
     # Assert
     assert response.status_code == 200
     assert "email" in response.json()

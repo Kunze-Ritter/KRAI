@@ -9,8 +9,8 @@
 ## 🔄 Ollama Vision Model Alternativen
 
 ### **1. BakLLaVA** (Empfohlen als Alternative)
-**Modell**: `bakllava:7b`  
-**VRAM**: ~4-5 GB  
+**Modell**: `bakllava:7b`
+**VRAM**: ~4-5 GB
 **Vorteile**:
 - ✅ Basiert auf Mistral (statt Llama)
 - ✅ Oft stabiler als LLaVA
@@ -30,8 +30,8 @@ OLLAMA_MODEL_VISION=bakllava:7b
 ---
 
 ### **2. LLaVA-Phi** (Kleiner & Schneller)
-**Modell**: `llava-phi3:latest`  
-**VRAM**: ~2-3 GB  
+**Modell**: `llava-phi3:latest`
+**VRAM**: ~2-3 GB
 **Vorteile**:
 - ✅ Viel kleiner (3.8B Parameter)
 - ✅ Schneller
@@ -55,8 +55,8 @@ OLLAMA_MODEL_VISION=llava-phi3:latest
 ---
 
 ### **3. Moondream** (Sehr klein)
-**Modell**: `moondream:latest`  
-**VRAM**: ~1-2 GB  
+**Modell**: `moondream:latest`
+**VRAM**: ~1-2 GB
 **Vorteile**:
 - ✅ Sehr klein (1.6B Parameter)
 - ✅ Extrem schnell
@@ -81,8 +81,8 @@ OLLAMA_MODEL_VISION=moondream:latest
 ---
 
 ### **4. MiniCPM-V** (Neu & Effizient)
-**Modell**: `minicpm-v:latest`  
-**VRAM**: ~4 GB  
+**Modell**: `minicpm-v:latest`
+**VRAM**: ~4 GB
 **Vorteile**:
 - ✅ Effizientes 2.8B Modell
 - ✅ Gute Performance/Size Ratio

@@ -1,9 +1,6 @@
-from typing import List
-
 import pytest
 
 from backend.processors.chunk_preprocessor import ChunkPreprocessor
-
 
 pytestmark = [pytest.mark.unit, pytest.mark.chunk_prep]
 
@@ -24,7 +21,7 @@ class TestChunkCleaning:
         )
 
         cleaned = pre._clean_chunk(content)  # type: ignore[attr-defined]
-        lines: List[str] = cleaned.split("\n")
+        lines: list[str] = cleaned.split("\n")
 
         assert all("Page 1 of 10" not in line for line in lines)
         assert all("Copyright" not in line for line in lines)

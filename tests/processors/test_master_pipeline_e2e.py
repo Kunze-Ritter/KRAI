@@ -9,14 +9,13 @@ hitting real external systems. They rely on the mock fixtures from
 - Smart stage selection in `process_document_smart_stages`
 """
 
-from types import SimpleNamespace
 from pathlib import Path
-from typing import Any, Dict, List
+from types import SimpleNamespace
+from typing import Any
 
 import pytest
 
 from backend.pipeline.master_pipeline import KRMasterPipeline
-
 
 pytestmark = [pytest.mark.master_pipeline, pytest.mark.e2e]
 
@@ -39,7 +38,7 @@ class TestFullPipelineSmartProcessing:
         pdf_path.write_text("dummy content for pipeline test")
 
         pipeline = mock_master_pipeline
-        calls: List[str] = []
+        calls: list[str] = []
 
         class UploadStub:
             async def process(self, context):  # type: ignore[override]
@@ -56,7 +55,7 @@ class TestFullPipelineSmartProcessing:
                 )
 
         class GenericStub:
-            def __init__(self, name: str, data: Dict[str, Any] | None = None) -> None:
+            def __init__(self, name: str, data: dict[str, Any] | None = None) -> None:
                 self.name = name
                 self._data = data or {}
 
@@ -122,7 +121,7 @@ class TestFullPipelineSmartProcessing:
         pdf_path.write_text("duplicate content")
 
         pipeline = mock_master_pipeline
-        calls: List[Dict[str, Any]] = []
+        calls: list[dict[str, Any]] = []
 
         class UploadDuplicateStub:
             async def process(self, context):  # type: ignore[override]
@@ -154,7 +153,7 @@ class TestFullPipelineSmartProcessing:
         ]:
             pipeline.processors[key] = ShouldNotBeCalled()
 
-        async def fake_smart(document_id: str, filename: str, file_path: str) -> Dict[str, Any]:
+        async def fake_smart(document_id: str, filename: str, file_path: str) -> dict[str, Any]:
             calls.append(
                 {
                     "document_id": document_id,
@@ -216,7 +215,7 @@ class TestProcessDocumentSmartStages:
 
         monkeypatch.setenv("ENABLE_SVG_EXTRACTION", "true")
 
-        async def fake_get_stage_status(doc_id: str) -> Dict[str, bool]:
+        async def fake_get_stage_status(doc_id: str) -> dict[str, bool]:
             assert doc_id == document_id
             return {
                 "upload": True,
@@ -234,10 +233,10 @@ class TestProcessDocumentSmartStages:
 
         monkeypatch.setattr(pipeline, "get_document_stage_status", fake_get_stage_status)
 
-        called: List[str] = []
+        called: list[str] = []
 
         class RecordingStub:
-            def __init__(self, name: str, data: Dict[str, Any] | None = None) -> None:
+            def __init__(self, name: str, data: dict[str, Any] | None = None) -> None:
                 self.name = name
                 self._data = data or {}
 
@@ -260,7 +259,7 @@ class TestProcessDocumentSmartStages:
             }
         )
 
-        async def fake_quality(doc_id: str) -> Dict[str, Any]:
+        async def fake_quality(doc_id: str) -> dict[str, Any]:
             return {
                 "passed": True,
                 "score": 90,

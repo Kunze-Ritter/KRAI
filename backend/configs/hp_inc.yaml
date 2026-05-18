@@ -25,28 +25,28 @@ product_patterns:
     examples: ["LaserJet Pro M404dn", "Color LaserJet Enterprise M455dn", "LaserJet MFP M428fdn"]
     series: "LaserJet"
     type: "printer"
-  
+
   # Simple Model Numbers (E/M Series)
   - pattern: '\b[EM]\d{3,5}[a-z]{0,2}\b'
     flags: NONE
     examples: ["E877", "E87740", "M455", "M428"]
     series: "LaserJet"
     type: "laser_multifunction"
-  
+
   # OfficeJet Series
   - pattern: '\bOfficeJet\s+(?:Pro\s+)?[A-Z]?\d{3,4}[a-z]{0,3}\b'
     flags: IGNORECASE
     examples: ["OfficeJet Pro 9015", "OfficeJet 8015"]
     series: "OfficeJet"
     type: "laser_multifunction"
-  
+
   # PageWide Series
   - pattern: '\bPageWide\s+(?:Pro\s+|Enterprise\s+)?[A-Z]?\d{3,4}[a-z]{0,3}\b'
     flags: IGNORECASE
     examples: ["PageWide Pro 477dw", "PageWide Enterprise 586"]
     series: "PageWide"
     type: "laser_multifunction"
-  
+
   # DesignJet Series
   - pattern: '\bDesignJet\s+[A-Z]?\d{3,4}[a-z]{0,3}\b'
     flags: IGNORECASE
@@ -60,27 +60,27 @@ series:
     patterns: ["LaserJet", "[EM]\\d{3,5}"]
     type: "Inkjet"
     description: "HP LaserJet Laser Printers"
-  
+
   - name: "LaserJet Pro"
     patterns: ["LaserJet\\s+Pro"]
     type: "laser_multifunction"
     description: "HP LaserJet Pro Series"
-  
+
   - name: "LaserJet Enterprise"
     patterns: ["LaserJet\\s+Enterprise"]
     type: "laser_multifunction"
     description: "HP LaserJet Enterprise Series"
-  
+
   - name: "OfficeJet"
     patterns: ["OfficeJet"]
     type: "laser_multifunction"
     description: "HP OfficeJet Inkjet Multifunction Printers"
-  
+
   - name: "PageWide"
     patterns: ["PageWide"]
     type: "Inkjetmultifunction"
     description: "HP PageWide Inkjet Printers"
-  
+
   - name: "DesignJet"
     patterns: ["DesignJet"]
     type: "inkjet_plotter"
@@ -93,51 +93,51 @@ part_prefixes:
     type: "toner_cartridge"
     pattern: "^CF\\d{3}[A-Z]$"
     examples: ["CF410A", "CF411A", "CF412A", "CF413A"]
-  
+
   - prefix: "CE"
     type: "toner_cartridge"
     pattern: "^CE\\d{3}[A-Z]$"
     examples: ["CE285A", "CE505A", "CE505X"]
-  
+
   - prefix: "CC"
     type: "toner_cartridge"
     pattern: "^CC\\d{3}[A-Z]$"
     examples: ["CC364A", "CC364X"]
-  
+
   - prefix: "W"
     type: "toner_cartridge"
     pattern: "^W\\d{4}[A-Z]{1,2}$"
     examples: ["W1470A", "W1470X", "W2070A"]
-  
+
   # Maintenance Kits
   - prefix: "CF"
     type: "maintenance_kit"
     pattern: "^CF\\d{3}[A-Z]$"
     examples: ["CF254A", "CF257A"]
-  
+
   # Fuser Units
   - prefix: "RM"
     type: "fuser_unit"
     pattern: "^RM\\d-\\d{4}-\\d{3}[A-Z]{2}$"
     examples: ["RM2-5583-000CN", "RM2-5692-000CN"]
-  
+
   # Transfer Units
   - prefix: "RM"
     type: "transfer_unit"
     pattern: "^RM\\d-\\d{4}-\\d{3}[A-Z]{2}$"
     examples: ["RM2-5796-000CN"]
-  
+
   # Paper Trays
   - prefix: "CF"
     type: "paper_tray"
     pattern: "^CF\\d{3}[A-Z]$"
     examples: ["CF404A", "CF405A"]
-  
+
   - prefix: "L"
     type: "paper_tray"
     pattern: "^L\\d{4}[A-Z]$"
     examples: ["L0H17A", "L0H18A"]
-  
+
   # Duplex Units
   - prefix: "CF"
     type: "duplex_unit"

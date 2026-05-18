@@ -33,7 +33,7 @@
 
 ### **✅ ERFOLGREICH EXTRAHIERT:**
 - **Version**: `July 2025` (Pattern: date_patterns, Confidence: 0.90)
-- **Part Numbers**: 
+- **Part Numbers**:
   - `BT2511234E` (Bulletin Code)
   - `T2511234` (Teil des Bulletin Codes)
 
@@ -159,7 +159,7 @@
     "topic": "image_quality_fixes",
     "problem_types": [
       "pale_images",
-      "light_images", 
+      "light_images",
       "faint_images",
       "halftone_faint",
       "faint_black_text"

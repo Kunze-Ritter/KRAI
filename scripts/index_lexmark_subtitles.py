@@ -34,10 +34,7 @@ import json
 import logging
 import re
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional
-from urllib.parse import urljoin
 
 import aiohttp
 
@@ -60,7 +57,7 @@ logger = logging.getLogger("lexmark_subtitle_indexer")
 # Constants
 # ---------------------------------------------------------------------------
 
-BASE_URL     = "https://support.lexmark.com"
+BASE_URL = "https://support.lexmark.com"
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -68,23 +65,33 @@ HEADERS = {
         "Chrome/122.0.0.0 Safari/537.36"
     ),
 }
-TARGET_LANGS = {"en", "de"}   # override with --langs
+TARGET_LANGS = {"en", "de"}  # override with --langs
 
 # Map ISO 639-2 (3-letter) → ISO 639-1 (2-letter)
 LANG_NORMALIZE = {
-    "eng": "en", "deu": "de", "ger": "de", "fra": "fr", "fre": "fr",
-    "spa": "es", "ita": "it", "por": "pt", "nld": "nl", "pol": "pl",
+    "eng": "en",
+    "deu": "de",
+    "ger": "de",
+    "fra": "fr",
+    "fre": "fr",
+    "spa": "es",
+    "ita": "it",
+    "por": "pt",
+    "nld": "nl",
+    "pol": "pl",
 }
+
 
 def normalize_lang(code: str) -> str:
     """Normalize 3-letter ISO 639-2 codes to 2-letter ISO 639-1."""
     code = code.strip().lower()
     return LANG_NORMALIZE.get(code, code)
 
+
 MODEL_RE = re.compile(r"/video-details/([^/]+)/", re.IGNORECASE)
 
 
-async def resolve_manufacturer_id(pool, name: str) -> Optional[str]:
+async def resolve_manufacturer_id(pool, name: str) -> str | None:
     """Look up manufacturer UUID by name (case-insensitive)."""
     async with pool.acquire() as conn:
         row = await conn.fetchval(
@@ -93,19 +100,20 @@ async def resolve_manufacturer_id(pool, name: str) -> Optional[str]:
         )
     return str(row) if row else None
 
+
 # ---------------------------------------------------------------------------
 # VTT parser
 # ---------------------------------------------------------------------------
 
 _VTT_TIMESTAMP = re.compile(r"\d{2}:\d{2}:\d{2}[.,]\d{3}\s*-->\s*\d{2}:\d{2}:\d{2}[.,]\d{3}")
-_VTT_CUE_ID   = re.compile(r"^\d+\s*$")
-_HTML_TAG      = re.compile(r"<[^>]+>")
+_VTT_CUE_ID = re.compile(r"^\d+\s*$")
+_HTML_TAG = re.compile(r"<[^>]+>")
 
 
 def parse_vtt(vtt_text: str) -> str:
     """Extract clean spoken text from a WebVTT file."""
     lines = vtt_text.splitlines()
-    cue_lines: List[str] = []
+    cue_lines: list[str] = []
     in_cue = False
 
     for line in lines:
@@ -127,7 +135,7 @@ def parse_vtt(vtt_text: str) -> str:
                 cue_lines.append(clean)
 
     # Deduplicate consecutive identical lines (common in VTTs)
-    deduped: List[str] = []
+    deduped: list[str] = []
     prev = None
     for line in cue_lines:
         if line != prev:
@@ -141,9 +149,10 @@ def parse_vtt(vtt_text: str) -> str:
 # DB helpers
 # ---------------------------------------------------------------------------
 
+
 async def load_videos_with_tracks(
-    pool, schema_content: str, manufacturer_id: str, force: bool, limit: Optional[int], langs: set
-) -> List[Dict]:
+    pool, schema_content: str, manufacturer_id: str, force: bool, limit: int | None, langs: set
+) -> list[dict]:
     """Return videos that have scraped tracks in the requested languages."""
     limit_clause = f"LIMIT {limit}" if limit else ""
     # Filter: has 'tracks' in metadata AND (force OR no subtitle chunk yet)
@@ -188,9 +197,7 @@ async def load_videos_with_tracks(
     return results
 
 
-async def get_or_create_virtual_document(
-    pool, model_number: str, manufacturer_id: str, dry_run: bool
-) -> str:
+async def get_or_create_virtual_document(pool, model_number: str, manufacturer_id: str, dry_run: bool) -> str:
     """
     Return the document_id for the virtual 'support video collection' document
     of a given model. Creates it if it doesn't exist.
@@ -236,7 +243,7 @@ async def upsert_chunk(
     video_url: str,
     model_number: str,
     dry_run: bool,
-) -> Optional[str]:
+) -> str | None:
     """Insert or update a subtitle chunk. Returns chunk_id."""
     fingerprint = hashlib.sha256(f"{document_id}:{language}:{text}".encode()).hexdigest()[:32]
 
@@ -257,14 +264,16 @@ async def upsert_chunk(
             text,
             chunk_index,
             fingerprint,
-            json.dumps({
-                "chunk_type":   "video_subtitle",
-                "language":     language,
-                "video_id":     video_id,
-                "video_url":    video_url,
-                "model_number": model_number,
-                "source":       "lexmark_support",
-            }),
+            json.dumps(
+                {
+                    "chunk_type": "video_subtitle",
+                    "language": language,
+                    "video_id": video_id,
+                    "video_url": video_url,
+                    "model_number": model_number,
+                    "source": "lexmark_support",
+                }
+            ),
         )
         if chunk_id:
             return str(chunk_id)
@@ -276,9 +285,7 @@ async def upsert_chunk(
         return str(existing) if existing else None
 
 
-async def update_video_chunks(
-    pool, schema_content: str, video_id: str, chunk_ids: List[str], dry_run: bool
-) -> None:
+async def update_video_chunks(pool, schema_content: str, video_id: str, chunk_ids: list[str], dry_run: bool) -> None:
     """Append chunk_ids to videos.related_chunks and mark subtitles_indexed."""
     if dry_run or not chunk_ids:
         return
@@ -311,26 +318,27 @@ async def update_video_chunks(
 # Download + index one video
 # ---------------------------------------------------------------------------
 
+
 async def process_video(
-    session:    aiohttp.ClientSession,
-    semaphore:  asyncio.Semaphore,
+    session: aiohttp.ClientSession,
+    semaphore: asyncio.Semaphore,
     pool,
     schema_content: str,
-    schema_intel:   str,
-    video:          Dict,
-    dry_run:        bool,
-) -> Dict:
-    video_id     = str(video["id"])
-    video_url    = video.get("video_url", "")
+    schema_intel: str,
+    video: dict,
+    dry_run: bool,
+) -> dict:
+    video_id = str(video["id"])
+    video_url = video.get("video_url", "")
     model_number = video.get("model_number") or "Unknown"
-    tracks       = video.get("tracks_filtered", [])
+    tracks = video.get("tracks_filtered", [])
 
     result = {"video_id": video_id, "chunks_created": 0, "errors": []}
 
     # Get or create virtual document for this model
     doc_id = await get_or_create_virtual_document(pool, model_number, LEXMARK_ID, dry_run)
 
-    chunk_ids: List[str] = []
+    chunk_ids: list[str] = []
     chunk_index = 0
 
     async with semaphore:
@@ -353,7 +361,8 @@ async def process_video(
                     continue
 
                 chunk_id = await upsert_chunk(
-                    pool, schema_intel,
+                    pool,
+                    schema_intel,
                     document_id=doc_id,
                     chunk_index=chunk_index,
                     text=clean_text,
@@ -368,10 +377,11 @@ async def process_video(
                     result["chunks_created"] += 1
                     chunk_index += 1
 
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 result["errors"].append(f"Timeout: {vtt_url}")
             except Exception as exc:
                 import traceback
+
                 result["errors"].append(f"Error {lang}: {exc} | {traceback.format_exc().splitlines()[-3]}")
 
     if chunk_ids:
@@ -384,7 +394,8 @@ async def process_video(
 # Main
 # ---------------------------------------------------------------------------
 
-async def main(limit: Optional[int], concurrency: int, langs: set, force: bool, dry_run: bool) -> None:
+
+async def main(limit: int | None, concurrency: int, langs: set, force: bool, dry_run: bool) -> None:
     logger.info("=" * 60)
     logger.info("Lexmark Subtitle Indexer")
     logger.info("Sprachen: %s", ", ".join(sorted(langs)))
@@ -392,7 +403,7 @@ async def main(limit: Optional[int], concurrency: int, langs: set, force: bool, 
         logger.info("DRY RUN – keine DB-Änderungen")
     logger.info("=" * 60)
 
-    db   = create_database_adapter()
+    db = create_database_adapter()
     await db.connect()
     pool = db._ensure_pool()
 
@@ -403,9 +414,7 @@ async def main(limit: Optional[int], concurrency: int, langs: set, force: bool, 
             logger.error("Manufacturer 'Lexmark' not found in database.")
             return
 
-        videos = await load_videos_with_tracks(
-            pool, db._content_schema, lexmark_id, force, limit, langs
-        )
+        videos = await load_videos_with_tracks(pool, db._content_schema, lexmark_id, force, limit, langs)
         logger.info("Videos mit passenden Untertiteln: %d", len(videos))
 
         if not videos:
@@ -417,20 +426,17 @@ async def main(limit: Optional[int], concurrency: int, langs: set, force: bool, 
 
         connector = aiohttp.TCPConnector(limit=concurrency, ssl=False)
         async with aiohttp.ClientSession(headers=HEADERS, connector=connector) as session:
-
             chunk_size = 50
             for start in range(0, len(videos), chunk_size):
                 batch = videos[start : start + chunk_size]
                 tasks = [
-                    process_video(session, semaphore, pool,
-                                  db._content_schema, db._intelligence_schema,
-                                  v, dry_run)
+                    process_video(session, semaphore, pool, db._content_schema, db._intelligence_schema, v, dry_run)
                     for v in batch
                 ]
                 results = await asyncio.gather(*tasks)
 
                 for res in results:
-                    stats["chunks_created"]  += res["chunks_created"]
+                    stats["chunks_created"] += res["chunks_created"]
                     stats["videos_processed"] += 1
                     if res["errors"]:
                         stats["errors"] += len(res["errors"])
@@ -440,7 +446,10 @@ async def main(limit: Optional[int], concurrency: int, langs: set, force: bool, 
                 done = min(start + chunk_size, len(videos))
                 logger.info(
                     "Fortschritt: %d / %d  (chunks=%d, fehler=%d)",
-                    done, len(videos), stats["chunks_created"], stats["errors"],
+                    done,
+                    len(videos),
+                    stats["chunks_created"],
+                    stats["errors"],
                 )
                 if start + chunk_size < len(videos):
                     await asyncio.sleep(0.3)
@@ -459,19 +468,12 @@ async def main(limit: Optional[int], concurrency: int, langs: set, force: bool, 
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Index Lexmark video subtitles (VTT) as searchable chunks"
-    )
-    parser.add_argument("--limit",       type=int,   default=None,
-                        help="Max. Anzahl Videos (Standard: alle)")
-    parser.add_argument("--concurrency", type=int,   default=8,
-                        help="Parallele Downloads (Standard: 8)")
-    parser.add_argument("--langs",       type=str,   default="en,de",
-                        help="Komma-getrennte Sprachen (Standard: en,de)")
-    parser.add_argument("--force",       action="store_true",
-                        help="Bereits indexierte Videos neu verarbeiten")
-    parser.add_argument("--dry-run",     action="store_true",
-                        help="Nur testen, keine DB-Änderungen")
+    parser = argparse.ArgumentParser(description="Index Lexmark video subtitles (VTT) as searchable chunks")
+    parser.add_argument("--limit", type=int, default=None, help="Max. Anzahl Videos (Standard: alle)")
+    parser.add_argument("--concurrency", type=int, default=8, help="Parallele Downloads (Standard: 8)")
+    parser.add_argument("--langs", type=str, default="en,de", help="Komma-getrennte Sprachen (Standard: en,de)")
+    parser.add_argument("--force", action="store_true", help="Bereits indexierte Videos neu verarbeiten")
+    parser.add_argument("--dry-run", action="store_true", help="Nur testen, keine DB-Änderungen")
     args = parser.parse_args()
 
     selected_langs = {l.strip().lower() for l in args.langs.split(",")}

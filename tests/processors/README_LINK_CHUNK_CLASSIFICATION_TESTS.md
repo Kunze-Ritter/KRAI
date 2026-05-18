@@ -14,7 +14,7 @@ link extraction, chunk preprocessing, and document classification.
 
 ## Test Files
 
-- **`test_link_extractor_unit.py`**  
+- **`test_link_extractor_unit.py`**
   Unit tests for `LinkExtractor` internals:
   - URL and placeholder detection
   - YouTube ID and duration parsing
@@ -22,40 +22,40 @@ link extraction, chunk preprocessing, and document classification.
   - Link type/category classification
   - Link deduplication and description extraction
 
-- **`test_link_extraction_processor_e2e.py`**  
+- **`test_link_extraction_processor_e2e.py`**
   E2E tests for `LinkExtractionProcessorAI`:
   - Extraction of HTTP(S), YouTube, and direct video links from PDFs
   - Handling of multi‑page documents
   - Error paths (missing document ID, missing file, missing page texts)
   - Persistence helpers for links and videos using a lightweight PostgreSQL-style client
 
-- **`test_chunk_preprocessor_unit.py`**  
+- **`test_chunk_preprocessor_unit.py`**
   Unit tests for `ChunkPreprocessor` internals:
   - Header/footer removal
   - Whitespace normalisation and empty‑line cleanup
   - Chunk type detection (error_code, parts_list, procedure, specification, table, text, empty)
 
-- **`test_chunk_preprocessor_e2e.py`**  
+- **`test_chunk_preprocessor_e2e.py`**
   E2E tests for `ChunkPreprocessor`:
   - Loading chunks from a mocked `chunks` table
   - Updating cleaned content, metadata, and `char_count`
   - Behaviour when no chunks are found
   - Graceful handling of update failures while still reporting progress
 
-- **`test_document_type_detector_unit.py`**  
+- **`test_document_type_detector_unit.py`**
   Unit tests for `DocumentTypeDetector`:
   - Document type detection for service manuals, parts catalogs, user guides, and installation guides
   - Version detection from titles, filenames, creation dates, and document codes (e.g. `A93E`)
   - Date‑based versions (e.g. `August 2025` for Konica Minolta parts catalogs)
 
-- **`test_classification_processor_e2e.py`**  
+- **`test_classification_processor_e2e.py`**
   E2E tests for `ClassificationProcessor`:
   - Manufacturer detection from filenames and titles
   - Fallback AI‑based manufacturer detection using `mock_ai_service`
   - Document type and version detection using `DocumentTypeDetector`
   - Database update of `documents.manufacturer`, `documents.document_type`, and `documents.version`
 
-- **`test_link_enrichment_integration.py`**  
+- **`test_link_enrichment_integration.py`**
   Integration tests joining `LinkExtractionProcessorAI` with
   `LinkEnrichmentService`:
   - Verifies that enrichment is called when `ENABLE_LINK_ENRICHMENT=true`
@@ -63,7 +63,7 @@ link extraction, chunk preprocessing, and document classification.
   - Optionally triggers structured extraction for enriched links when
     `ENABLE_STRUCTURED_EXTRACTION=true`
 
-- **`test_link_chunk_classification_flow_e2e.py`**  
+- **`test_link_chunk_classification_flow_e2e.py`**
   End‑to‑end flow test chaining:
   - `LinkExtractionProcessorAI` (links only, no DB persistence)
   - `ChunkPreprocessor` (via `MockDatabaseAdapter` + Supabase‑like client)

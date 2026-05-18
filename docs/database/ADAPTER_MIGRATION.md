@@ -1,9 +1,9 @@
 # Database Adapter Migration Guide
 
-> **⚠️ HISTORICAL REFERENCE - Adapter Pattern Removed**  
-> This guide documents the legacy adapter pattern used during migration.  
-> **Current Architecture:** Direct asyncpg connection pools (see `backend/services/database/`)  
-> **Status:** Adapter pattern removed in KRAI-002 (November 2024)  
+> **⚠️ HISTORICAL REFERENCE - Adapter Pattern Removed**
+> This guide documents the legacy adapter pattern used during migration.
+> **Current Architecture:** Direct asyncpg connection pools (see `backend/services/database/`)
+> **Status:** Adapter pattern removed in KRAI-002 (November 2024)
 > **Purpose:** Historical reference only
 
 ## Overview
@@ -79,7 +79,7 @@ def get_database_adapter() -> DatabaseAdapter:
 async def example(adapter: DatabaseAdapter = Depends(get_database_adapter)):
     # Use adapter methods
     doc = await adapter.get_document(document_id)
-    
+
     # Or execute raw SQL
     results = await adapter.execute_query(
         "SELECT * FROM public.vw_documents WHERE id = %s",
@@ -96,7 +96,7 @@ from supabase import Client
 
 def get_legacy_supabase_client() -> Client | None:
     """Get raw Supabase client when available from the adapter.
-    
+
     Returns None if running with pure PostgreSQL adapter.
     """
     adapter = get_database_adapter()
@@ -111,7 +111,7 @@ async def legacy_feature(adapter: DatabaseAdapter = Depends(get_database_adapter
             status_code=501,
             detail="This feature requires Supabase (not available in PostgreSQL-only mode)"
         )
-    
+
     # Use legacy client for Supabase-specific features
     result = legacy_client.rpc('some_function', {...})
 ```

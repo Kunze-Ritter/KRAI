@@ -1,9 +1,9 @@
-import pytest
 from unittest.mock import MagicMock, patch
 
 
 def _make_processor():
     from backend.processors.table_processor import TableProcessor
+
     return TableProcessor(
         database_service=MagicMock(),
         embedding_service=MagicMock(),
@@ -22,8 +22,8 @@ def test_pdfplumber_fallback_called_when_pymupdf_finds_nothing():
     mock_plumber_pdf = MagicMock()
     mock_plumber_pdf.pages = [MagicMock()]
 
-    with patch.object(processor, '_extract_page_tables_pdfplumber', return_value=[]) as mock_plumber:
-        with patch('pdfplumber.open') as mock_open:
+    with patch.object(processor, "_extract_page_tables_pdfplumber", return_value=[]) as mock_plumber:
+        with patch("pdfplumber.open") as mock_open:
             mock_open.return_value.__enter__ = MagicMock(return_value=mock_plumber_pdf)
             mock_open.return_value.__exit__ = MagicMock(return_value=False)
             processor._extract_page_tables(mock_page, page_number=1, pdf_path="/fake/path.pdf")
@@ -40,8 +40,8 @@ def test_pdfplumber_not_called_when_pymupdf_finds_tables():
     mock_page.find_tables.return_value = mock_tabs
 
     # Mock _extract_table_data to avoid deep processing
-    with patch.object(processor, '_extract_table_data', return_value=None):
-        with patch.object(processor, '_extract_page_tables_pdfplumber') as mock_plumber:
+    with patch.object(processor, "_extract_table_data", return_value=None):
+        with patch.object(processor, "_extract_page_tables_pdfplumber") as mock_plumber:
             processor._extract_page_tables(mock_page, page_number=1, pdf_path="/fake/path.pdf")
             mock_plumber.assert_not_called()
 

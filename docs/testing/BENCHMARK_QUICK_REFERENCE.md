@@ -160,7 +160,7 @@ jq -s 'map(.comparison.full_pipeline.current.avg) | add / length' run_*.json
 SELECT COUNT(*) FROM krai_system.benchmark_documents;
 
 -- View selected documents
-SELECT 
+SELECT
   bd.document_id,
   d.filename,
   d.manufacturer,
@@ -178,7 +178,7 @@ LIMIT 10;
 
 ```sql
 -- Latest baseline metrics
-SELECT 
+SELECT
   stage_name,
   baseline_avg_seconds,
   current_avg_seconds,
@@ -189,7 +189,7 @@ ORDER BY measurement_date DESC
 LIMIT 10;
 
 -- Full pipeline performance history
-SELECT 
+SELECT
   measurement_date,
   baseline_avg_seconds,
   current_avg_seconds,

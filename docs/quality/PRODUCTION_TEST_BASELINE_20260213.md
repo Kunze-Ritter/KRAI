@@ -175,4 +175,3 @@ Likely explanation:
 
 ## Baseline Conclusion
 The pipeline is operational for ingestion, chunking, embedding, and stage progression, but fails semantically at extraction/linking. The highest-confidence failure point is missing `manufacturer_id` linkage on documents despite existing HP manufacturer records and obvious HP/E877/error-pattern content in chunks.
-

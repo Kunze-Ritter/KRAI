@@ -5,6 +5,7 @@ Configuration Checker - Prüft ob alle erforderlichen Configs gesetzt sind
 import os
 import sys
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 # Load .env from project root
@@ -67,10 +68,10 @@ deprecated_upload_vars = [
 for category, vars_list in checks.items():
     print(f"\n📋 {category}")
     print("-" * 60)
-    
+
     for var_name, required in vars_list:
         value = os.getenv(var_name)
-        
+
         if value and value not in [
             "",
             "your_key_here",
@@ -84,7 +85,7 @@ for category, vars_list in checks.items():
                 display_value = value[:8] + "..." if len(value) > 8 else "***"
             else:
                 display_value = value
-            
+
             print(f"  ✅ {var_name}: {display_value}")
         else:
             if required:
@@ -96,10 +97,7 @@ for category, vars_list in checks.items():
 
 print("\n🚫 Deprecated R2 Variables")
 print("-" * 60)
-found_deprecated = [
-    name for name in os.environ.keys()
-    if name.startswith("R2_")
-]
+found_deprecated = [name for name in os.environ.keys() if name.startswith("R2_")]
 found_deprecated.extend([name for name in deprecated_upload_vars if os.getenv(name)])
 found_deprecated = sorted(set(found_deprecated))
 if found_deprecated:
@@ -117,21 +115,22 @@ print("\n🤖 Ollama Status")
 print("-" * 60)
 try:
     import requests
-    ollama_url = os.getenv('OLLAMA_URL', 'http://localhost:11434')
+
+    ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
     response = requests.get(f"{ollama_url}/api/tags", timeout=2)
-    
+
     if response.status_code == 200:
-        models = response.json().get('models', [])
+        models = response.json().get("models", [])
         print(f"  ✅ Ollama running at {ollama_url}")
         print(f"  📦 Models installed: {len(models)}")
         for model in models:
             print(f"     - {model.get('name')}")
     else:
-        print(f"  ❌ Ollama not responding")
+        print("  ❌ Ollama not responding")
         all_ok = False
 except Exception as e:
     print(f"  ❌ Ollama not available: {e}")
-    print(f"     Start with: ollama serve")
+    print("     Start with: ollama serve")
     all_ok = False
 
 # Summary

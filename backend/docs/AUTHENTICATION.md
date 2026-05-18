@@ -46,13 +46,13 @@ This document provides an overview of the KRAI authentication system, including 
    JWT_ALGORITHM=HS256
    ACCESS_TOKEN_EXPIRE_MINUTES=1440  # 24 hours
    REFRESH_TOKEN_EXPIRE_DAYS=7
-   
+
    # Database
    DATABASE_URL=postgresql://user:password@localhost:5432/krai_db
-   
+
    # Redis (for token blacklisting)
    REDIS_URL=redis://localhost:6379/0
-   
+
    # Email (for password reset)
    SMTP_SERVER=smtp.example.com
    SMTP_PORT=587

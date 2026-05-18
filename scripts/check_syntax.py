@@ -1,16 +1,15 @@
 import ast
-import sys
 
 files = [
-    'backend/processors/image_processor.py',
-    'backend/processors/svg_processor.py',
-    'backend/api/routes/batch.py',
-    'backend/api/routes/auth.py'
+    "backend/processors/image_processor.py",
+    "backend/processors/svg_processor.py",
+    "backend/api/routes/batch.py",
+    "backend/api/routes/auth.py",
 ]
 
 for f in files:
     try:
-        with open(f, 'r') as file:
+        with open(f) as file:
             ast.parse(file.read())
         print(f"{f}: OK")
     except SyntaxError as e:

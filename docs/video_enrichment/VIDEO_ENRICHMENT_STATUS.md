@@ -45,7 +45,7 @@ if not manufacturer_id:
         doc = supabase.table('vw_documents').select('manufacturer_id').eq(
             'id', link['document_id']
         ).single().execute()
-        
+
         if doc.data:
             manufacturer_id = doc.data.get('manufacturer_id')
 ```
@@ -79,11 +79,11 @@ if not manufacturer_id:
 if not manufacturer_id and link.get('document_id'):
     # Option 1
     ...
-    
+
 if not manufacturer_id:
     # Option 2
     ...
-    
+
 if not manufacturer_id:
     # Option 3 (aktuell)
     ...

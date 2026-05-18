@@ -9,33 +9,28 @@ Tests the complete monitoring system including:
 - Database integration
 """
 
-import pytest
-import asyncio
-import json
-from datetime import datetime, timedelta
-from typing import Dict, Any, List
-from unittest.mock import Mock, patch, AsyncMock, MagicMock
+from datetime import datetime
+from typing import Any
+from unittest.mock import Mock, patch
 
+import pytest
 from fastapi.testclient import TestClient
-from fastapi import WebSocket
+
+from backend.api.app import app
 
 # Import monitoring components
 from backend.models.monitoring import (
+    Alert,
+    AlertSeverity,
+    AlertType,
+    CreateAlertRule,
+    HardwareMetrics,
     PipelineMetrics,
     QueueMetrics,
-    StageMetrics,
-    HardwareMetrics,
-    DataQualityMetrics,
-    Alert,
-    AlertRule,
-    AlertType,
-    AlertSeverity,
-    CreateAlertRule,
 )
-from backend.services.metrics_service import MetricsService
 from backend.services.alert_service import AlertService
 from backend.services.database_adapter import DatabaseAdapter
-from backend.api.app import app
+from backend.services.metrics_service import MetricsService
 
 
 class TestMetricsService:
@@ -44,8 +39,8 @@ class TestMetricsService:
     @pytest.fixture
     async def metrics_service(self, mock_database_adapter):
         """Create MetricsService with mocked adapter."""
-        from backend.processors.stage_tracker import StageTracker
         from unittest.mock import Mock
+
         stage_tracker = Mock()
         service = MetricsService(mock_database_adapter, stage_tracker)
         return service
@@ -165,7 +160,7 @@ class TestMetricsService:
 
         # First call - should hit database
         metrics1 = await metrics_service.get_pipeline_metrics()
-        
+
         # Second call - should use cache
         metrics2 = await metrics_service.get_pipeline_metrics()
 
@@ -177,16 +172,23 @@ class TestMetricsService:
         """Test cache invalidation."""
         # Mock response
         mock_database_adapter.query_results["pipeline_metrics"] = [
-            {"total_documents": 1000, "documents_pending": 50, "documents_processing": 10,
-             "documents_completed": 920, "documents_failed": 20, "success_rate": 97.87, "recent_24h_count": 150}
+            {
+                "total_documents": 1000,
+                "documents_pending": 50,
+                "documents_processing": 10,
+                "documents_completed": 920,
+                "documents_failed": 20,
+                "success_rate": 97.87,
+                "recent_24h_count": 150,
+            }
         ]
 
         # Get metrics (cached)
         await metrics_service.get_pipeline_metrics()
-        
+
         # Invalidate cache
         metrics_service.invalidate_cache("pipeline_metrics")
-        
+
         # Get metrics again (should hit database)
         await metrics_service.get_pipeline_metrics()
 
@@ -345,22 +347,20 @@ class TestAlertService:
         # First alert - no existing alert
         mock_database_adapter.query_results["existing_alert"] = []
         mock_database_adapter.query_results["insert_alert"] = [{"id": "alert-123"}]
-        
+
         error_data = {
             "error_type": "hardware_threshold",
             "stage_name": "monitoring",
             "severity": "high",
             "error_message": "CPU at 95%",
         }
-        
+
         alert_id_1 = await alert_service.queue_alert(error_data)
         assert alert_id_1 == "alert-123"
 
         # Second alert - existing alert found, should aggregate
-        mock_database_adapter.query_results["existing_alert"] = [
-            {"id": "alert-123", "aggregation_count": 1}
-        ]
-        
+        mock_database_adapter.query_results["existing_alert"] = [{"id": "alert-123", "aggregation_count": 1}]
+
         alert_id_2 = await alert_service.queue_alert(error_data)
         assert alert_id_2 == "alert-123"  # Same alert ID
 
@@ -412,7 +412,7 @@ class TestMonitoringAPI:
     def test_get_pipeline_metrics_endpoint(self, client, auth_headers):
         """Test GET /api/v1/monitoring/pipeline endpoint."""
         response = client.get("/api/v1/monitoring/pipeline", headers=auth_headers)
-        
+
         assert response.status_code == 200
         data = response.json()
         assert "total_documents" in data
@@ -422,7 +422,7 @@ class TestMonitoringAPI:
     def test_get_queue_metrics_endpoint(self, client, auth_headers):
         """Test GET /api/v1/monitoring/queue endpoint."""
         response = client.get("/api/v1/monitoring/queue", headers=auth_headers)
-        
+
         assert response.status_code == 200
         data = response.json()
         assert "total_items" in data
@@ -432,7 +432,7 @@ class TestMonitoringAPI:
     def test_get_hardware_metrics_endpoint(self, client, auth_headers):
         """Test GET /api/v1/monitoring/metrics endpoint."""
         response = client.get("/api/v1/monitoring/metrics", headers=auth_headers)
-        
+
         assert response.status_code == 200
         data = response.json()
         assert "cpu_percent" in data
@@ -442,7 +442,7 @@ class TestMonitoringAPI:
     def test_get_alerts_endpoint(self, client, auth_headers):
         """Test GET /api/v1/monitoring/alerts endpoint."""
         response = client.get("/api/v1/monitoring/alerts", headers=auth_headers)
-        
+
         assert response.status_code == 200
         data = response.json()
         assert "alerts" in data
@@ -466,7 +466,7 @@ class TestMonitoringAPI:
             json=new_rule,
             headers=auth_headers,
         )
-        
+
         assert response.status_code in [200, 201]
         data = response.json()
         assert data["success"] is True
@@ -492,7 +492,7 @@ class TestWebSocketAPI:
     async def test_websocket_connection(self, mock_jwt_token):
         """Test WebSocket connection with authentication."""
         client = TestClient(app)
-        
+
         with client.websocket_connect(f"/ws/monitoring?token={mock_jwt_token}") as websocket:
             # Should connect successfully
             data = websocket.receive_json()
@@ -502,7 +502,7 @@ class TestWebSocketAPI:
     async def test_websocket_authentication_failure(self):
         """Test WebSocket connection fails with invalid token."""
         client = TestClient(app)
-        
+
         with pytest.raises(Exception):
             with client.websocket_connect("/ws/monitoring?token=invalid") as websocket:
                 pass
@@ -511,7 +511,7 @@ class TestWebSocketAPI:
     async def test_websocket_broadcast_alert(self, mock_jwt_token):
         """Test alert broadcasting over WebSocket."""
         from backend.api.websocket import broadcast_alert
-        
+
         alert = Alert(
             id="alert-test",
             alert_type=AlertType.HARDWARE_THRESHOLD,
@@ -531,12 +531,10 @@ class TestIntegration:
     """Integration tests for complete monitoring flow."""
 
     @pytest.mark.asyncio
-    async def test_complete_monitoring_flow(
-        self, mock_database_adapter, metrics_service, alert_service
-    ):
+    async def test_complete_monitoring_flow(self, mock_database_adapter, metrics_service, alert_service):
         """Test complete flow: metrics → queue alert → notification."""
         # 1. Get metrics (mocked)
-        with patch.object(metrics_service, 'get_pipeline_metrics') as mock_pipeline:
+        with patch.object(metrics_service, "get_pipeline_metrics") as mock_pipeline:
             mock_pipeline.return_value = PipelineMetrics(
                 total_documents=1000,
                 documents_pending=50,
@@ -568,14 +566,14 @@ class TestIntegration:
         ]
         mock_database_adapter.query_results["existing_alert"] = []
         mock_database_adapter.query_results["insert_alert"] = [{"id": "alert-123"}]
-        
+
         error_data = {
             "error_type": "processing_error",
             "stage_name": "text_extraction",
             "severity": "medium",
             "error_message": "Test error",
         }
-        
+
         alert_id = await alert_service.queue_alert(error_data)
         assert alert_id is not None
 
@@ -583,12 +581,12 @@ class TestIntegration:
     async def test_health_check_includes_monitoring(self, client):
         """Test that health check includes monitoring services."""
         response = client.get("/health")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert "services" in data
         assert "monitoring" in data["services"]
-        
+
         monitoring = data["services"]["monitoring"]
         assert "metrics_service" in monitoring
         assert "alert_service" in monitoring
@@ -597,71 +595,144 @@ class TestIntegration:
 
 # Fixtures
 
+
 @pytest.fixture
 def mock_database_adapter():
     """Create mock DatabaseAdapter."""
-    from typing import Any, Dict, List
-    
+
     class MockDatabaseAdapter(DatabaseAdapter):
         def __init__(self):
             super().__init__()
             self.queries_executed = []
             self.query_results = {}
-        
-        async def execute_query(self, query: str, params: List[Any] = None) -> List[Dict[str, Any]]:
+
+        async def execute_query(self, query: str, params: list[Any] = None) -> list[dict[str, Any]]:
             self.queries_executed.append((query, params))
             if "alert_configurations" in query and "SELECT" in query:
                 return self.query_results.get("alert_configurations", [])
-            elif "alerts" in query and "SELECT" in query and "aggregation_key" in query:
+            if "alerts" in query and "SELECT" in query and "aggregation_key" in query:
                 return self.query_results.get("existing_alert", [])
-            elif "alerts" in query and "INSERT" in query:
+            if "alerts" in query and "INSERT" in query:
                 return self.query_results.get("insert_alert", [{"id": "alert-123"}])
-            elif "alerts" in query and "UPDATE" in query:
+            if "alerts" in query and "UPDATE" in query:
                 result = Mock()
                 result.rowcount = 1
                 return result
-            elif "alerts" in query and "COUNT" in query:
+            if "alerts" in query and "COUNT" in query:
                 return self.query_results.get("count_result", [{"count": 0}])
             return []
-        
+
         # Stub abstract methods
-        async def connect(self): pass
-        async def test_connection(self): return True
-        async def create_document(self, document): return "doc-123"
-        async def get_document(self, document_id: str): return None
-        async def get_document_by_hash(self, file_hash: str): return None
-        async def update_document(self, document_id: str, updates: Dict[str, Any]): return True
-        async def create_manufacturer(self, manufacturer): return "mfr-123"
-        async def get_manufacturer_by_name(self, name: str): return None
-        async def create_product_series(self, series): return "series-123"
-        async def get_product_series_by_name(self, name: str, manufacturer_id: str): return None
-        async def create_product(self, product): return "prod-123"
-        async def get_product_by_model(self, model_number: str, manufacturer_id: str): return None
-        async def create_chunk(self, chunk): return "chunk-123"
-        async def create_chunk_async(self, chunk_data: Dict[str, Any]): return "chunk-123"
-        async def get_chunk_by_document_and_index(self, document_id: str, chunk_index: int): return None
-        async def create_image(self, image): return "img-123"
-        async def get_image_by_hash(self, image_hash: str): return None
-        async def get_images_by_document(self, document_id: str): return []
-        async def create_intelligence_chunk(self, chunk): return "intel-123"
-        async def create_embedding(self, embedding): return "emb-123"
-        async def get_embedding_by_chunk_id(self, chunk_id: str): return None
-        async def get_embeddings_by_chunk_ids(self, chunk_ids: List[str]): return []
-        async def search_embeddings(self, query_embedding: List[float], limit: int = 10, match_threshold: float = 0.7, match_count: int = 10): return []
-        async def create_error_code(self, error_code): return "err-123"
-        async def log_search_analytics(self, analytics): return "analytics-123"
-        async def create_processing_queue_item(self, item): return "queue-123"
-        async def update_processing_queue_item(self, item_id: str, updates: Dict[str, Any]): return True
-        async def log_audit_event(self, event): return "audit-123"
-        async def get_system_status(self): return {}
-        async def count_chunks_by_document(self, document_id: str): return 0
-        async def count_images_by_document(self, document_id: str): return 0
-        async def check_embedding_exists(self, chunk_id: str): return False
-        async def count_links_by_document(self, document_id: str): return 0
-        async def create_link(self, link_data: Dict[str, Any]): return "link-123"
-        async def create_video(self, video_data: Dict[str, Any]): return "video-123"
-        async def create_print_defect(self, defect): return "defect-123"
-    
+        async def connect(self):
+            pass
+
+        async def test_connection(self):
+            return True
+
+        async def create_document(self, document):
+            return "doc-123"
+
+        async def get_document(self, document_id: str):
+            return None
+
+        async def get_document_by_hash(self, file_hash: str):
+            return None
+
+        async def update_document(self, document_id: str, updates: dict[str, Any]):
+            return True
+
+        async def create_manufacturer(self, manufacturer):
+            return "mfr-123"
+
+        async def get_manufacturer_by_name(self, name: str):
+            return None
+
+        async def create_product_series(self, series):
+            return "series-123"
+
+        async def get_product_series_by_name(self, name: str, manufacturer_id: str):
+            return None
+
+        async def create_product(self, product):
+            return "prod-123"
+
+        async def get_product_by_model(self, model_number: str, manufacturer_id: str):
+            return None
+
+        async def create_chunk(self, chunk):
+            return "chunk-123"
+
+        async def create_chunk_async(self, chunk_data: dict[str, Any]):
+            return "chunk-123"
+
+        async def get_chunk_by_document_and_index(self, document_id: str, chunk_index: int):
+            return None
+
+        async def create_image(self, image):
+            return "img-123"
+
+        async def get_image_by_hash(self, image_hash: str):
+            return None
+
+        async def get_images_by_document(self, document_id: str):
+            return []
+
+        async def create_intelligence_chunk(self, chunk):
+            return "intel-123"
+
+        async def create_embedding(self, embedding):
+            return "emb-123"
+
+        async def get_embedding_by_chunk_id(self, chunk_id: str):
+            return None
+
+        async def get_embeddings_by_chunk_ids(self, chunk_ids: list[str]):
+            return []
+
+        async def search_embeddings(
+            self, query_embedding: list[float], limit: int = 10, match_threshold: float = 0.7, match_count: int = 10
+        ):
+            return []
+
+        async def create_error_code(self, error_code):
+            return "err-123"
+
+        async def log_search_analytics(self, analytics):
+            return "analytics-123"
+
+        async def create_processing_queue_item(self, item):
+            return "queue-123"
+
+        async def update_processing_queue_item(self, item_id: str, updates: dict[str, Any]):
+            return True
+
+        async def log_audit_event(self, event):
+            return "audit-123"
+
+        async def get_system_status(self):
+            return {}
+
+        async def count_chunks_by_document(self, document_id: str):
+            return 0
+
+        async def count_images_by_document(self, document_id: str):
+            return 0
+
+        async def check_embedding_exists(self, chunk_id: str):
+            return False
+
+        async def count_links_by_document(self, document_id: str):
+            return 0
+
+        async def create_link(self, link_data: dict[str, Any]):
+            return "link-123"
+
+        async def create_video(self, video_data: dict[str, Any]):
+            return "video-123"
+
+        async def create_print_defect(self, defect):
+            return "defect-123"
+
     return MockDatabaseAdapter()
 
 
@@ -674,7 +745,7 @@ def mock_jwt_token():
 @pytest.fixture
 async def metrics_service(mock_database_adapter):
     """Create MetricsService for testing."""
-    from backend.processors.stage_tracker import StageTracker
+
     stage_tracker = Mock()
     return MetricsService(mock_database_adapter, stage_tracker)
 

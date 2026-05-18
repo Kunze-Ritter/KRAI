@@ -1,7 +1,7 @@
 # 🔄 Chunk Preprocessor - AI-Ready Chunks with Deduplication
 
-**Version:** 1.0.0  
-**Date:** Oktober 2025  
+**Version:** 1.0.0
+**Date:** Oktober 2025
 **Status:** ✅ Production Ready
 
 ---
@@ -112,7 +112,7 @@ def _generate_fingerprint(text: str) -> str:
     # Normalize text
     normalized = text.lower().strip()
     normalized = ' '.join(normalized.split())  # Normalize whitespace
-    
+
     # Generate SHA256 hash
     return hashlib.sha256(normalized.encode('utf-8')).hexdigest()
 ```
@@ -126,11 +126,11 @@ seen_fingerprints = set()
 
 for chunk in content_chunks:
     fingerprint = _generate_fingerprint(chunk['content'])
-    
+
     if fingerprint in seen_fingerprints:
         # Skip duplicate
         continue
-    
+
     seen_fingerprints.add(fingerprint)
     # Process chunk...
 ```
@@ -215,7 +215,7 @@ print(f"Deduplicated: {result.data['chunks_deduplicated']}")
 
 ```sql
 -- Get preprocessing status
-SELECT 
+SELECT
     document_id,
     COUNT(*) as total,
     COUNT(*) FILTER (WHERE processing_status = 'completed') as completed,
@@ -273,7 +273,7 @@ assert fp1 == fp2 == fp3
 
 ```sql
 -- Get deduplication statistics
-SELECT 
+SELECT
     COUNT(*) as total_chunks,
     COUNT(DISTINCT fingerprint) as unique_fingerprints,
     COUNT(*) - COUNT(DISTINCT fingerprint) as duplicates_removed,
@@ -343,7 +343,7 @@ Error: foreign key constraint "embeddings_chunk_id_fkey"
 
 ```sql
 -- Check deduplication rate
-SELECT 
+SELECT
     (COUNT(*) - COUNT(DISTINCT fingerprint))::FLOAT / COUNT(*) * 100 as dedup_rate
 FROM krai_intelligence.chunks;
 ```
@@ -377,6 +377,6 @@ FK: embeddings → intelligence.chunks ✅
 
 ---
 
-**Created:** Oktober 2025  
-**Migration:** 11_revert_embeddings_fk.sql  
+**Created:** Oktober 2025
+**Migration:** 11_revert_embeddings_fk.sql
 **Status:** ✅ Production Ready

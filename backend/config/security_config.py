@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import os
 from functools import lru_cache
-from typing import List, Optional
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
@@ -14,12 +13,10 @@ class SecurityConfig(BaseSettings):
     """Security configuration loaded from environment variables."""
 
     # CORS settings
-    CORS_ALLOWED_ORIGINS: List[str] = Field(
-        default_factory=lambda: ["http://localhost:3000", "http://localhost:8000"]
-    )
+    CORS_ALLOWED_ORIGINS: list[str] = Field(default_factory=lambda: ["http://localhost:3000", "http://localhost:8000"])
     CORS_ALLOW_CREDENTIALS: bool = True
-    CORS_ALLOW_METHODS: List[str] = Field(default_factory=lambda: ["*"])
-    CORS_ALLOW_HEADERS: List[str] = Field(default_factory=lambda: ["*"])
+    CORS_ALLOW_METHODS: list[str] = Field(default_factory=lambda: ["*"])
+    CORS_ALLOW_HEADERS: list[str] = Field(default_factory=lambda: ["*"])
     CORS_MAX_AGE: int = 3600
 
     # Rate limiting settings
@@ -31,15 +28,13 @@ class SecurityConfig(BaseSettings):
     RATE_LIMIT_STANDARD: str = "100/minute"
     RATE_LIMIT_HEALTH: str = "300/minute"
     RATE_LIMIT_API_KEY: str = "1000/minute"
-    RATE_LIMIT_WHITELIST: List[str] = Field(default_factory=list)
-    RATE_LIMIT_BLACKLIST: List[str] = Field(default_factory=list)
+    RATE_LIMIT_WHITELIST: list[str] = Field(default_factory=list)
+    RATE_LIMIT_BLACKLIST: list[str] = Field(default_factory=list)
 
     # Request validation settings
     MAX_REQUEST_SIZE_MB: int = 500
     MAX_FILE_SIZE_MB: int = 500
-    ALLOWED_FILE_TYPES: List[str] = Field(
-        default_factory=lambda: [".pdf", ".docx", ".png", ".jpg", ".jpeg"]
-    )
+    ALLOWED_FILE_TYPES: list[str] = Field(default_factory=lambda: [".pdf", ".docx", ".png", ".jpg", ".jpeg"])
     REQUEST_VALIDATION_ENABLED: bool = True
     VALIDATION_STRICTNESS: str = "strict"
 
@@ -102,7 +97,7 @@ class SecurityConfig(BaseSettings):
         return value
 
     @field_validator("ALLOWED_FILE_TYPES")
-    def normalize_file_types(cls, values: List[str]) -> List[str]:  # noqa: N805
+    def normalize_file_types(cls, values: list[str]) -> list[str]:  # noqa: N805
         normalized = []
         for ext in values:
             if not ext.startswith("."):
@@ -111,7 +106,7 @@ class SecurityConfig(BaseSettings):
         return normalized
 
     @field_validator("CORS_ALLOWED_ORIGINS", mode="before")
-    def parse_cors_origins(cls, value: List[str] | str | None) -> List[str]:  # noqa: N805
+    def parse_cors_origins(cls, value: list[str] | str | None) -> list[str]:  # noqa: N805
         if value is None:
             return []
         if isinstance(value, str):
@@ -119,24 +114,24 @@ class SecurityConfig(BaseSettings):
         return value
 
     @field_validator("CORS_ALLOWED_ORIGINS")
-    def ensure_cors_origins(cls, values: List[str]) -> List[str]:  # noqa: N805
+    def ensure_cors_origins(cls, values: list[str]) -> list[str]:  # noqa: N805
         if not values:
             raise ValueError("At least one CORS origin must be configured")
         return values
 
     @property
-    def cors_allowed_origins_str(self) -> List[str]:
+    def cors_allowed_origins_str(self) -> list[str]:
         return self.CORS_ALLOWED_ORIGINS
 
     @property
-    def rate_limit_storage_url(self) -> Optional[str]:
+    def rate_limit_storage_url(self) -> str | None:
         redis_url = os.getenv("REDIS_URL")
         if self.RATE_LIMIT_STORAGE == "redis" and redis_url:
             return redis_url
         return None
 
 
-def get_cors_config(config: Optional[SecurityConfig] = None) -> dict:
+def get_cors_config(config: SecurityConfig | None = None) -> dict:
     cfg = config or get_security_config()
     return {
         "allow_origins": cfg.cors_allowed_origins_str,
@@ -148,7 +143,7 @@ def get_cors_config(config: Optional[SecurityConfig] = None) -> dict:
     }
 
 
-def get_rate_limit_config(config: Optional[SecurityConfig] = None) -> dict:
+def get_rate_limit_config(config: SecurityConfig | None = None) -> dict:
     cfg = config or get_security_config()
     return {
         "enabled": cfg.RATE_LIMIT_ENABLED,
@@ -166,7 +161,7 @@ def get_rate_limit_config(config: Optional[SecurityConfig] = None) -> dict:
     }
 
 
-def is_production(config: Optional[SecurityConfig] = None) -> bool:
+def is_production(config: SecurityConfig | None = None) -> bool:
     cfg = config or get_security_config()
     return os.getenv("ENV", os.getenv("ENVIRONMENT", "development")).lower() == "production"
 

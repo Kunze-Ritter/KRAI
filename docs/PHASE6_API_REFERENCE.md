@@ -1272,7 +1272,7 @@ const results = await client.search.multimodal({
 
 ---
 
-**Last Updated**: 2025-12-08  
-**Version**: 1.0  
-**API Version**: v1  
+**Last Updated**: 2025-12-08
+**Version**: 1.0
+**API Version**: v1
 **Compatible with**: KRAI Phase 6 (v3.0+)

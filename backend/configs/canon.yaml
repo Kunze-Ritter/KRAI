@@ -18,28 +18,28 @@ product_patterns:
     examples: ["imageRUNNER ADVANCE C5535i", "imageRUNNER ADVANCE DX C5760i"]
     series: "imageRUNNER ADVANCE"
     type: "multifunction"
-  
+
   # imageRUNNER Series (Legacy)
   - pattern: '\bimageRUNNER\s+[A-Z]?\d{3,4}[a-z]{0,3}\b'
     flags: IGNORECASE
     examples: ["imageRUNNER 2525", "imageRUNNER C3220"]
     series: "imageRUNNER"
     type: "multifunction"
-  
+
   # PIXMA Series
   - pattern: '\bPIXMA\s+[A-Z]{2}\d{3,4}\b'
     flags: IGNORECASE
     examples: ["PIXMA TR8620", "PIXMA G7020"]
     series: "PIXMA"
     type: "multifunction"
-  
+
   # imagePRESS Series
   - pattern: '\bimagePRESS\s+[A-Z]?\d{3,4}[a-z]{0,3}\b'
     flags: IGNORECASE
     examples: ["imagePRESS C910", "imagePRESS C10000VP"]
     series: "imagePRESS"
     type: "printer"
-  
+
   # i-SENSYS Series
   - pattern: '\bi-SENSYS\s+(?:MF|LBP)\d{3,4}[a-z]{0,3}\b'
     flags: IGNORECASE
@@ -53,22 +53,22 @@ series:
     patterns: ["imageRUNNER\\s+ADVANCE"]
     type: "multifunction"
     description: "Canon imageRUNNER ADVANCE Multifunction Printers"
-  
+
   - name: "imageRUNNER"
     patterns: ["imageRUNNER"]
     type: "multifunction"
     description: "Canon imageRUNNER Multifunction Printers"
-  
+
   - name: "imagePRESS"
     patterns: ["imagePRESS"]
     type: "printer"
     description: "Canon imagePRESS Production Printers"
-  
+
   - name: "PIXMA"
     patterns: ["PIXMA"]
     type: "Inkjet"
     description: "Canon PIXMA Inkjet Printers"
-  
+
   - name: "i-SENSYS"
     patterns: ["i-SENSYS"]
     type: "printer"
@@ -81,36 +81,36 @@ part_prefixes:
     type: "toner_cartridge"
     pattern: "^C-EXV\\d{1,2}[A-Z]?$"
     examples: ["C-EXV54", "C-EXV55", "C-EXV56", "C-EXV57"]
-  
+
   - prefix: "GPR"
     type: "toner_cartridge"
     pattern: "^GPR-\\d{1,2}[A-Z]?$"
     examples: ["GPR-53", "GPR-54", "GPR-55"]
-  
+
   # Drum Units
   - prefix: "C-EXV"
     type: "drum_unit"
     pattern: "^C-EXV\\d{1,2}[A-Z]?$"
     examples: ["C-EXV34", "C-EXV35"]
-  
+
   # Waste Toner Box
   - prefix: "FM"
     type: "waste_toner_box"
     pattern: "^FM\\d-\\d{4}-\\d{3}$"
     examples: ["FM4-8400-010"]
-  
+
   # Finishers
   - prefix: "D"
     type: "finisher"
     pattern: "^D\\d-\\d{4}$"
     examples: ["D1-4400", "D1-4401"]
-  
+
   # Paper Trays
   - prefix: "PF"
     type: "paper_tray"
     pattern: "^PF-\\d{3}$"
     examples: ["PF-701", "PF-702"]
-  
+
   # Staple Cartridges
   - prefix: "D"
     type: "staple_cartridge"

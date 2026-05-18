@@ -57,12 +57,12 @@ version_patterns = [
     # Edition patterns
     r'edition\s+([0-9]+(?:\.[0-9]+)?)\s*,?\s*([0-9]+/[0-9]{4})',  # Edition 3, 5/2024
     r'edition\s+([0-9]+(?:\.[0-9]+)?)',  # Edition 4.0
-    
+
     # Date patterns
     r'([0-9]{4}/[0-9]{2}/[0-9]{2})',   # 2024/12/25
     r'([0-9]{2}/[0-9]{4})',            # 5/2024
     r'([a-z]+\s+[0-9]{4})',            # November 2024
-    
+
     # Firmware patterns
     r'fw\s+([0-9\.]+)',
     r'firmware\s+([0-9\.]+)',
@@ -103,7 +103,7 @@ VALUES ('new_file.pdf', 'new_hash', 'Edition 11, 4/2025', ...);
 ### **✅ VERSION-TRACKING ÜBER RELATIONSHIPS:**
 ```sql
 -- Relationship für Version-Historie
-INSERT INTO krai_core.document_relationships 
+INSERT INTO krai_core.document_relationships
 (primary_document_id, secondary_document_id, relationship_type)
 VALUES (new_doc_id, old_doc_id, 'supersedes');
 ```

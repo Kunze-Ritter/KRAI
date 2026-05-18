@@ -20,20 +20,19 @@ from __future__ import annotations
 
 import argparse
 import base64
-import os
 import re
 import sys
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple
 from urllib.parse import urlparse
 
 try:  # pragma: no cover - optional dependency
-    from rich.console import Console
-    from rich.table import Table
-    from rich.panel import Panel
-    from rich.text import Text
     from rich import box
+    from rich.console import Console
+    from rich.panel import Panel
+    from rich.table import Table
+    from rich.text import Text
 except ImportError:  # pragma: no cover - graceful degradation
     Console = None  # type: ignore
     Table = None  # type: ignore
@@ -41,7 +40,8 @@ except ImportError:  # pragma: no cover - graceful degradation
     Text = None  # type: ignore
     box = None  # type: ignore
 
-def requires_firecrawl_api_key(env: Dict[str, str]) -> bool:
+
+def requires_firecrawl_api_key(env: dict[str, str]) -> bool:
     """Determine whether the Firecrawl API key must be present."""
 
     flag = env.get("FIRECRAWL_REQUIRE_API_KEY")
@@ -68,7 +68,7 @@ def requires_firecrawl_api_key(env: Dict[str, str]) -> bool:
     return True
 
 
-REQUIRED_VARIABLES: Dict[str, Dict[str, object]] = {
+REQUIRED_VARIABLES: dict[str, dict[str, object]] = {
     "DATABASE_PASSWORD": {
         "type": "password",
         "min_length": 12,
@@ -101,7 +101,7 @@ REQUIRED_VARIABLES: Dict[str, Dict[str, object]] = {
     },
 }
 
-OPTIONAL_VARIABLES: Dict[str, Dict[str, str]] = {
+OPTIONAL_VARIABLES: dict[str, dict[str, str]] = {
     "YOUTUBE_API_KEY": {
         "description": "YouTube Data API key (optional - analytics & ingestion)",
         "source": "https://console.cloud.google.com/apis/credentials",
@@ -116,7 +116,7 @@ OPTIONAL_VARIABLES: Dict[str, Dict[str, str]] = {
     },
 }
 
-CONDITIONAL_VARIABLES: List[Dict[str, object]] = [
+CONDITIONAL_VARIABLES: list[dict[str, object]] = [
     {
         "when": {"SCRAPING_BACKEND": "firecrawl"},
         "variables": {
@@ -144,20 +144,20 @@ CONDITIONAL_VARIABLES: List[Dict[str, object]] = [
     },
 ]
 
-DOCKER_SERVICE_NAMES: Dict[str, str] = {
+DOCKER_SERVICE_NAMES: dict[str, str] = {
     "DATABASE_HOST": "krai-postgres",
     "OBJECT_STORAGE_ENDPOINT": "http://krai-minio:9000",
     "OLLAMA_URL": "http://krai-ollama:11434",
 }
 
-PASSWORD_COMPLEXITY_RULES: Dict[str, str] = {
+PASSWORD_COMPLEXITY_RULES: dict[str, str] = {
     "uppercase": r"[A-Z]",
     "lowercase": r"[a-z]",
     "digit": r"\d",
     "special": r"[^\w\s]",
 }
 
-ENV_FILE_NAMES: Tuple[str, ...] = (".env", ".env.local", ".env.database")
+ENV_FILE_NAMES: tuple[str, ...] = (".env", ".env.local", ".env.database")
 
 
 @dataclass
@@ -178,18 +178,18 @@ class EnvValidator:
         verbose: bool = False,
         strict: bool = False,
         enforce_complexity: bool = True,
-        docker_context: Optional[bool] = None,
+        docker_context: bool | None = None,
     ) -> None:
         self.env_path = env_path
         self.verbose = verbose
         self.strict = strict
         self.enforce_complexity = enforce_complexity
-        self.docker_context: Optional[bool] = docker_context
-        self.console: Optional[Console] = Console() if Console else None
-        self.env_vars: Dict[str, str] = {}
-        self.errors: List[ValidationMessage] = []
-        self.warnings: List[ValidationMessage] = []
-        self.infos: List[ValidationMessage] = []
+        self.docker_context: bool | None = docker_context
+        self.console: Console | None = Console() if Console else None
+        self.env_vars: dict[str, str] = {}
+        self.errors: list[ValidationMessage] = []
+        self.warnings: list[ValidationMessage] = []
+        self.infos: list[ValidationMessage] = []
 
     # ---------------------------------------------------------------------
     # Public API
@@ -240,9 +240,7 @@ class EnvValidator:
         """Load key/value pairs from the specified .env file."""
 
         if not self.env_path.exists():
-            self.errors.append(
-                ValidationMessage("error", "FILE", f"Environment file not found: {self.env_path}")
-            )
+            self.errors.append(ValidationMessage("error", "FILE", f"Environment file not found: {self.env_path}"))
             return False
 
         for line_no, line in enumerate(self.env_path.read_text(encoding="utf-8").splitlines(), start=1):
@@ -279,17 +277,15 @@ class EnvValidator:
 
     def validate_required_variables(
         self,
-        requirements: Dict[str, Dict[str, object]],
-        password_policies: Optional[Dict[str, object]] = None,
+        requirements: dict[str, dict[str, object]],
+        password_policies: dict[str, object] | None = None,
     ) -> None:
         """Ensure required variables are present and valid."""
 
         for variable, rules in requirements.items():
             value = self.env_vars.get(variable, "").strip()
             if not value:
-                self.errors.append(
-                    ValidationMessage("error", variable, "Missing required variable")
-                )
+                self.errors.append(ValidationMessage("error", variable, "Missing required variable"))
                 continue
 
             min_length = int(rules.get("min_length", 0))
@@ -316,9 +312,7 @@ class EnvValidator:
                 )
                 continue
 
-            if value_type == "password" and not self.validate_password_complexity(
-                value, min_length, password_policies
-            ):
+            if value_type == "password" and not self.validate_password_complexity(value, min_length, password_policies):
                 self.errors.append(
                     ValidationMessage(
                         "error",
@@ -327,15 +321,11 @@ class EnvValidator:
                     )
                 )
             elif value_type == "base64" and not self.validate_base64(value):
-                self.errors.append(
-                    ValidationMessage("error", variable, "Value is not valid base64")
-                )
+                self.errors.append(ValidationMessage("error", variable, "Value is not valid base64"))
             elif value_type == "url" and not self.validate_url(value):
-                self.errors.append(
-                    ValidationMessage("error", variable, "Value is not a valid URL")
-                )
+                self.errors.append(ValidationMessage("error", variable, "Value is not a valid URL"))
 
-    def validate_optional_variables(self, optional_vars: Dict[str, Dict[str, str]]) -> None:
+    def validate_optional_variables(self, optional_vars: dict[str, dict[str, str]]) -> None:
         """Emit warnings for optional variables that are missing or empty."""
 
         for variable, meta in optional_vars.items():
@@ -353,8 +343,8 @@ class EnvValidator:
 
     def validate_conditional_variables(
         self,
-        conditional_rules: List[Dict[str, object]],
-        password_policies: Optional[Dict[str, object]] = None,
+        conditional_rules: list[dict[str, object]],
+        password_policies: dict[str, object] | None = None,
     ) -> None:
         """Validate variables that depend on other configuration values."""
 
@@ -389,7 +379,7 @@ class EnvValidator:
 
             self.validate_required_variables(variables, password_policies)  # type: ignore[arg-type]
 
-    def validate_docker_service_names(self, expected: Dict[str, str]) -> None:
+    def validate_docker_service_names(self, expected: dict[str, str]) -> None:
         """Warn when Docker-specific variables use non-container hostnames."""
 
         for variable, expected_value in expected.items():
@@ -402,10 +392,7 @@ class EnvValidator:
                     ValidationMessage(
                         "warning",
                         variable,
-                        (
-                            "Expected Docker service reference "
-                            f"`{expected_value}` but found `{actual}`."
-                        ),
+                        ("Expected Docker service reference " f"`{expected_value}` but found `{actual}`."),
                     )
                 )
 
@@ -413,7 +400,7 @@ class EnvValidator:
     # Helpers
     # ------------------------------------------------------------------
     def validate_password_complexity(
-        self, password: str, min_length: int, password_policies: Optional[Dict[str, object]]
+        self, password: str, min_length: int, password_policies: dict[str, object] | None
     ) -> bool:
         """Check that a password meets minimum complexity requirements."""
 
@@ -456,8 +443,8 @@ class EnvValidator:
                 return False
         return True
 
-    def _load_password_policies(self) -> Dict[str, object]:
-        policies: Dict[str, object] = {}
+    def _load_password_policies(self) -> dict[str, object]:
+        policies: dict[str, object] = {}
         min_length_env = self.env_vars.get("PASSWORD_MIN_LENGTH")
         if min_length_env and min_length_env.isdigit():
             policies["min_length"] = int(min_length_env)
@@ -503,13 +490,11 @@ class EnvValidator:
 
     @staticmethod
     def _strip_quotes(value: str) -> str:
-        if (value.startswith("\"") and value.endswith("\"")) or (
-            value.startswith("\'") and value.endswith("\'")
-        ):
+        if (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
             return value[1:-1]
         return value
 
-    def _conditions_satisfied(self, conditions: Dict[str, str]) -> bool:
+    def _conditions_satisfied(self, conditions: dict[str, str]) -> bool:
         for key, expected_value in conditions.items():
             actual_value = self.env_vars.get(key)
             if actual_value is None:
@@ -598,7 +583,8 @@ class EnvValidator:
 # Utility functions
 # ----------------------------------------------------------------------
 
-def find_env_file(target: Optional[str]) -> Path:
+
+def find_env_file(target: str | None) -> Path:
     """Locate the environment file to validate."""
 
     if target:
@@ -636,7 +622,8 @@ def print_validation_summary(errors: Iterable[ValidationMessage], warnings: Iter
 # CLI entry point
 # ----------------------------------------------------------------------
 
-def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Validate the consolidated .env file.")
     parser.add_argument(
         "--env-file",
@@ -668,11 +655,11 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def main(argv: Optional[List[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     env_path = find_env_file(args.env_file)
 
-    docker_context: Optional[bool]
+    docker_context: bool | None
     if args.docker_context == "on":
         docker_context = True
     elif args.docker_context == "off":

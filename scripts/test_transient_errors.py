@@ -12,10 +12,10 @@ Usage:
     python scripts/test_transient_errors.py --all        # Run pytest and print simulation steps
 """
 
-import os
-import sys
-import subprocess
 import argparse
+import os
+import subprocess
+import sys
 
 # Project root (parent of scripts/)
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -47,7 +47,8 @@ def run_pytest(verbose: bool = True) -> int:
 
 def print_simulation_steps():
     """Print documented steps to simulate transient errors."""
-    print("""
+    print(
+        """
 === Transient Error Simulation Steps ===
 
 1. Simulate Ollama service down
@@ -89,7 +90,8 @@ def print_simulation_steps():
    - Trigger same document/stage again
    - Verify: Second attempt returns retry_in_progress
    - Wait for first retry to complete; verify lock released
-""")
+"""
+    )
 
 
 def main():

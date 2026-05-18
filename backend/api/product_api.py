@@ -1,22 +1,17 @@
-﻿"""PostgreSQL-backed Product API routes for KR-AI-Engine."""
+"""PostgreSQL-backed Product API routes for KR-AI-Engine."""
+
 from __future__ import annotations
 
 import logging
 from math import ceil
-from typing import Any, Dict, List
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from api.middleware.auth_middleware import require_permission
 from api.routes.response_models import SuccessResponse
 from models.document import PaginationParams
-from models.product import (
-    ProductFilterParams,
-    ProductListResponse,
-    ProductResponse,
-    ProductSortParams,
-    SortOrder,
-)
+from models.product import ProductFilterParams, ProductListResponse, ProductResponse, ProductSortParams, SortOrder
 from services.database_adapter import DatabaseAdapter
 
 
@@ -36,13 +31,13 @@ class ProductAPI:
             pagination: PaginationParams = Depends(),
             filters: ProductFilterParams = Depends(),
             sort: ProductSortParams = Depends(),
-            current_user: Dict[str, Any] = Depends(require_permission("products:read")),
+            current_user: dict[str, Any] = Depends(require_permission("products:read")),
         ) -> SuccessResponse[ProductListResponse]:
             """List products with pagination, filtering, and sorting (PostgreSQL-backed)."""
 
             try:
-                conditions: List[str] = []
-                params: Dict[str, Any] = {}
+                conditions: list[str] = []
+                params: dict[str, Any] = {}
 
                 if filters.manufacturer_id:
                     conditions.append("manufacturer_id = :manufacturer_id")
@@ -130,17 +125,10 @@ class ProductAPI:
                     FROM krai_core.products_backup
                 """
 
-                list_query = (
-                    base_select
-                    + where_clause
-                    + order_clause
-                    + " LIMIT :limit OFFSET :offset"
-                )
+                list_query = base_select + where_clause + order_clause + " LIMIT :limit OFFSET :offset"
                 rows = await self.database_service.fetch_all(list_query, params)
 
-                count_query = (
-                    "SELECT COUNT(*) AS count FROM krai_core.products_backup" + where_clause
-                )
+                count_query = "SELECT COUNT(*) AS count FROM krai_core.products_backup" + where_clause
                 count_row = await self.database_service.fetch_one(count_query, params)
                 total = int(count_row["count"]) if count_row and "count" in count_row else 0
 
@@ -164,14 +152,13 @@ class ProductAPI:
                 raise HTTPException(status_code=500, detail=str(exc))
 
         # Simple in-memory product types endpoint, mirroring legacy behavior
-        @self.router.get("/types", response_model=SuccessResponse[Dict[str, List[str]]])
+        @self.router.get("/types", response_model=SuccessResponse[dict[str, list[str]]])
         async def get_product_types(
             request: Request,
-            current_user: Dict[str, Any] = Depends(require_permission("products:read")),
-        ) -> SuccessResponse[Dict[str, List[str]]]:
+            current_user: dict[str, Any] = Depends(require_permission("products:read")),
+        ) -> SuccessResponse[dict[str, list[str]]]:
             """Return the canonical list of allowed product types from backend.constants.product_types."""
             from backend.constants.product_types import ALLOWED_PRODUCT_TYPES
 
             product_types = sorted(ALLOWED_PRODUCT_TYPES)
             return SuccessResponse(data={"product_types": product_types})
-

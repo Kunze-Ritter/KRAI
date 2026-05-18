@@ -5,14 +5,14 @@
 ### Symptoms
 ```
 ERROR - Failed to call Ollama model llava:7b: Ollama API error: 500
-{"error":"model runner has unexpectedly stopped, this may be due to 
+{"error":"model runner has unexpectedly stopped, this may be due to
 resource limitations or an internal error, check ollama server logs for details"}
 ```
 
 ### Root Cause
 The vision model (`llava:7b`) is crashing due to:
 - **VRAM exhaustion** when processing images
-- **Multiple concurrent model loads** 
+- **Multiple concurrent model loads**
 - **GPU driver/system instability**
 - **Ollama in stuck state** after previous crash
 

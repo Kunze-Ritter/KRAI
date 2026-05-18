@@ -65,7 +65,7 @@ Falls du das Setup manuell durchführen möchtest:
 
 2. **Konfiguration**:
    - **Subdomain**: Wähle einen Namen (z.B. `krai-n8n`)
-   - **Domain**: 
+   - **Domain**:
      - Wenn du eine eigene Domain bei Cloudflare hast → Wähle diese
      - Sonst → Wähle `*.trycloudflare.com` (kostenlos)
    - **Path**: Leer lassen

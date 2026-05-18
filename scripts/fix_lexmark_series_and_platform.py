@@ -7,6 +7,7 @@ series, and also creates missing video_products entries.
 Also updates platform from 'lexmark_support' → 'direct' since Lexmark
 hosts plain MP4 files (no Brightcove, no YouTube).
 """
+
 import asyncio
 import re
 import sys
@@ -192,18 +193,18 @@ async def main():
         )
 
         print(f"\n{'='*55}")
-        print(f"  Ergebnis")
+        print("  Ergebnis")
         print(f"{'='*55}")
         print(f"  Videos gesamt          : {total}")
         print(f"  Noch ohne series_id    : {null_remaining}")
-        print(f"\n  Plattformen:")
+        print("\n  Plattformen:")
         for r in platforms:
             print(f"    {r['platform']:20s}  {r['n']:>5}")
-        print(f"\n  Videos pro Serie:")
+        print("\n  Videos pro Serie:")
         for r in series_counts:
             print(f"    {r['series_name']:14s}  {r['videos']:>5}")
-        print(f"\n  ℹ️  Lexmark nutzt direkte MP4-Dateien (kein Brightcove).")
-        print(f"     Die eigentliche MP4-URL steckt im HTML der Support-Seite.")
+        print("\n  ℹ️  Lexmark nutzt direkte MP4-Dateien (kein Brightcove).")
+        print("     Die eigentliche MP4-URL steckt im HTML der Support-Seite.")
         print(f"{'='*55}")
 
     await db.disconnect()

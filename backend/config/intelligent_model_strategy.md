@@ -60,7 +60,7 @@ confidence = 0.4
         "examples": [
           {
             "placeholder": "Cxx0i",
-            "pattern": "C\\d{3}0i", 
+            "pattern": "C\\d{3}0i",
             "actual_models": ["C450i", "C550i", "C650i"],
             "manufacturer": "konica_minolta",
             "series": "i-series"
@@ -78,15 +78,15 @@ class IntelligentModelExtractor:
     def extract_models(self, text, manufacturer):
         # 1. Exact matches
         exact_models = self._extract_exact_models(text)
-        
+
         # 2. Placeholder expansion
         placeholders = self._extract_placeholders(text)
         expanded_models = self._expand_placeholders(placeholders)
-        
+
         # 3. Series inference
         series = self._extract_series(text)
         series_models = self._infer_models_from_series(series)
-        
+
         # 4. Combine and deduplicate
         all_models = exact_models + expanded_models + series_models
         return list(set(all_models))
@@ -156,14 +156,14 @@ manufacturer_rules = {
 ```sql
 -- Modelle in Datenbank speichern
 INSERT INTO krai_core.products (
-    model_number, 
-    series, 
+    model_number,
+    series,
     manufacturer_id,
     placeholder_pattern,
     actual_models
 ) VALUES (
-    'Cxx0i', 
-    'i-series', 
+    'Cxx0i',
+    'i-series',
     'konica_minolta_id',
     'C\d{3}0i',
     ARRAY['C450i', 'C550i', 'C650i', 'C750i']
@@ -180,7 +180,7 @@ def process_document_with_intelligent_models(file_path, text):
     # Extract models with intelligent placeholder handling
     model_extractor = IntelligentModelExtractor()
     model_result = model_extractor.extract_models(text, manufacturer)
-    
+
     # Store in database
     document_data = {
         'file_name': file_path.name,
@@ -189,7 +189,7 @@ def process_document_with_intelligent_models(file_path, text):
         'series': model_result['series'],
         'model_confidence': model_result['confidence']
     }
-    
+
     return document_data
 ```
 

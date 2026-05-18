@@ -36,4 +36,3 @@ This section documents all currently supported variables using a consistent sche
 - **Notes:** Additional context or warnings
 
 Variables are organized by functional area matching the structure in .env.example.
-

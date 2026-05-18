@@ -13,10 +13,10 @@ Usage:
     python scripts/test_correlation_ids.py --doc      # Print verification steps only
 """
 
-import os
-import sys
-import re
 import argparse
+import os
+import re
+import sys
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(SCRIPT_DIR)
@@ -26,6 +26,7 @@ sys.path.insert(0, ROOT)
 def test_correlation_id_format():
     """Verify correlation ID format without database."""
     from backend.core.retry_engine import RetryOrchestrator
+
     request_id = "req_a3f2e8d1"
     stage_name = "image_processing"
     for attempt in (0, 1, 2):
@@ -42,6 +43,7 @@ def test_correlation_id_format():
 def run_pytest() -> int:
     """Run pytest for correlation ID and error logging tests."""
     import subprocess
+
     cmd = [
         sys.executable,
         "-m",
@@ -60,7 +62,8 @@ def run_pytest() -> int:
 
 def print_doc():
     """Print verification steps for correlation ID tracking."""
-    print("""
+    print(
+        """
 === Correlation ID Verification Steps ===
 
 1. Format: RetryOrchestrator.generate_correlation_id(request_id, stage_name, retry_attempt)
@@ -77,7 +80,8 @@ def print_doc():
 4. Retry chain: retry_0, retry_1, retry_2 for same request_id/stage
    - context.correlation_id and context.retry_attempt updated per retry
    - result.correlation_id and result.error_id in ProcessingResult
-""")
+"""
+    )
 
 
 def main():

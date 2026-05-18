@@ -9,13 +9,13 @@ Three critical bugs have been fixed in your KRAI-minimal pipeline:
 **Fix**: Added null checks in `metadata_processor_ai.py`
 
 ### ✅ Issue 2: Ollama GPU Configuration
-**Status**: FIXED  
+**Status**: FIXED
 **What was wrong**: Missing Ollama config, unclear model selection
 **Fix**: Added full configuration to `.env`, explicit `llava:7b` selection
 
 ### ✅ Issue 3: Vision Model Crashes
 **Status**: FIXED
-**What was wrong**: 
+**What was wrong**:
 - Model runner crashes with "resource limitations"
 - Fallback system called non-existent method
 - Tried larger models on failure (made it worse)

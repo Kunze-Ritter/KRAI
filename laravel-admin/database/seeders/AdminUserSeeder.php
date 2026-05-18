@@ -14,7 +14,7 @@ class AdminUserSeeder extends Seeder
         // Delete existing admin users to avoid duplicates
         User::where('email', 'admin@krai.local')->delete();
         User::where('email', 'test@example.com')->delete();
-        
+
         // Create new admin user
         User::create([
             'name' => 'KRAI Administrator',
@@ -23,7 +23,7 @@ class AdminUserSeeder extends Seeder
             'password' => Hash::make('admin123'),
             'remember_token' => \Illuminate\Support\Str::random(10),
         ]);
-        
+
         $this->command->info('Admin user created successfully!');
         $this->command->info('Email: admin@krai.local');
         $this->command->info('Password: admin123');

@@ -47,7 +47,7 @@ docker exec krai-engine-cuda python -c "import torch; print('CUDA available:', t
 
 When running with CUDA support, the following models are GPU-accelerated:
 - **LLaMA 3.2**: Latest language model
-- **nomic-embed-text**: Text embedding model  
+- **nomic-embed-text**: Text embedding model
 - **llava**: Vision-language model
 
 ## Performance Benefits

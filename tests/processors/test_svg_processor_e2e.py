@@ -5,14 +5,13 @@ structured-data fixtures. These tests are intentionally narrower than the
 full design document to keep runtime acceptable.
 """
 
-from uuid import uuid4
 from pathlib import Path
+from uuid import uuid4
 
 import pytest
 
-from backend.processors.svg_processor import SVGProcessor
 from backend.core.base_processor import ProcessingContext
-
+from backend.processors.svg_processor import SVGProcessor
 
 pytestmark = [pytest.mark.processor, pytest.mark.svg]
 

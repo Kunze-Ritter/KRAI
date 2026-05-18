@@ -1,11 +1,10 @@
-import sys
 import os
+import sys
 from uuid import uuid4
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "backend"))
 
 from processors.chunker import SmartChunker
-from processors.models import TextChunk
 
 
 def test_header_cleanup_enabled():

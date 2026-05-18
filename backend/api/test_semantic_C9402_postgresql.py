@@ -2,10 +2,8 @@
 Check if semantic search has better data for C9402 (PostgreSQL version)
 """
 
-import json
-import os
-import sys
 import asyncio
+import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -25,11 +23,12 @@ async def semantic_search(query: str, limit: int = 5):
     # Generate embedding for query
     embedding_service = EmbeddingService()
     query_embedding = await embedding_service.generate_embedding(query)
-    
+
     pool = await get_pool()
     async with pool.acquire() as conn:
-        results = await conn.fetch("""
-            SELECT 
+        results = await conn.fetch(
+            """
+            SELECT
                 c.id,
                 c.content,
                 c.page_number,
@@ -42,26 +41,29 @@ async def semantic_search(query: str, limit: int = 5):
             WHERE c.embedding IS NOT NULL
             ORDER BY c.embedding <=> $1::vector
             LIMIT $2
-        """, query_embedding, limit)
-        
+        """,
+            query_embedding,
+            limit,
+        )
+
         return [dict(row) for row in results]
 
 
 async def main():
-    print("="*60)
+    print("=" * 60)
     print("TESTING: semantic_search('C9402 Konica Minolta')")
-    print("="*60)
-    
+    print("=" * 60)
+
     chunks = await semantic_search("C9402 Konica Minolta error solution", limit=5)
-    
+
     print(f"\nFound: {len(chunks) > 0}")
     print(f"Count: {len(chunks)}")
-    
+
     if chunks:
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("TOP 3 RESULTS:")
-        print("="*60)
-        
+        print("=" * 60)
+
         for i, chunk in enumerate(chunks[:3], 1):
             print(f"\n--- Result {i} ---")
             print(f"Document: {chunk.get('document_filename', 'Unknown')}")
@@ -70,11 +72,11 @@ async def main():
             print(f"Similarity: {chunk.get('similarity_score', 'Unknown'):.4f}")
             print(f"\nContent ({len(chunk.get('content', ''))} chars):")
             print("-" * 60)
-            content = chunk.get('content', '')
+            content = chunk.get("content", "")
             print(content[:800])  # First 800 chars
             print("\n...")
             print("-" * 60)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     asyncio.run(main())

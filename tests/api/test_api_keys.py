@@ -1,8 +1,9 @@
 """API key management endpoint tests with dependency overrides."""
+
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Tuple
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
@@ -16,9 +17,9 @@ class StubAPIKeyService:
     """Lightweight stub capturing API key operations for tests."""
 
     def __init__(self) -> None:
-        self.calls: List[Tuple[str, Tuple[Any, ...]]] = []
-        now = datetime.now(timezone.utc)
-        self.sample_key: Dict[str, Any] = {
+        self.calls: list[tuple[str, tuple[Any, ...]]] = []
+        now = datetime.now(UTC)
+        self.sample_key: dict[str, Any] = {
             "id": "key-123",
             "name": "CI Bot",
             "permissions": ["documents:read"],
@@ -30,7 +31,7 @@ class StubAPIKeyService:
             "revoked": False,
         }
 
-    async def list_user_api_keys(self, user_id: str) -> List[Dict[str, Any]]:
+    async def list_user_api_keys(self, user_id: str) -> list[dict[str, Any]]:
         self.calls.append(("list_user_api_keys", (user_id,)))
         return [self.sample_key]
 
@@ -38,13 +39,13 @@ class StubAPIKeyService:
         self,
         user_id: str,
         name: str,
-        permissions: List[str],
+        permissions: list[str],
         expires_in_days: int | None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         self.calls.append(("create_api_key", (user_id, name, tuple(permissions), expires_in_days)))
         return {**self.sample_key, "key": "krai_live_created"}
 
-    async def rotate_api_key(self, key_id: str, user_id: str) -> Dict[str, Any]:
+    async def rotate_api_key(self, key_id: str, user_id: str) -> dict[str, Any]:
         self.calls.append(("rotate_api_key", (key_id, user_id)))
         return {**self.sample_key, "key": "krai_live_rotated", "version": self.sample_key["version"] + 1}
 

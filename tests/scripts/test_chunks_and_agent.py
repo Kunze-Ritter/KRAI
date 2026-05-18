@@ -1,11 +1,13 @@
 """
 Test Script: Chunk-Größe prüfen und Agent testen
 """
+
 import os
 import sys
 from pathlib import Path
+
 import requests
-import json
+
 from backend.services.database_factory import create_database_adapter
 
 # Ensure project root on path and load environment
@@ -42,7 +44,7 @@ try:
         "krai_intelligence.chunks",
         columns=["id", "text_chunk", "chunk_index", "page_start", "page_end", "document_id"],
         limit=5,
-        order=[("created_at", "desc")]
+        order=[("created_at", "desc")],
     )
     success = True
 except Exception as e:
@@ -52,20 +54,20 @@ except Exception as e:
 
 if success and chunks:
     print(f"✅ {len(chunks)} Chunks gefunden\n")
-    
+
     for i, chunk in enumerate(chunks, 1):
-        text_length = len(chunk.get('text_chunk', ''))
+        text_length = len(chunk.get("text_chunk", ""))
         print(f"Chunk #{i}:")
         print(f"  - ID: {chunk['id'][:8]}...")
         print(f"  - Länge: {text_length} Zeichen")
         print(f"  - Seiten: {chunk.get('page_start', '?')} - {chunk.get('page_end', '?')}")
         print(f"  - Vorschau: {chunk.get('text_chunk', '')[:100]}...")
         print()
-    
+
     # Durchschnittliche Chunk-Größe
-    avg_length = sum(len(c.get('text_chunk', '')) for c in chunks) / len(chunks)
+    avg_length = sum(len(c.get("text_chunk", "")) for c in chunks) / len(chunks)
     print(f"📈 Durchschnittliche Chunk-Größe: {avg_length:.0f} Zeichen")
-    
+
     if avg_length < 100:
         print("⚠️  WARNUNG: Chunks sind sehr klein! (< 100 Zeichen)")
         print("   Das könnte zu schlechten Suchergebnissen führen.")
@@ -103,16 +105,12 @@ test_query = "Konica Minolta C3320i Fehler C9402"
 print(f"Query: {test_query}")
 
 try:
-    search_response = requests.post(
-        "http://localhost:8000/search/error-codes",
-        json={"query": test_query},
-        timeout=30
-    )
-    
+    search_response = requests.post("http://localhost:8000/search/error-codes", json={"query": test_query}, timeout=30)
+
     if search_response.status_code == 200:
         results = search_response.json()
         print(f"✅ {len(results)} Ergebnisse gefunden")
-        
+
         if results:
             print("\nTop Ergebnis:")
             top = results[0]
@@ -137,18 +135,13 @@ print(f"Query: {semantic_query}")
 
 try:
     semantic_response = requests.post(
-        "http://localhost:8000/search/semantic",
-        json={
-            "query": semantic_query,
-            "limit": 3
-        },
-        timeout=30
+        "http://localhost:8000/search/semantic", json={"query": semantic_query, "limit": 3}, timeout=30
     )
-    
+
     if semantic_response.status_code == 200:
         results = semantic_response.json()
         print(f"✅ {len(results)} Ergebnisse gefunden")
-        
+
         if results:
             print("\nTop Ergebnis:")
             top = results[0]

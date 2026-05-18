@@ -12,7 +12,7 @@
 console.println("=== LOGIC REGISTRY ===");
 console.println(Registry.System.Logic.toXMLString());
 
-// Export Atoms Registry  
+// Export Atoms Registry
 console.println("=== ATOMS REGISTRY ===");
 console.println(Registry.System.Atoms.toXMLString());
 
@@ -64,4 +64,3 @@ console.println(sprites.join(";"));
 - **Groups**: Wie sind Optionen gruppiert (links/rechts/oben/unten)
 - **Atoms**: Alle verfügbaren Items mit ihren Properties
 - **FunctionGroups.Choice**: Auswahl-Logik und Abhängigkeiten
-

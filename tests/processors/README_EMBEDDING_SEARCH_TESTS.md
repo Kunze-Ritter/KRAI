@@ -17,12 +17,12 @@ Ollama or PostgreSQL connection is required**.
 
 ## Test Files
 
-- **`test_embedding_processor_unit.py`**  
+- **`test_embedding_processor_unit.py`**
   Unit tests for `EmbeddingProcessor` internals: configuration and
   status reporting, adaptive batch size logic, the `search_similar`
   helper (RPC parameter construction), and the JSON‑safety helper.
 
-- **`test_embedding_processor_e2e.py`**  
+- **`test_embedding_processor_e2e.py`**
   E2E‑style tests for Stage 7 using `E2EEmbeddingProcessor`, a
   test‑only subclass that writes directly into `MockDatabaseAdapter`
   stores instead of Supabase. Verifies that:
@@ -32,40 +32,40 @@ Ollama or PostgreSQL connection is required**.
   - partial failures are surfaced via `partial_success` and
     `failed_chunks`.
 
-- **`test_search_processor_unit.py`**  
+- **`test_search_processor_unit.py`**
   Unit tests for `SearchProcessor` internals and error paths:
   - behaviour when no `database_adapter` is configured,
   - happy‑path record counting against the `MockDatabaseAdapter`
     (`vw_chunks`, `vw_embeddings`, `vw_links`, `vw_videos`),
   - graceful handling when `execute_query` raises.
 
-- **`test_search_processor_e2e.py`**  
+- **`test_search_processor_e2e.py`**
   E2E‑style tests for the search indexing stage using real
   `SearchProcessor` + `MockDatabaseAdapter`. Stubs
   `SearchAnalytics.log_document_indexed` to avoid `asyncio.run` in tests
   while asserting that the analytics layer receives the same counts as
   the `ProcessingResult` metadata.
 
-- **`test_embedding_quality.py`**  
+- **`test_embedding_quality.py`**
   Embedding‑quality tests built on deterministic embeddings from
   `embedding_quality_metrics` and `sample_embeddings`. Checks
   self‑similarity, relative similarity of related vs. unrelated chunks,
   variance across diverse samples, and basic value‑range sanity.
 
-- **`test_search_relevance.py`**  
+- **`test_search_relevance.py`**
   High-level relevance smoke tests: uses the same deterministic
   embedding logic as above to rank chunks for a few canonical queries
   (paper jams, network configuration, fuser errors). Asserts that
   top-ranked texts contain the expected phrases.
 
-- **`test_embedding_search_pipeline_e2e.py`**  
+- **`test_embedding_search_pipeline_e2e.py`**
   Pipeline tests chaining Stage 7 (`E2EEmbeddingProcessor`) and Stage 10
   (`SearchProcessor`) on the same `MockDatabaseAdapter`. Confirms that
   `SearchProcessor` sees the exact chunk/embedding counts produced by
   the embedding stage and that the mock search-readiness snapshot marks
   the document as ready.
 
-- **`test_embedding_storage_integration.py`**  
+- **`test_embedding_storage_integration.py`**
   Integration-style tests that ensure consistency between legacy
   chunk-based embeddings (`chunks`/`legacy_embeddings`) and the new
   `krai_intelligence.chunks.embedding` storage, including similarity-search behaviour via
@@ -143,39 +143,39 @@ pytest tests/processors/ -m "embedding or search" --cov=backend/processors --cov
 
 Wichtige Fixtures aus `tests/processors/conftest.py` für diese Suite:
 
-- **`mock_database_adapter`**  
+- **`mock_database_adapter`**
   In‑Memory‑Implementierung von `DatabaseAdapter` mit Stores für
   `documents`, `chunks`, `links`, `videos`, `structured_tables`,
   `krai_intelligence.chunks.embedding`, `legacy_embeddings` u.a. Bietet Helper wie
   `count_chunks_by_document`, `count_embeddings_by_document` und
   `get_document_search_status`.
 
-- **`mock_embedding_service`**  
+- **`mock_embedding_service`**
   Deterministischer Embedding‑Generator mit fester Dimension (768). Die
   Methode `_generate_embedding(text)` verwendet einen SHA‑256‑Hash des
   Textes, um pro Testlauf reproduzierbare Vektoren zu liefern.
 
-- **`mock_ollama_service`**  
+- **`mock_ollama_service`**
   Kleine Mock‑Ollama‑Klasse mit `generate_embedding(text)`, die für
   Szenarien genutzt werden kann, in denen eine explizite „Ollama“‑API
   simuliert werden soll.
 
-- **`sample_chunks_with_content`**  
+- **`sample_chunks_with_content`**
   Diverser Satz von Text‑Chunks mit realistischen Inhalten (Fehlercodes,
   Teilelisten, Troubleshooting‑Schritte, Spezifikationen, mehrsprachige
   Phrasen, Video/Link‑Kontext). Dient als Grundlage für Embedding‑ und
   Relevanztests.
 
-- **`sample_embeddings`**  
+- **`sample_embeddings`**
   Vorberechnete Embeddings für alle `sample_chunks_with_content` unter
   Verwendung von `mock_embedding_service`. Jede Struktur enthält
   `chunk_id`, `embedding`, `content`, `metadata`.
 
-- **`search_quality_test_data`**  
+- **`search_quality_test_data`**
   Kleines Mapping von Beispielqueries auf erwartete Phrasen, das in den
   Search‑Relevanztests zur Interpretation der Rankings genutzt wird.
 
-- **`embedding_quality_metrics`**  
+- **`embedding_quality_metrics`**
   Helferobjekt mit `cosine_similarity`,
   `calculate_embedding_variance(vectors)` und
   `check_embedding_distribution(vec)`, damit Qualitätstests kompakt und
@@ -193,31 +193,31 @@ sinnvoll sind.
 Die Embedding/Search‑Tests folgen den allgemeinen Patterns der
 Processor‑Suiten:
 
-- **Async‑Tests**  
+- **Async‑Tests**
   Wo die Produktions‑API async ist (z.B. `SearchProcessor.process`),
   werden `@pytest.mark.asyncio`‑Tests verwendet.
 
-- **Deterministische Embeddings**  
+- **Deterministische Embeddings**
   Produktionscode nutzt Ollama; Tests ersetzen `_generate_embedding`
   konsequent durch deterministische Mock‑Services, so dass die Suite
   ohne Netzwerk/Modelle läuft und stabile Asserts auf Similarity und
   Ranking möglich sind.
 
-- **MockDatabaseAdapter als Quelle der Wahrheit**  
+- **MockDatabaseAdapter als Quelle der Wahrheit**
   E2E‑ und Pipeline‑Tests verlassen sich ausschließlich auf die
   In‑Memory‑Stores des Mock‑Adapters (Chunks, Embeddings, Links, Videos)
   und auf seine Zähl‑Helper. Supabase‑spezifische
   `.table(...).insert()/upsert()`‑Aufrufe werden in Test‑Subklassen
   umgangen.
 
-- **Analytics stubben statt deaktivieren**  
+- **Analytics stubben statt deaktivieren**
   `SearchProcessor` ruft `SearchAnalytics.log_document_indexed` auf.
   Tests ersetzen diese Methode durch einen einfachen Stub, der
   aufgerufene Parameter speichert. So bleibt das Analytics‑Wiring
   getestet, ohne echte Datenbankoperationen oder `asyncio.run` in
   Tests.
 
-- **Fehlertoleranz**  
+- **Fehlertoleranz**
   Mehrere Tests prüfen, dass Fehler (z.B. fehlender Adapter,
   `execute_query`‑Fehler, partiell fehlgeschlagene Embedding‑Stores)
   **nicht** zu ungefangenen Exceptions führen, sondern zu klaren
@@ -291,4 +291,3 @@ Beim Erweitern der Embedding/Search‑Tests:
 Aktualisiere dieses README, wenn du neue Testdateien oder wesentliche
 Szenarien hinzufügst, damit die Suite für zukünftige Arbeiten
 nachvollziehbar bleibt.
-

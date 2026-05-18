@@ -127,9 +127,9 @@ Die Datei `DATABASE_SCHEMA.md` im Root-Verzeichnis (`c:\Users\haast\Docker\KRAI-
 2. Neue CSV exportieren:
 
    ```sql
-   SELECT table_schema, table_name, column_name, data_type, 
+   SELECT table_schema, table_name, column_name, data_type,
           character_maximum_length, is_nullable, column_default, udt_name
-   FROM information_schema.columns 
+   FROM information_schema.columns
    WHERE table_schema LIKE 'krai_%'
    ORDER BY table_schema, table_name, ordinal_position;
    ```
@@ -663,17 +663,17 @@ from backend.core.idempotency_checker import IdempotencyChecker
 class MyProcessor(BaseProcessor):
     def process(self, context: ProcessingContext) -> ProcessingResult:
         checker = IdempotencyChecker(self.db_adapter)
-        
+
         # Check if already processed
         is_complete, data_hash = checker.check_completion_marker(
             document_id=context.document_id,
             stage_name=self.name
         )
-        
+
         if is_complete:
             # Compute current data hash
             current_hash = checker.compute_data_hash(context.data)
-            
+
             if current_hash == data_hash:
                 # Same data - skip processing
                 self.logger.info(f"Stage {self.name} already completed with same data")
@@ -682,17 +682,17 @@ class MyProcessor(BaseProcessor):
                 # Data changed - cleanup and re-process
                 self.logger.info(f"Data changed - cleaning up old data")
                 self.cleanup_old_data(context.document_id)
-        
+
         # Process the data
         result = self.do_work(context)
-        
+
         # Set completion marker
         checker.set_completion_marker(
             document_id=context.document_id,
             stage_name=self.name,
             data_hash=checker.compute_data_hash(context.data)
         )
-        
+
         return ProcessingResult(success=True, data=result)
 ```
 
@@ -740,10 +740,10 @@ def safe_process(self, context: ProcessingContext) -> ProcessingResult:
     correlation_id = f"req_{context.request_id}.stage_{self.name}"
     if context.retry_attempt > 0:
         correlation_id += f".retry_{context.retry_attempt}"
-    
+
     # Add to context
     context.correlation_id = correlation_id
-    
+
     self.logger.info(f"[{correlation_id}] Starting {self.name} processing")
     self.logger.debug(f"[{correlation_id}] Extracted {len(chunks)} chunks")
     self.logger.error(f"[{correlation_id}] Failed to process: {error}")
@@ -791,14 +791,14 @@ With advisory locks:
 def safe_process(self, context: ProcessingContext) -> ProcessingResult:
     lock_id = self.compute_lock_id(context.document_id, self.name)
     lock_acquired = False
-    
+
     try:
         # Try to acquire lock (non-blocking)
         lock_acquired = self.db_adapter.execute_scalar(
             "SELECT pg_try_advisory_lock(%s)",
             (lock_id,)
         )
-        
+
         if not lock_acquired:
             if context.retry_attempt > 0:
                 # Another retry is in progress
@@ -807,11 +807,11 @@ def safe_process(self, context: ProcessingContext) -> ProcessingResult:
             else:
                 # First attempt - should always get lock
                 raise ProcessingError("Failed to acquire lock on first attempt")
-        
+
         # Process with lock held
         result = self.process(context)
         return result
-        
+
     finally:
         # ALWAYS release lock
         if lock_acquired:
@@ -825,21 +825,21 @@ def safe_process(self, context: ProcessingContext) -> ProcessingResult:
 ```python
 def safe_process(self, context: ProcessingContext) -> ProcessingResult:
     lock_id = self.compute_lock_id(context.document_id, self.name)
-    
+
     # ❌ WRONG: No try-finally - lock may not be released!
     lock_acquired = self.db_adapter.execute_scalar(
         "SELECT pg_try_advisory_lock(%s)",
         (lock_id,)
     )
-    
+
     result = self.process(context)
-    
+
     # ❌ WRONG: If exception occurs, lock is never released!
     self.db_adapter.execute(
         "SELECT pg_advisory_unlock(%s)",
         (lock_id,)
     )
-    
+
     return result
 ```
 
@@ -849,10 +849,10 @@ def compute_lock_id(self, document_id: str, stage_name: str) -> int:
     """Compute PostgreSQL advisory lock ID."""
     # Combine document_id and stage_name
     lock_key = f"{document_id}:{stage_name}"
-    
+
     # Hash to 32-bit integer (PostgreSQL advisory lock range)
     hash_value = int(hashlib.sha256(lock_key.encode()).hexdigest(), 16)
-    
+
     # Modulo to fit in 32-bit signed integer range
     return hash_value % (2**31)
 ```

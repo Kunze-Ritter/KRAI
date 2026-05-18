@@ -1,4 +1,5 @@
 """Test solution extraction"""
+
 import re
 
 # Sample text from chunk
@@ -20,15 +21,15 @@ print("TESTING EXTRACTION")
 print("=" * 80)
 
 # Test current regex
-if 'Recommended action for call-center agents' in text or 'Recommended action for onsite technicians' in text:
+if "Recommended action for call-center agents" in text or "Recommended action for onsite technicians" in text:
     print("\n✅ Found 'Recommended action for call-center agents'")
-    
+
     match = re.search(
-        r'Recommended action for (?:call-center agents|onsite technicians)[^\n]*\n(.+?)(?=\n\s*\d+\.\d+|$)',
+        r"Recommended action for (?:call-center agents|onsite technicians)[^\n]*\n(.+?)(?=\n\s*\d+\.\d+|$)",
         text,
-        re.DOTALL
+        re.DOTALL,
     )
-    
+
     if match:
         print("✅ Regex matched!")
         solution = match.group(1).strip()
@@ -36,9 +37,9 @@ if 'Recommended action for call-center agents' in text or 'Recommended action fo
         print("-" * 80)
         print(solution)
         print("-" * 80)
-        
+
         # Extract numbered steps
-        steps = re.findall(r'\d+\.\s+[^\n]+', solution)
+        steps = re.findall(r"\d+\.\s+[^\n]+", solution)
         print(f"\n✅ Found {len(steps)} steps:")
         for step in steps:
             print(f"  {step}")

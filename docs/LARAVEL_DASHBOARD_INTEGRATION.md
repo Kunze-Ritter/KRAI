@@ -256,7 +256,7 @@ if (!empty($selectedStages)) {
         $selectedStages,
         $stopOnError
     );
-    
+
     // Show results to user
     Notification::make()
         ->title('Upload completed')
@@ -314,12 +314,12 @@ Action::make('processSingleStage')
     ])
     ->action(function (array $data) {
         $result = $service->processStage($record->id, $data['stage']);
-        
+
         if ($result['success']) {
             Notification::make()
                 ->title('Stage processed successfully')
-                ->body(sprintf('Stage "%s" completed in %.2fs', 
-                    krai_stage_label($data['stage']), 
+                ->body(sprintf('Stage "%s" completed in %.2fs',
+                    krai_stage_label($data['stage']),
                     $result['processing_time']))
                 ->success()
                 ->send();
@@ -347,12 +347,12 @@ Action::make('processMultipleStages')
             $data['stages'],
             $data['stop_on_error']
         );
-        
+
         if ($result['success']) {
             Notification::make()
                 ->title('Stages processed successfully')
-                ->body(sprintf('%d of %d stages (%.1f%%)', 
-                    $result['successful'], 
+                ->body(sprintf('%d of %d stages (%.1f%%)',
+                    $result['successful'],
                     $result['total_stages'],
                     $result['success_rate'] * 100))
                 ->success()
@@ -375,12 +375,12 @@ BulkAction::make('processStageBulk')
     ->action(function (Collection $records, array $data) {
         $success = 0;
         $failed = 0;
-        
+
         foreach ($records as $record) {
             $result = $service->processStage($record->id, $data['stage']);
             $result['success'] ? $success++ : $failed++;
         }
-        
+
         Notification::make()
             ->title('Bulk processing completed')
             ->body(sprintf('%d successful, %d failed', $success, $failed))
@@ -394,7 +394,7 @@ BulkAction::make('processStageBulk')
 ### Supported Platforms
 
 - YouTube
-- Vimeo  
+- Vimeo
 - Brightcove
 
 ### Video Processing Implementation
@@ -418,12 +418,12 @@ Action::make('processVideo')
             $data['video_url'],
             $data['manufacturer_id'] ?? null
         );
-        
+
         if ($result['success']) {
             Notification::make()
                 ->title('Video processed successfully')
-                ->body(sprintf('Video "%s" (%s) linked', 
-                    $result['title'], 
+                ->body(sprintf('Video "%s" (%s) linked',
+                    $result['title'],
                     $result['platform']))
                 ->success()
                 ->send();
@@ -459,7 +459,7 @@ Action::make('generateThumbnail')
             [(int)$sizeArray[0], (int)$sizeArray[1]],
             (int)$data['page']
         );
-        
+
         if ($result['success']) {
             Notification::make()
                 ->title('Thumbnail generated')
@@ -480,24 +480,24 @@ TextColumn::make('stage_status')
     ->getStateUsing(function ($record) {
         $stageStatus = $record->stage_status ?? [];
         if (empty($stageStatus)) return 'Keine Stages';
-        
+
         $completed = collect($stageStatus)->filter(fn($s) => $s === 'completed')->count();
         $failed = collect($stageStatus)->filter(fn($s) => $s === 'failed')->count();
         $total = count($stageStatus);
-        
+
         return sprintf('%d/%d ✓ | %d ✗', $completed, $total, $failed);
     })
     ->badge()
     ->color(fn($record) => {
         $stageStatus = $record->stage_status ?? [];
         if (empty($stageStatus)) return 'gray';
-        
+
         $failed = collect($stageStatus)->filter(fn($s) => $s === 'failed')->count();
         if ($failed > 0) return 'danger';
-        
+
         $completed = collect($stageStatus)->filter(fn($s) => $s === 'completed')->count();
         $total = count($stageStatus);
-        
+
         return $completed === $total ? 'success' : 'warning';
     });
 ```
@@ -523,7 +523,7 @@ Action::make('viewStageStatus')
         $record = $this->getRecord();
         $service = app(KraiEngineService::class);
         $statusData = $service->getStageStatus($record->id);
-        
+
         return view('filament.components.stage-status-grid', [
             'stageStatus' => $statusData['stage_status'],
             'stages' => config('krai.stages')
@@ -951,13 +951,13 @@ Log::channel('krai-engine')->debug('API call', [
 2. **Check Database State**
 ```sql
 -- Document overview
-SELECT id, filename, processing_status, stage_status, created_at 
-FROM documents 
+SELECT id, filename, processing_status, stage_status, created_at
+FROM documents
 WHERE id = $documentId;
 
 -- Stage status details
 SELECT jsonb_each_text(stage_status) as stage_status
-FROM documents 
+FROM documents
 WHERE id = $documentId;
 ```
 
@@ -976,14 +976,14 @@ curl -H "Authorization: Bearer $JWT_TOKEN" \
 -- Queue status
 SELECT COUNT(*) as queue_size,
        AVG(processing_time) as avg_time
-FROM processing_queue 
+FROM processing_queue
 WHERE status = 'pending';
 
 -- Failed jobs
 SELECT document_id, stage, error_message, created_at
-FROM processing_logs 
-WHERE status = 'failed' 
-ORDER BY created_at DESC 
+FROM processing_logs
+WHERE status = 'failed'
+ORDER BY created_at DESC
 LIMIT 10;
 ```
 
@@ -1052,11 +1052,11 @@ class KraiEngineService
     public function newMethod(string $documentId): array
     {
         $endpoint = "/documents/{$documentId}/new-endpoint";
-        
+
         try {
             $client = $this->createHttpClient();
             $response = $client->post($this->baseUrl . $endpoint);
-            
+
             if ($response->successful()) {
                 return [
                     'success' => true,
@@ -1091,7 +1091,7 @@ Action::make('newAction')
     ->action(function (array $data) {
         $service = app(KraiEngineService::class);
         $result = $service->newMethod($record->id);
-        
+
         if ($result['success']) {
             Notification::make()
                 ->title('Action completed')

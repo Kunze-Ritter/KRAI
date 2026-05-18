@@ -26,7 +26,7 @@
 
 ### Environment Variables
 - `JWT_SECRET_KEY` - RSA private key for signing
-- `JWT_PUBLIC_KEY` - RSA public key for validation  
+- `JWT_PUBLIC_KEY` - RSA public key for validation
 - `JWT_ALGORITHM` - RS256
 - `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` - 60
 - `JWT_REFRESH_TOKEN_EXPIRE_DAYS` - 30

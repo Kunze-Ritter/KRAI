@@ -27,7 +27,7 @@ def main() -> None:
         "formats": ["markdown", "html"],
         "onlyMainContent": True,
         "timeout": 180000,  # 3 minutes
-        "waitFor": 2000,    # Wait 2s for JS to load
+        "waitFor": 2000,  # Wait 2s for JS to load
         "blockAds": True,
         "proxy": "basic",
         "parsePDF": True,
@@ -43,24 +43,24 @@ def main() -> None:
     print()
 
     timeout_seconds = 240.0
-    
+
     print(f"⏱️  Starting request (timeout: {timeout_seconds}s)...")
     print()
-    
+
     with httpx.Client(timeout=timeout_seconds) as client:
         response = client.post(url, json=payload, headers=headers)
 
     print("Status:", response.status_code)
     print()
-    
+
     if response.status_code == 200:
         data = response.json()
-        
+
         if data.get("success"):
             doc = data.get("data", {})
             markdown = doc.get("markdown", "")
             html = doc.get("html", "")
-            
+
             print("✅ SUCCESS!")
             print()
             print(f"Markdown length: {len(markdown)} chars")
@@ -71,7 +71,7 @@ def main() -> None:
             print(markdown[:800])
             print("-" * 80)
             print()
-            
+
             # Check for key HP content
             keywords = ["HP", "LaserJet", "E877", "support", "driver", "manual"]
             found = [kw for kw in keywords if kw.lower() in markdown.lower()]

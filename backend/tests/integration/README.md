@@ -272,7 +272,7 @@ on: [push, pull_request]
 jobs:
   integration-tests:
     runs-on: ubuntu-latest
-    
+
     services:
       postgres:
         image: postgres:15
@@ -283,25 +283,25 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-    
+
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-      
+
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
           pip install pytest pytest-asyncio pytest-benchmark
-      
+
       - name: Setup Ollama
         run: |
           docker run -d --name ollama -p 11434:11434 ollama/ollama
           docker exec ollama ollama pull llama3.2:latest
-      
+
       - name: Run integration tests (without Firecrawl)
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/krai_test
@@ -309,7 +309,7 @@ jobs:
           TESTING: true
         run: |
           pytest backend/tests/integration/ -v -m "integration and not firecrawl"
-      
+
       - name: Run integration tests (with Firecrawl)
         if: ${{ secrets.FIRECRAWL_API_KEY }}
         env:

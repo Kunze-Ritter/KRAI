@@ -172,17 +172,17 @@ detection_scores = {}
 for mfr_key, keywords in mfr_patterns.items():
     score = 0
     sources = []
-    
+
     # Check filename (highest weight)
     if any(kw in filename_lower for kw in keywords):
         score += 10
         sources.append("filename")
-    
+
     # Check title (medium weight)
     if any(kw in title_lower for kw in keywords):
         score += 5
         sources.append("title")
-    
+
     # Check text (lowest weight, count occurrences)
     text_matches = sum(1 for kw in keywords if kw in first_pages_text)
     if text_matches >= 3:
@@ -194,7 +194,7 @@ for mfr_key, keywords in mfr_patterns.items():
     elif text_matches >= 1:
         score += 1
         sources.append(f"text({text_matches}x)")
-    
+
     if score > 0:
         detection_scores[mfr_key] = {'score': score, 'sources': sources}
 

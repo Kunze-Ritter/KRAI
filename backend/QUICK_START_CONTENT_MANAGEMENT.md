@@ -39,7 +39,7 @@ curl -X POST http://localhost:8000/content/videos/enrich \
 ### **Check Results:**
 ```sql
 -- In Supabase SQL Editor
-SELECT 
+SELECT
     COUNT(*) as total_videos,
     COUNT(video_id) as enriched,
     ROUND(100.0 * COUNT(video_id) / COUNT(*), 1) as percent_done
@@ -101,14 +101,14 @@ print(f"Task started: {task_id}")
 while True:
     status = requests.get(f"http://localhost:8000/content/tasks/{task_id}")
     data = status.json()
-    
+
     if data["status"] == "completed":
         print(f"✅ Done! Result: {data['result']}")
         break
     elif data["status"] == "failed":
         print(f"❌ Failed: {data['error']}")
         break
-    
+
     print(f"⏳ Status: {data['status']}")
     time.sleep(5)
 ```

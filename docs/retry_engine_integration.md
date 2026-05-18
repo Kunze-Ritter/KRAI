@@ -103,7 +103,7 @@ if await orchestrator.should_retry(classification, attempt, policy):
     correlation_id = orchestrator.generate_correlation_id(
         context.request_id, 'image_processing', attempt
     )
-    
+
     # Spawn background retry
     await orchestrator.spawn_background_retry(
         context, attempt, policy, correlation_id, processor.safe_process
@@ -151,7 +151,7 @@ The `BaseProcessor.safe_process()` method implements the full hybrid retry loop:
 async def safe_process(self, context: ProcessingContext) -> ProcessingResult:
     """
     Safely execute processing with hybrid retry loop.
-    
+
     Phases:
     A. Initialization - Generate request_id, load retry policy
     B. Hybrid Retry Loop - Iterate through retry attempts
@@ -175,18 +175,18 @@ sequenceDiagram
     participant ErrorLogger
     participant IdempotencyChecker
     participant Database
-    
+
     Client->>BaseProcessor: safe_process(context)
     BaseProcessor->>BaseProcessor: Generate request_id
     BaseProcessor->>RetryPolicyManager: get_policy(service, stage)
     RetryPolicyManager-->>BaseProcessor: RetryPolicy
-    
+
     loop Retry Loop (attempt 0 to max_retries)
         BaseProcessor->>BaseProcessor: Generate correlation_id
         BaseProcessor->>IdempotencyChecker: check_completion_marker()
         IdempotencyChecker->>Database: SELECT from stage_completion_markers
         Database-->>IdempotencyChecker: marker or None
-        
+
         alt Marker exists and hash matches
             IdempotencyChecker-->>BaseProcessor: marker (hash match)
             BaseProcessor-->>Client: Success (skipped)
@@ -194,13 +194,13 @@ sequenceDiagram
             BaseProcessor->>IdempotencyChecker: cleanup_old_data()
             IdempotencyChecker->>Database: DELETE completion marker
         end
-        
+
         BaseProcessor->>RetryOrchestrator: acquire_advisory_lock()
         RetryOrchestrator->>Database: pg_try_advisory_lock()
         Database-->>RetryOrchestrator: lock acquired
-        
+
         BaseProcessor->>BaseProcessor: process(context)
-        
+
         alt Processing succeeds
             BaseProcessor->>IdempotencyChecker: set_completion_marker()
             IdempotencyChecker->>Database: INSERT completion marker
@@ -212,7 +212,7 @@ sequenceDiagram
             BaseProcessor->>ErrorLogger: log_error()
             ErrorLogger->>Database: INSERT into pipeline_errors
             ErrorLogger->>StructuredLogger: log to JSON file
-            
+
             alt Transient error and attempt == 0
                 BaseProcessor->>BaseProcessor: sleep(base_delay)
                 Note over BaseProcessor: Synchronous retry
@@ -224,7 +224,7 @@ sequenceDiagram
             else Permanent error or max retries
                 BaseProcessor-->>Client: Error result
             end
-            
+
             BaseProcessor->>RetryOrchestrator: release_advisory_lock()
         end
     end
@@ -324,9 +324,9 @@ class ImageProcessor(BaseProcessor):
         # Set service_name for retry policy lookup
         config = config or {}
         config['service_name'] = 'firecrawl'
-        
+
         super().__init__("image_processing", config)
-        
+
         # Set db_adapter to enable retry infrastructure
         self.db_adapter = create_database_adapter()
 ```
@@ -433,7 +433,7 @@ WHERE document_id = 'doc_id' AND stage_name = 'stage_name';
 ```sql
 -- Find stuck retrying errors
 SELECT * FROM krai_intelligence.pipeline_errors
-WHERE status = 'retrying' 
+WHERE status = 'retrying'
   AND created_at < NOW() - INTERVAL '1 hour';
 
 -- Manually mark as failed
@@ -448,7 +448,7 @@ WHERE error_id = 'error_id';
 
 ```sql
 -- Retry success rate by stage
-SELECT 
+SELECT
     stage_name,
     COUNT(*) as total_errors,
     SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END) as resolved,
@@ -462,7 +462,7 @@ ORDER BY total_errors DESC;
 #### Query Average Retry Attempts
 
 ```sql
-SELECT 
+SELECT
     stage_name,
     AVG(retry_attempt) as avg_attempts,
     MAX(retry_attempt) as max_attempts
@@ -475,7 +475,7 @@ GROUP BY stage_name;
 #### Query Error Categories
 
 ```sql
-SELECT 
+SELECT
     error_category,
     error_type,
     COUNT(*) as count
@@ -552,12 +552,12 @@ class CustomProcessor(BaseProcessor):
         )
         # Enable retry infrastructure
         self.db_adapter = create_database_adapter()
-    
+
     async def process(self, context: ProcessingContext) -> ProcessingResult:
         # Your processing logic here
         # Transient errors will be automatically retried
         result = await some_external_api_call()
-        
+
         return self.create_success_result(
             data={"result": result},
             metadata={"document_id": context.document_id}
@@ -577,21 +577,21 @@ from backend.services.error_logging_service import ErrorLogger
 async def process_with_custom_retry(context):
     # Get retry policy
     policy = await RetryPolicyManager.get_policy('custom', 'stage')
-    
+
     # Initialize components
     error_logger = ErrorLogger(db_adapter)
     orchestrator = RetryOrchestrator(db_adapter, error_logger)
-    
+
     for attempt in range(policy.max_retries + 1):
         try:
             result = await risky_operation()
             return result
         except Exception as e:
             classification = ErrorClassifier.classify(e)
-            
+
             if not classification.is_transient or attempt >= policy.max_retries:
                 raise
-            
+
             # Calculate backoff
             delay = orchestrator.calculate_backoff_delay(attempt, policy)
             await asyncio.sleep(delay)
@@ -602,7 +602,7 @@ async def process_with_custom_retry(context):
 ```python
 async def get_retry_history(document_id: str):
     query = """
-        SELECT 
+        SELECT
             error_id,
             stage_name,
             error_type,
@@ -614,7 +614,7 @@ async def get_retry_history(document_id: str):
         WHERE document_id = $1
         ORDER BY created_at DESC
     """
-    
+
     errors = await db_adapter.fetch_all(query, (document_id,))
     return errors
 ```

@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import base64
-from types import SimpleNamespace
-from typing import Any, Dict, List
+from typing import Any
 
 import pytest
 
@@ -10,25 +9,25 @@ from backend.processors.storage_processor import StorageProcessor
 
 
 class MockResult:
-    def __init__(self, data: List[Dict[str, Any]]):
+    def __init__(self, data: list[dict[str, Any]]):
         self.data = data
 
 
 class MockTable:
-    def __init__(self, storage: List[Dict[str, Any]]):
+    def __init__(self, storage: list[dict[str, Any]]):
         self._storage = storage
-        self._filters: Dict[str, Any] = {}
-        self._insert_buffer: List[Dict[str, Any]] | None = None
+        self._filters: dict[str, Any] = {}
+        self._insert_buffer: list[dict[str, Any]] | None = None
 
     # Query API
-    def select(self, *_args, **_kwargs) -> "MockTable":
+    def select(self, *_args, **_kwargs) -> MockTable:
         return self
 
-    def eq(self, key: str, value: Any) -> "MockTable":
+    def eq(self, key: str, value: Any) -> MockTable:
         self._filters[key] = value
         return self
 
-    def insert(self, payload: Dict[str, Any] | List[Dict[str, Any]]) -> "MockTable":
+    def insert(self, payload: dict[str, Any] | list[dict[str, Any]]) -> MockTable:
         if isinstance(payload, list):
             self._insert_buffer = payload
         else:
@@ -42,7 +41,7 @@ class MockTable:
             self._insert_buffer = None
             return MockResult(data)
 
-        data: List[Dict[str, Any]] = []
+        data: list[dict[str, Any]] = []
         for row in self._storage:
             match = True
             for key, value in self._filters.items():
@@ -56,7 +55,7 @@ class MockTable:
 
 class MockClient:
     def __init__(self):
-        self.tables: Dict[str, List[Dict[str, Any]]] = {
+        self.tables: dict[str, list[dict[str, Any]]] = {
             "vw_processing_queue": [],
             "vw_links": [],
             "vw_videos": [],
@@ -81,9 +80,15 @@ class AsyncStorageService:
     def __init__(self, success: bool = True) -> None:
         self.client = object()
         self.success = success
-        self.upload_calls: List[Dict[str, Any]] = []
+        self.upload_calls: list[dict[str, Any]] = []
 
-    async def upload_image(self, content: bytes, filename: str, bucket_type: str = "document_images", metadata: Dict[str, Any] | None = None) -> Dict[str, Any]:
+    async def upload_image(
+        self,
+        content: bytes,
+        filename: str,
+        bucket_type: str = "document_images",
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         self.upload_calls.append(
             {
                 "content": content,
@@ -125,7 +130,7 @@ class TestStorageProcessorUnit:
                 "stage": "storage",
                 "status": "pending",
                 "artifact_type": "link",
-                "payload": "{\"url\": \"http://example.com\"}",
+                "payload": '{"url": "http://example.com"}',
                 "created_at": "now",
             }
         )
@@ -324,7 +329,9 @@ class TestStorageProcessorUnit:
         assert len(embeddings) == 1
         assert embeddings[0]["model"] == "test-model"
 
-    async def test_store_image_artifact_with_upload_and_insert(self, db_service: MockDatabaseService, storage_service: AsyncStorageService):
+    async def test_store_image_artifact_with_upload_and_insert(
+        self, db_service: MockDatabaseService, storage_service: AsyncStorageService
+    ):
         processor = StorageProcessor(database_service=db_service, storage_service=storage_service)
 
         raw_content = b"image-bytes"

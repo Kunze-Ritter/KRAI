@@ -1,7 +1,7 @@
 # Document Processor V2 - Requirements & Improvements
 
-**Version:** 2.0  
-**Date:** 2025-10-02  
+**Version:** 2.0
+**Date:** 2025-10-02
 **Status:** Design Phase
 
 ---
@@ -73,7 +73,7 @@ Priority Order:
       manufacturer_id UUID,
       notes TEXT
   );
-  
+
   -- Examples:
   INSERT INTO krai_config.filename_to_model_mapping VALUES
   ('COLORLJE47528M', 'Color LaserJet Enterprise E47528', [hp_id], 'From manual'),
@@ -121,27 +121,27 @@ REJECT_WORDS = {
 
 def extract_error_code(text: str) -> list[dict]:
     codes = []
-    
+
     for pattern_name, pattern in PATTERNS.items():
         matches = re.finditer(pattern, text, re.IGNORECASE)
-        
+
         for match in matches:
             code = match.group(0)
-            
+
             # Extract context (500 chars before/after)
             start = max(0, match.start() - 500)
             end = min(len(text), match.end() + 500)
             context = text[start:end]
-            
+
             # Extract description (next sentence)
             description = extract_description(text, match.end())
-            
+
             # Extract solution steps
             solution = extract_solution_steps(context)
-            
+
             # Calculate REAL confidence
             confidence = calculate_confidence(code, description, solution, context)
-            
+
             # Only add if confidence > 0.6
             if confidence > 0.6:
                 codes.append({
@@ -152,34 +152,34 @@ def extract_error_code(text: str) -> list[dict]:
                     'confidence_score': confidence,
                     'extraction_method': pattern_name
                 })
-    
+
     return codes
 
 def calculate_confidence(code, description, solution, context):
     """Real confidence based on quality indicators"""
     score = 0.0
-    
+
     # Has proper description (not generic)
     if description and len(description) > 20:
         score += 0.3
-    
+
     # Has solution steps (numbered or bulleted)
     if solution and ('1.' in solution or '•' in solution):
         score += 0.3
-    
+
     # Context contains technical terms
     technical_terms = ['fuser', 'sensor', 'motor', 'cartridge', 'drum', 'replace', 'check']
     if any(term in context.lower() for term in technical_terms):
         score += 0.2
-    
+
     # Code appears multiple times in context (important)
     if context.count(code) > 1:
         score += 0.1
-    
+
     # Context has reasonable length
     if 200 < len(context) < 2000:
         score += 0.1
-    
+
     return min(score, 1.0)
 ```
 
@@ -189,11 +189,11 @@ def validate_error_code(code: str) -> bool:
     # Must be numeric format
     if not re.match(r'^\d{2}\.\d{2}(\.\d{2})?$', code):
         return False
-    
+
     # Not a word
     if code.lower() in REJECT_WORDS:
         return False
-    
+
     return True
 ```
 
@@ -215,13 +215,13 @@ def improved_chunking(text: str, max_chunk_size=1000, overlap=100):
     Smart chunking that preserves context
     """
     chunks = []
-    
+
     # Split by paragraphs first
     paragraphs = text.split('\n\n')
-    
+
     current_chunk = ""
     current_page = 1
-    
+
     for para in paragraphs:
         # Check if adding paragraph exceeds limit
         if len(current_chunk) + len(para) > max_chunk_size:
@@ -231,7 +231,7 @@ def improved_chunking(text: str, max_chunk_size=1000, overlap=100):
                     'page_start': current_page,
                     'metadata': {'chunk_type': 'text'}
                 })
-                
+
                 # Add overlap from end of previous chunk
                 current_chunk = current_chunk[-overlap:] + "\n\n" + para
             else:
@@ -239,7 +239,7 @@ def improved_chunking(text: str, max_chunk_size=1000, overlap=100):
                 current_chunk = para
         else:
             current_chunk += "\n\n" + para if current_chunk else para
-    
+
     # Add final chunk
     if current_chunk:
         chunks.append({
@@ -247,7 +247,7 @@ def improved_chunking(text: str, max_chunk_size=1000, overlap=100):
             'page_start': current_page,
             'metadata': {'chunk_type': 'text'}
         })
-    
+
     return chunks
 ```
 
@@ -312,32 +312,32 @@ def improved_chunking(text: str, max_chunk_size=1000, overlap=100):
 ```python
 def validate_before_insert(data: dict, data_type: str):
     """Validate data before database insert"""
-    
+
     if data_type == 'product':
         # Product must have valid model_number
         if not validate_model_number(data['model_number']):
             raise ValidationError(f"Invalid model: {data['model_number']}")
-        
+
         # Product type must be valid
         valid_types = {'printer', 'scanner', 'multifunction', 'copier'}
         if data.get('product_type') not in valid_types:
             raise ValidationError(f"Invalid product_type: {data.get('product_type')}")
-    
+
     elif data_type == 'error_code':
         # Error code must match format
         if not validate_error_code(data['error_code']):
             raise ValidationError(f"Invalid error_code: {data['error_code']}")
-        
+
         # Must have real description (not generic)
         generic_phrases = ['error code', 'refer to', 'see manual']
         if any(phrase in data['error_description'].lower() for phrase in generic_phrases):
             if len(data['error_description']) < 30:
                 raise ValidationError("Description too generic")
-        
+
         # Confidence must be > 0.6
         if data.get('confidence_score', 0) < 0.6:
             raise ValidationError(f"Confidence too low: {data['confidence_score']}")
-    
+
     return True
 ```
 
@@ -355,10 +355,10 @@ def log_processing_stats(document_id: str):
         'validation_failures': count_validation_failures(document_id),
         'processing_time': calculate_time(document_id)
     }
-    
+
     # Save to processing_log table
     save_stats(stats)
-    
+
     # Alert if quality is low
     if stats['avg_confidence'] < 0.7:
         alert_low_quality(document_id, stats)
@@ -384,8 +384,8 @@ def log_processing_stats(document_id: str):
 -- After processing batch, check quality:
 
 -- 1. Error codes should be numeric
-SELECT error_code, COUNT(*) 
-FROM krai_intelligence.error_codes 
+SELECT error_code, COUNT(*)
+FROM krai_intelligence.error_codes
 WHERE error_code !~ '^\d{2}\.\d{2}(\.\d{2})?$'
 GROUP BY error_code
 ORDER BY COUNT(*) DESC;
@@ -399,8 +399,8 @@ GROUP BY model_number;
 -- Should return 0 rows!
 
 -- 3. Confidence distribution
-SELECT 
-    CASE 
+SELECT
+    CASE
         WHEN confidence_score >= 0.9 THEN 'High (0.9+)'
         WHEN confidence_score >= 0.7 THEN 'Medium (0.7-0.9)'
         ELSE 'Low (<0.7)'
@@ -473,5 +473,5 @@ GROUP BY confidence_range;
 - Use n8n execution logs to monitor progress
 - Document any new edge cases discovered
 
-**Created:** 2025-10-02  
+**Created:** 2025-10-02
 **Next Update:** After first test processing

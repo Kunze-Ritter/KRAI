@@ -18,22 +18,21 @@ Usage:
     python scripts/import_lexmark_videos.py --dry-run
 """
 
-import asyncio
 import argparse
+import asyncio
 import json
 import logging
 import re
 import sys
 from pathlib import Path
-from typing import Dict, Optional, Tuple
 
 # Add project root so all backend imports work
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
+from backend.core.data_models import ManufacturerModel, ProductModel, ProductSeriesModel
 from backend.processors.env_loader import load_all_env_files
 from backend.services.database_factory import create_database_adapter
-from backend.core.data_models import ManufacturerModel, ProductSeriesModel, ProductModel
 
 load_all_env_files(PROJECT_ROOT)
 
@@ -59,6 +58,7 @@ DEFAULT_JSON_PATH = None  # Must be provided via --json argument
 # Helper utilities
 # ---------------------------------------------------------------------------
 
+
 def extract_model_number(model_name: str) -> str:
     """'Lexmark B2236' → 'B2236'  (last whitespace-separated token)."""
     parts = model_name.strip().split()
@@ -78,13 +78,14 @@ def video_title_from_url(video_url: str) -> str:
     e.g. '.../clearing-paper-jam-in-the-duplex-unit.html'
          → 'Clearing Paper Jam In The Duplex Unit'
     """
-    stem = Path(video_url.rstrip("/")).stem          # strip .html
+    stem = Path(video_url.rstrip("/")).stem  # strip .html
     return stem.replace("-", " ").title()
 
 
 # ---------------------------------------------------------------------------
 # Database helpers
 # ---------------------------------------------------------------------------
+
 
 async def get_or_create_manufacturer(db, dry_run: bool) -> str:
     existing = await db.get_manufacturer_by_name(MANUFACTURER_NAME)
@@ -109,7 +110,7 @@ async def get_or_create_manufacturer(db, dry_run: bool) -> str:
 
 
 async def get_or_create_series(
-    db, manufacturer_id: str, series_name: str, series_cache: Dict[str, str], dry_run: bool
+    db, manufacturer_id: str, series_name: str, series_cache: dict[str, str], dry_run: bool
 ) -> str:
     if series_name in series_cache:
         return series_cache[series_name]
@@ -156,7 +157,7 @@ async def get_or_create_product(
     display_name = model_name_full
     for prefix in ("Lexmark ", "LEXMARK "):
         if display_name.startswith(prefix):
-            display_name = display_name[len(prefix):]
+            display_name = display_name[len(prefix) :]
             break
 
     product_id = await db.create_product(
@@ -179,7 +180,7 @@ async def get_or_insert_video(
     manufacturer_id: str,
     series_id: str,
     dry_run: bool,
-) -> Tuple[str, bool]:
+) -> tuple[str, bool]:
     """Return (video_id, was_newly_created).
 
     Uses raw asyncpg because the adapter's create_video() relies on an
@@ -248,6 +249,7 @@ async def ensure_video_product_link(db, video_id: str, product_id: str, dry_run:
 # Main
 # ---------------------------------------------------------------------------
 
+
 async def main(json_path: Path, dry_run: bool) -> None:
     logger.info("=" * 60)
     logger.info("Lexmark Video Links Import")
@@ -256,7 +258,7 @@ async def main(json_path: Path, dry_run: bool) -> None:
     logger.info("=" * 60)
 
     # Load JSON
-    with open(json_path, "r", encoding="utf-8") as fh:
+    with open(json_path, encoding="utf-8") as fh:
         data = json.load(fh)
     printers = data.get("printers", [])
     logger.info("Loaded %d printer entries from %s", len(printers), json_path)
@@ -268,7 +270,7 @@ async def main(json_path: Path, dry_run: bool) -> None:
     try:
         manufacturer_id = await get_or_create_manufacturer(db, dry_run)
 
-        series_cache: Dict[str, str] = {}
+        series_cache: dict[str, str] = {}
         stats = {
             "printers_processed": 0,
             "products_created": 0,
@@ -290,9 +292,7 @@ async def main(json_path: Path, dry_run: bool) -> None:
             series_name = extract_series_name(model_number)
 
             # Series
-            series_id = await get_or_create_series(
-                db, manufacturer_id, series_name, series_cache, dry_run
-            )
+            series_id = await get_or_create_series(db, manufacturer_id, series_name, series_cache, dry_run)
 
             # Product
             before_products = stats["products_created"]
@@ -343,9 +343,7 @@ async def main(json_path: Path, dry_run: bool) -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Import Lexmark support video links from JSON into the KRAI database"
-    )
+    parser = argparse.ArgumentParser(description="Import Lexmark support video links from JSON into the KRAI database")
     parser.add_argument(
         "--json",
         metavar="PATH",

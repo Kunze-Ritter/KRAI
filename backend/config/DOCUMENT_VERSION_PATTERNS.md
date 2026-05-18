@@ -70,7 +70,7 @@ Fallback: "5/2024"
 manufacturer = "Konica Minolta"
 → Nutzt nur Konica Minolta patterns
 
-manufacturer = "HP"  
+manufacturer = "HP"
 → Nutzt nur HP patterns
 ```
 
@@ -127,7 +127,7 @@ Ignored: "2024" (Copyright Date)
 ```
 Text: "AccurioPress C4080 Service Manual
        2024/12/25
-       
+
        Page 1 Header: 2024/12/25
        Page 2 Header: 2024/12/25"
 
@@ -139,7 +139,7 @@ Ignored: All subsequent headers
 ```
 Text: "Service Manual
        November 2024
-       
+
        Firmware: FW 4.2"
 
 Extracted: "November 2024" ✅
@@ -184,11 +184,11 @@ versions = extractor.extract_from_text(
 
 ## 🎯 **Key Benefits:**
 
-✅ **Manufacturer-Specific** - Gezielt pro Hersteller  
-✅ **Simple** - Nur 5 Manufacturer + Fallback  
-✅ **Reliable** - Stoppt nach erstem Match  
-✅ **Maintainable** - Klar strukturiert  
-✅ **Fast** - Keine komplexen Regex-Kombinationen  
+✅ **Manufacturer-Specific** - Gezielt pro Hersteller
+✅ **Simple** - Nur 5 Manufacturer + Fallback
+✅ **Reliable** - Stoppt nach erstem Match
+✅ **Maintainable** - Klar strukturiert
+✅ **Fast** - Keine komplexen Regex-Kombinationen
 
 ---
 
@@ -226,6 +226,6 @@ manufacturer_patterns = {
 
 ## ✅ **Result:**
 
-**1 Document = 1 Version** (nicht 200!)  
-**Manufacturer-Specific** (gezielt & präzise)  
+**1 Document = 1 Version** (nicht 200!)
+**Manufacturer-Specific** (gezielt & präzise)
 **No Firmware Versions** (nur Document Versions)

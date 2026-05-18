@@ -24,7 +24,7 @@ Vollständige Pattern-Erkennung für alle Lexmark-Produktserien basierend auf de
 
 #### CX Series - Color MFP
 - **Pattern**: `CX\d{3,4}[suffix]`
-- **Beispiele**: 
+- **Beispiele**:
   - CX725, CX735, CX860
   - CX921, CX931, CX942adse
   - CX94X (Wildcard-Modelle)
@@ -33,7 +33,7 @@ Vollständige Pattern-Erkennung für alle Lexmark-Produktserien basierend auf de
 
 #### MC Series - Color Compact MFP
 - **Pattern**: `MC\d{4}[suffix]`
-- **Beispiele**: 
+- **Beispiele**:
   - MC3224i, MC3224dwe
   - MC3326i, MC3426i
 - **Beschreibung**: Color Compact Multifunction Printers
@@ -41,7 +41,7 @@ Vollständige Pattern-Erkennung für alle Lexmark-Produktserien basierend auf de
 
 #### C Series - Color Single Function
 - **Pattern**: `C\d{4}[suffix]`
-- **Beispiele**: 
+- **Beispiele**:
   - C2326
   - C3224dw, C3326dw, C3426dw
 - **Beschreibung**: Color Laser Printers (Single Function)
@@ -54,14 +54,14 @@ Vollständige Pattern-Erkennung für alle Lexmark-Produktserien basierend auf de
 
 #### XM Series - Enterprise Monochrome MFP
 - **Pattern**: `XM\d{4}`
-- **Beispiele**: 
+- **Beispiele**:
   - XM3350
   - XM9145, XM9155
 - **Beschreibung**: Enterprise Monochrome MFPs (High-End)
 
 #### MX Series - Monochrome MFP
 - **Pattern**: `MX\d{3,4}[suffix]`
-- **Beispiele**: 
+- **Beispiele**:
   - MX317dn, MX421ade
   - MX522adhe, MX532adwe
   - MX622adhe, MX822ade
@@ -71,7 +71,7 @@ Vollständige Pattern-Erkennung für alle Lexmark-Produktserien basierend auf de
 
 #### MS Series - Monochrome Single Function
 - **Pattern**: `MS\d{3}[suffix]`
-- **Beispiele**: 
+- **Beispiele**:
   - MS310dn, MS312dn, MS317dn
   - MS321dn, MS331dn, MS421dn
 - **Beschreibung**: Monochrome Laser Printers (Single Function)
@@ -79,7 +79,7 @@ Vollständige Pattern-Erkennung für alle Lexmark-Produktserien basierend auf de
 
 #### MB Series - Monochrome Compact MFP
 - **Pattern**: `MB\d{4}[suffix]`
-- **Beispiele**: 
+- **Beispiele**:
   - MB2236adw, MB2236i
   - MB3442i
 - **Beschreibung**: Monochrome Compact Multifunction Printers
@@ -87,7 +87,7 @@ Vollständige Pattern-Erkennung für alle Lexmark-Produktserien basierend auf de
 
 #### B Series - Monochrome Compact Single Function
 - **Pattern**: `B\d{4}[suffix]`
-- **Beispiele**: 
+- **Beispiele**:
   - B2236dw
   - B3340dw, B3442dw
 - **Beschreibung**: Monochrome Compact Laser Printers
@@ -104,7 +104,7 @@ Vollständige Pattern-Erkennung für alle Lexmark-Produktserien basierend auf de
 
 #### Plus Matrix Series - Dot Matrix
 - **Pattern**: `23[89][01]-\d`
-- **Beispiele**: 
+- **Beispiele**:
   - 2380-3, 2381-3
   - 2390-3, 2391-3
 - **Beschreibung**: Plus Dot Matrix Printers (veraltet)

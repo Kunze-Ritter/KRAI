@@ -21,7 +21,7 @@ Vollständige Pattern-Erkennung für alle Toshiba-Produktserien: e-STUDIO (Produ
 
 #### e-STUDIO with Suffixes (AC/AM/AS/CP)
 - **Pattern**: `e-STUDIO \d{4}(AC|AM|AS|CP)`
-- **Beispiele**: 
+- **Beispiele**:
   - e-STUDIO 2500AC, 3505AC (Color)
   - e-STUDIO 2822AM (Monochrome)
 - **Beschreibung**: Office MFPs with Display/Scanner Options

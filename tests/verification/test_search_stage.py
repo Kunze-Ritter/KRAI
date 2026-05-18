@@ -39,7 +39,7 @@ class MockDatabaseAdapter:
 
     async def execute_rpc(self, name: str, params: dict | None = None):
         self.rpc_calls.append({"name": name, "params": params or {}})
-        return None
+        return
 
 
 @pytest.mark.search
@@ -89,7 +89,9 @@ class TestSearchStage:
 
         await processor.process(context)
 
-        update_queries = [q for q in db.queries if "UPDATE" in q["query"] and "search_ready" in str(q.get("params", []))]
+        update_queries = [
+            q for q in db.queries if "UPDATE" in q["query"] and "search_ready" in str(q.get("params", []))
+        ]
         assert len(update_queries) >= 1 or any("search_ready" in q["query"] for q in db.queries)
 
     @pytest.mark.asyncio

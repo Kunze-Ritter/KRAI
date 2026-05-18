@@ -1,21 +1,17 @@
 """Batch task management service for background batch operations."""
+
 from __future__ import annotations
 
+import json
 import logging
 import time
 import uuid
-import json
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Iterable, List, Optional
+from datetime import UTC, datetime, timedelta
+from typing import Any
+
 import asyncpg
 
-from models.batch import (
-    BatchOperationResult,
-    BatchOperationResultStatus,
-    BatchTaskRequest,
-    BatchTaskResponse,
-    BatchTaskStatus,
-)
+from models.batch import BatchOperationResult, BatchTaskRequest, BatchTaskResponse, BatchTaskStatus
 
 
 class BatchTaskService:
@@ -24,10 +20,10 @@ class BatchTaskService:
     def __init__(self, pool: asyncpg.Pool) -> None:
         self._pool = pool
         self._logger = logging.getLogger("krai.services.batch_task_service")
-        self._tasks: Dict[str, Dict[str, Any]] = {}
+        self._tasks: dict[str, dict[str, Any]] = {}
 
     def _now(self) -> datetime:
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)
 
     def _generate_task_id(self, request: BatchTaskRequest) -> str:
         suffix = uuid.uuid4().hex[:8]
@@ -56,7 +52,7 @@ class BatchTaskService:
                 id, task_type, status, priority, metadata, user_id, scheduled_at
             ) VALUES ($1, $2, $3, $4, $5, $6, $7)
         """
-        
+
         async with self._pool.acquire() as conn:
             await conn.execute(
                 query,
@@ -85,7 +81,7 @@ class BatchTaskService:
         in_memory = self._tasks.get(task_id)
         status = BatchTaskStatus.QUEUED
         progress = 0.0
-        metadata: Dict[str, Any] = {}
+        metadata: dict[str, Any] = {}
         started_at = None
         completed_at = None
         error_message = None
@@ -100,16 +96,16 @@ class BatchTaskService:
 
         # Query database for latest status
         query = """
-            SELECT status, metadata, started_at, completed_at, error_message 
-            FROM krai_system.processing_queue 
-            WHERE id = $1 
+            SELECT status, metadata, started_at, completed_at, error_message
+            FROM krai_system.processing_queue
+            WHERE id = $1
             LIMIT 1
         """
-        
+
         async with self._pool.acquire() as conn:
             result = await conn.fetchrow(query, task_id)
         data = dict(result) if result else None
-        
+
         if data:
             status = BatchTaskStatus(data.get("status", status.value))
             metadata = data.get("metadata", metadata) or {}
@@ -143,8 +139,8 @@ class BatchTaskService:
         task_id: str,
         status: BatchTaskStatus,
         *,
-        error: Optional[str] = None,
-        metadata_updates: Optional[Dict[str, Any]] = None,
+        error: str | None = None,
+        metadata_updates: dict[str, Any] | None = None,
     ) -> None:
         """Update the task status and persist it in the processing queue."""
 
@@ -153,7 +149,7 @@ class BatchTaskService:
         if metadata_updates:
             metadata.update(metadata_updates)
 
-        update_payload: Dict[str, Any] = {
+        update_payload: dict[str, Any] = {
             "status": status.value,
             "metadata": metadata,
         }
@@ -171,19 +167,19 @@ class BatchTaskService:
         # Build dynamic UPDATE query
         set_clauses = [f"{key} = ${i+2}" for i, key in enumerate(update_payload.keys())]
         query = f"""
-            UPDATE krai_system.processing_queue 
+            UPDATE krai_system.processing_queue
             SET {', '.join(set_clauses)}
             WHERE id = $1
         """
-        
+
         # Convert metadata to JSON string for PostgreSQL
         values = [task_id]
         for key, value in update_payload.items():
-            if key == 'metadata':
+            if key == "metadata":
                 values.append(json.dumps(value))
             else:
                 values.append(value)
-        
+
         async with self._pool.acquire() as conn:
             await conn.execute(query, *values)
         self._tasks[task_id] = {
@@ -205,12 +201,12 @@ class BatchTaskService:
         total_items: int,
         successful_items: int,
         failed_items: int,
-        current_result: Optional[BatchOperationResult] = None,
+        current_result: BatchOperationResult | None = None,
     ) -> None:
         """Update progress metrics for the task."""
 
         progress = 0.0 if total_items == 0 else (processed_items / total_items) * 100.0
-        metadata_updates: Dict[str, Any] = {
+        metadata_updates: dict[str, Any] = {
             "progress": progress,
             "processed_items": processed_items,
             "total_items": total_items,
@@ -233,7 +229,7 @@ class BatchTaskService:
     async def execute_task(
         self,
         task_id: str,
-        executor: "BatchTaskExecutor",
+        executor: BatchTaskExecutor,
     ) -> BatchTaskResponse:
         """Execute the provided callable and update task state accordingly."""
 
@@ -268,34 +264,34 @@ class BatchTaskService:
         """Remove completed/cancelled tasks older than the specified age."""
 
         cutoff = self._now() - timedelta(hours=older_than_hours)
-        
+
         # Count tasks to delete
         count_query = """
-            SELECT COUNT(*) as count FROM krai_system.processing_queue 
-            WHERE task_type LIKE 'batch_%' 
-            AND status IN ($1, $2, $3) 
+            SELECT COUNT(*) as count FROM krai_system.processing_queue
+            WHERE task_type LIKE 'batch_%'
+            AND status IN ($1, $2, $3)
             AND completed_at <= $4
         """
-        
+
         params = [
             BatchTaskStatus.COMPLETED.value,
             BatchTaskStatus.FAILED.value,
             BatchTaskStatus.CANCELLED.value,
             cutoff.isoformat(),
         ]
-        
+
         result = await self._adapter.execute_query(count_query, params)
         count = result[0].get("count", 0) if result else 0
 
         if count > 0:
             # Delete the tasks
             delete_query = """
-                DELETE FROM krai_system.processing_queue 
-                WHERE task_type LIKE 'batch_%' 
-                AND status IN ($1, $2, $3) 
+                DELETE FROM krai_system.processing_queue
+                WHERE task_type LIKE 'batch_%'
+                AND status IN ($1, $2, $3)
                 AND completed_at <= $4
             """
-            
+
             await self._adapter.execute_query(delete_query, params)
 
         # Remove from in-memory cache
@@ -316,17 +312,17 @@ class BatchTaskService:
     async def list_tasks(
         self,
         *,
-        user_id: Optional[str] = None,
-        status: Optional[BatchTaskStatus] = None,
+        user_id: str | None = None,
+        status: BatchTaskStatus | None = None,
         limit: int = 50,
-    ) -> List[BatchTaskResponse]:
+    ) -> list[BatchTaskResponse]:
         """Return a list of tasks filtered by user or status."""
 
         # Build query dynamically
         conditions = []
         params = []
         param_count = 0
-        
+
         if user_id:
             param_count += 1
             conditions.append(f"user_id = ${param_count}")
@@ -335,22 +331,22 @@ class BatchTaskService:
             param_count += 1
             conditions.append(f"status = ${param_count}")
             params.append(status.value)
-        
+
         where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
-        
+
         query = f"""
-            SELECT id, status, metadata, started_at, completed_at, error_message 
-            FROM krai_system.processing_queue 
+            SELECT id, status, metadata, started_at, completed_at, error_message
+            FROM krai_system.processing_queue
             {where_clause}
-            ORDER BY created_at DESC 
+            ORDER BY created_at DESC
             LIMIT ${param_count + 1}
         """
         params.append(limit)
 
         rows = await self._adapter.execute_query(query, params)
         rows = rows or []
-        results: List[BatchTaskResponse] = []
-        
+        results: list[BatchTaskResponse] = []
+
         for row in rows:
             task_id = row["id"]
             metadata = row.get("metadata") or {}
@@ -386,5 +382,3 @@ class BatchTaskService:
             user_id="system",
         )
         return await self.create_task(request)
-
-

@@ -16,16 +16,16 @@ Usage:
 Expects: DATABASE_HOST, DATABASE_PORT, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD (env or .env)
 """
 
+import argparse
 import os
 import sys
-import argparse
 import uuid
-from typing import Dict, List, Tuple, Any
 
 # Load .env if present
 if os.path.exists(os.path.join(os.path.dirname(__file__), "..", ".env")):
     try:
         from dotenv import load_dotenv
+
         load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
     except ImportError:
         pass
@@ -50,7 +50,7 @@ def get_conn():
     )
 
 
-def check_migration(conn) -> Tuple[bool, str]:
+def check_migration(conn) -> tuple[bool, str]:
     """Verify migration 008_pipeline_resilience_schema is applied."""
     with conn.cursor() as cur:
         cur.execute(
@@ -66,7 +66,7 @@ def check_migration(conn) -> Tuple[bool, str]:
     return True, "Migration 008 present and description matches"
 
 
-def check_table(conn, schema: str, table: str, required_columns: List[str]) -> Tuple[bool, str]:
+def check_table(conn, schema: str, table: str, required_columns: list[str]) -> tuple[bool, str]:
     """Check table exists and has required columns."""
     with conn.cursor() as cur:
         cur.execute(
@@ -86,7 +86,7 @@ def check_table(conn, schema: str, table: str, required_columns: List[str]) -> T
     return True, f"Table {schema}.{table} has required columns"
 
 
-def check_indexes(conn, table_schema: str, table_name: str, expected_index_prefixes: List[str]) -> Tuple[bool, str]:
+def check_indexes(conn, table_schema: str, table_name: str, expected_index_prefixes: list[str]) -> tuple[bool, str]:
     """Check indexes exist (by prefix match on index name)."""
     with conn.cursor() as cur:
         cur.execute(
@@ -109,7 +109,7 @@ def check_indexes(conn, table_schema: str, table_name: str, expected_index_prefi
     return True, f"Expected indexes present for {table_schema}.{table_name}"
 
 
-def check_rpc_functions(conn, expected: List[str]) -> Tuple[bool, str]:
+def check_rpc_functions(conn, expected: list[str]) -> tuple[bool, str]:
     """Check RPC functions exist in krai_core (by proname)."""
     with conn.cursor() as cur:
         cur.execute(
@@ -128,7 +128,7 @@ def check_rpc_functions(conn, expected: List[str]) -> Tuple[bool, str]:
     return True, f"RPC functions present: {expected}"
 
 
-def test_rpc_execution(conn, verbose: bool) -> Tuple[bool, str]:
+def test_rpc_execution(conn, verbose: bool) -> tuple[bool, str]:
     """Create test document, call start_stage, update_stage_progress, complete_stage, fail_stage; then cleanup."""
     doc_id = None
     try:
@@ -210,7 +210,11 @@ def test_rpc_execution(conn, verbose: bool) -> Tuple[bool, str]:
                 (doc_id,),
             )
             row = cur.fetchone()
-            st = row["stage_status"].get("verify_fail_stage") if row and isinstance(row.get("stage_status"), dict) else None
+            st = (
+                row["stage_status"].get("verify_fail_stage")
+                if row and isinstance(row.get("stage_status"), dict)
+                else None
+            )
             if not st or st.get("status") != "failed" or st.get("error") != "Test error for verification":
                 return False, f"fail_stage: expected status=failed and error set, got {st}"
             if row.get("error_message") != "Test error for verification":
@@ -235,7 +239,7 @@ def main():
     args = parser.parse_args()
     verbose = args.verbose
 
-    results: List[Tuple[str, bool, str]] = []
+    results: list[tuple[str, bool, str]] = []
 
     try:
         conn = get_conn()
@@ -319,7 +323,12 @@ def main():
             conn,
             "krai_system",
             "pipeline_errors",
-            ["idx_pipeline_errors_document", "idx_pipeline_errors_stage", "idx_pipeline_errors_status", "idx_pipeline_errors_correlation"],
+            [
+                "idx_pipeline_errors_document",
+                "idx_pipeline_errors_stage",
+                "idx_pipeline_errors_status",
+                "idx_pipeline_errors_correlation",
+            ],
         )
         results.append(("Indexes pipeline_errors", ok, msg))
 

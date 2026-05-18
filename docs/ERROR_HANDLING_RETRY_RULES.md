@@ -190,17 +190,17 @@ from backend.core.idempotency_checker import IdempotencyChecker
 class MyProcessor(BaseProcessor):
     def process(self, context: ProcessingContext) -> ProcessingResult:
         checker = IdempotencyChecker(self.db_adapter)
-        
+
         # Check if already processed
         is_complete, data_hash = checker.check_completion_marker(
             document_id=context.document_id,
             stage_name=self.name
         )
-        
+
         if is_complete:
             # Compute current data hash
             current_hash = checker.compute_data_hash(context.data)
-            
+
             if current_hash == data_hash:
                 # Same data - skip processing
                 self.logger.info(f"Stage {self.name} already completed with same data")
@@ -209,17 +209,17 @@ class MyProcessor(BaseProcessor):
                 # Data changed - cleanup and re-process
                 self.logger.info(f"Data changed - cleaning up old data")
                 self.cleanup_old_data(context.document_id)
-        
+
         # Process the data
         result = self.do_work(context)
-        
+
         # Set completion marker
         checker.set_completion_marker(
             document_id=context.document_id,
             stage_name=self.name,
             data_hash=checker.compute_data_hash(context.data)
         )
-        
+
         return ProcessingResult(success=True, data=result)
 ```
 
@@ -354,10 +354,10 @@ def safe_process(self, context: ProcessingContext) -> ProcessingResult:
     correlation_id = f"req_{context.request_id}.stage_{self.name}"
     if context.retry_attempt > 0:
         correlation_id += f".retry_{context.retry_attempt}"
-    
+
     # Add to context
     context.correlation_id = correlation_id
-    
+
     self.logger.info(f"[{correlation_id}] Starting {self.name} processing")
 ```
 
@@ -366,7 +366,7 @@ def safe_process(self, context: ProcessingContext) -> ProcessingResult:
 def safe_process(self, context: ProcessingContext) -> ProcessingResult:
     # ❌ WRONG: Random UUID without hierarchy
     correlation_id = str(uuid.uuid4())
-    
+
     # ❌ WRONG: No stage name or retry info
     self.logger.info(f"Starting processing")
 ```
@@ -469,14 +469,14 @@ With advisory locks:
 def safe_process(self, context: ProcessingContext) -> ProcessingResult:
     lock_id = self.compute_lock_id(context.document_id, self.name)
     lock_acquired = False
-    
+
     try:
         # Try to acquire lock (non-blocking)
         lock_acquired = self.db_adapter.execute_scalar(
             "SELECT pg_try_advisory_lock(%s)",
             (lock_id,)
         )
-        
+
         if not lock_acquired:
             if context.retry_attempt > 0:
                 # Another retry is in progress
@@ -485,11 +485,11 @@ def safe_process(self, context: ProcessingContext) -> ProcessingResult:
             else:
                 # First attempt - should always get lock
                 raise ProcessingError("Failed to acquire lock on first attempt")
-        
+
         # Process with lock held
         result = self.process(context)
         return result
-        
+
     finally:
         # ALWAYS release lock
         if lock_acquired:
@@ -503,21 +503,21 @@ def safe_process(self, context: ProcessingContext) -> ProcessingResult:
 ```python
 def safe_process(self, context: ProcessingContext) -> ProcessingResult:
     lock_id = self.compute_lock_id(context.document_id, self.name)
-    
+
     # ❌ WRONG: No try-finally - lock may not be released!
     lock_acquired = self.db_adapter.execute_scalar(
         "SELECT pg_try_advisory_lock(%s)",
         (lock_id,)
     )
-    
+
     result = self.process(context)
-    
+
     # ❌ WRONG: If exception occurs, lock is never released!
     self.db_adapter.execute(
         "SELECT pg_advisory_unlock(%s)",
         (lock_id,)
     )
-    
+
     return result
 ```
 
@@ -553,10 +553,10 @@ def compute_lock_id(self, document_id: str, stage_name: str) -> int:
     """Compute PostgreSQL advisory lock ID."""
     # Combine document_id and stage_name
     lock_key = f"{document_id}:{stage_name}"
-    
+
     # Hash to 32-bit integer (PostgreSQL advisory lock range)
     hash_value = int(hashlib.sha256(lock_key.encode()).hexdigest(), 16)
-    
+
     # Modulo to fit in 32-bit signed integer range
     return hash_value % (2**31)
 ```
@@ -688,10 +688,10 @@ def process_alert_queue():
         "SELECT * FROM krai_system.alert_queue "
         "WHERE status = 'pending' AND created_at > NOW() - INTERVAL '5 minutes'"
     )
-    
+
     # Group by alert_type and severity
     grouped = group_by(alerts, ['alert_type', 'severity'])
-    
+
     for group_key, group_alerts in grouped.items():
         if len(group_alerts) >= threshold:
             # Send aggregated alert
@@ -699,7 +699,7 @@ def process_alert_queue():
                 title=f"{len(group_alerts)} {group_key} alerts",
                 alerts=group_alerts
             )
-            
+
             # Mark as sent
             db.execute(
                 "UPDATE krai_system.alert_queue SET status = 'sent', sent_at = NOW() "
@@ -941,7 +941,7 @@ def run_benchmark(document_path: str, git_commit: str):
     start_time = time.time()
     result = pipeline.process(document_path)
     total_time = (time.time() - start_time) * 1000
-    
+
     # Store baseline
     db.execute(
         "INSERT INTO krai_system.performance_baselines "
@@ -960,7 +960,7 @@ def run_benchmark(document_path: str, git_commit: str):
             })
         )
     )
-    
+
     # Compare with previous baseline
     previous = db.query_one(
         "SELECT metrics FROM krai_system.performance_baselines "
@@ -968,9 +968,9 @@ def run_benchmark(document_path: str, git_commit: str):
         "ORDER BY created_at DESC LIMIT 1 OFFSET 1",
         ("full_pipeline", os.path.basename(document_path))
     )
-    
+
     if previous:
-        diff_pct = ((total_time - previous['metrics']['pipeline_time_ms']) 
+        diff_pct = ((total_time - previous['metrics']['pipeline_time_ms'])
                     / previous['metrics']['pipeline_time_ms'] * 100)
         print(f"Performance change: {diff_pct:+.2f}%")
 ```
@@ -1150,9 +1150,9 @@ def test_safe_process_retries_transient_error(mock_db, mock_processor):
         requests.exceptions.Timeout(),
         ProcessingResult(success=True)
     ]
-    
+
     result = mock_processor.safe_process(context)
-    
+
     # Should retry and succeed
     assert result.success
     assert mock_processor.process.call_count == 2
@@ -1177,9 +1177,9 @@ def test_pipeline_recovers_from_transient_error(test_db):
             requests.exceptions.Timeout(),  # First attempt
             Mock(status_code=200, json=lambda: {"embedding": [...]})  # Retry
         ]
-        
+
         result = pipeline.process("test_document.pdf")
-        
+
         # Should succeed after retry
         assert result.success
         assert mock_post.call_count == 2
@@ -1202,10 +1202,10 @@ def test_pipeline_recovers_from_transient_error(test_db):
 @patch('requests.post')
 def test_ollama_timeout_retry(mock_post):
     mock_post.side_effect = requests.exceptions.Timeout()
-    
+
     with pytest.raises(ProcessingError) as exc_info:
         embedding_processor.process(context)
-    
+
     assert "timeout" in str(exc_info.value).lower()
     assert exc_info.value.error_type == "transient"
 ```
@@ -1314,7 +1314,7 @@ def process(self, context: ProcessingContext) -> ProcessingResult:
     checker = IdempotencyChecker(self.db_adapter)
     if checker.is_complete(context.document_id, self.name):
         return ProcessingResult(success=True, skipped=True)
-    
+
     # Process and mark complete
     chunks = self.extract_chunks(context.data)
     self.db.insert_chunks(chunks)
@@ -1481,7 +1481,7 @@ def process(self, context: ProcessingContext) -> ProcessingResult:
 def process(self, context: ProcessingContext) -> ProcessingResult:
     if self.idempotency_checker.is_complete(context.document_id, self.name):
         return ProcessingResult(success=True, skipped=True)
-    
+
     chunks = self.extract_chunks(context.data)
     self.db.execute(
         "INSERT INTO krai_intelligence.chunks (document_id, content) VALUES (%s, %s)",
@@ -1583,22 +1583,22 @@ sequenceDiagram
     participant EC as ErrorClassifier
     participant RO as RetryOrchestrator
     participant AS as AlertService
-    
+
     P->>BP: process(context)
     BP->>BP: Generate correlation_id
     BP->>IC: check_completion_marker()
     IC->>DB: SELECT from stage_completion_markers
     DB-->>IC: marker with data_hash
-    
+
     alt Data already processed (same hash)
         IC-->>BP: Skip processing
         BP-->>P: Success (skipped)
     else Data changed or not processed
         BP->>DB: pg_try_advisory_lock()
         DB-->>BP: lock_acquired=true
-        
+
         BP->>P: process(context)
-        
+
         alt Processing succeeds
             P-->>BP: Success result
             BP->>IC: set_completion_marker()
@@ -1609,7 +1609,7 @@ sequenceDiagram
             P-->>BP: Exception
             BP->>EC: classify(exception)
             EC-->>BP: transient/permanent
-            
+
             alt Transient error
                 BP->>RO: schedule_retry()
                 RO->>DB: INSERT pipeline_errors

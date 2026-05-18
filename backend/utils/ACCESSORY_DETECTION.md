@@ -175,7 +175,7 @@ if result:
     print(f"Type: {result.product_type}")
     print(f"Description: {result.description}")
     print(f"Compatible with: {', '.join(result.compatible_series)}")
-    
+
 # Output:
 # Model: FS-534
 # Type: finisher

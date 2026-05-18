@@ -1,11 +1,10 @@
-import pytest
 from uuid import uuid4
-from pathlib import Path
 
-from backend.processors.upload_processor import UploadProcessor
-from backend.processors.text_processor_optimized import OptimizedTextProcessor
+import pytest
+
 from backend.core.base_processor import ProcessingContext
-
+from backend.processors.text_processor_optimized import OptimizedTextProcessor
+from backend.processors.upload_processor import UploadProcessor
 
 pytestmark = pytest.mark.smoke
 

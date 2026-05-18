@@ -6,7 +6,7 @@
     Performs a complete Docker environment reset including container
     shutdown, volume removal, network pruning, and fresh startup with
     seed data verification.
-    
+
     This script performs the following operations:
     - Stops all containers
     - Removes all KRAI volumes
@@ -77,9 +77,9 @@ function Find-DockerCompose {
 # Check prerequisites
 function Test-Prerequisites {
     Write-Status "Step 1/7: Checking prerequisites..."
-    
+
     $allOk = $true
-    
+
     # Check Docker
     try {
         if (Get-Command docker -ErrorAction SilentlyContinue) {
@@ -94,7 +94,7 @@ function Test-Prerequisites {
         Write-ErrorMessage "Docker is not installed or not in PATH"
         $allOk = $false
     }
-    
+
     # Check Docker Compose
     if (Find-DockerCompose) {
         Write-Success "Docker Compose is available ($script:DockerComposeCmd)"
@@ -103,7 +103,7 @@ function Test-Prerequisites {
         Write-ErrorMessage "Docker Compose is not installed or not in PATH"
         $allOk = $false
     }
-    
+
     # Check .env file
     if (Test-Path ".env") {
         Write-Success ".env file found"
@@ -112,19 +112,19 @@ function Test-Prerequisites {
         Write-ErrorMessage ".env file not found in project root"
         $allOk = $false
     }
-    
+
     if (-not $allOk) {
         Write-ErrorMessage "Prerequisites check failed"
         exit 1
     }
-    
+
     return $true
 }
 
 # Stop all containers
 function Stop-DockerContainers {
     Write-Status "Step 2/7: Stopping all Docker containers..."
-    
+
     try {
         if ($script:DockerComposeCmd -eq "docker-compose") {
             & docker-compose down 2>&1 | Out-Null
@@ -132,7 +132,7 @@ function Stop-DockerContainers {
         else {
             & docker compose down 2>&1 | Out-Null
         }
-        
+
         if ($LASTEXITCODE -eq 0) {
             Write-Success "Containers stopped successfully"
             return $true
@@ -151,7 +151,7 @@ function Stop-DockerContainers {
 # Remove KRAI volumes
 function Remove-KraiVolumes {
     Write-Status "Step 3/7: Removing KRAI volumes..."
-    
+
     $volumes = @(
         'krai_postgres_data',
         'krai_minio_data',
@@ -163,11 +163,11 @@ function Remove-KraiVolumes {
         'laravel_vendor',
         'laravel_node_modules'
     )
-    
+
     foreach ($volumeName in $volumes) {
         try {
             $volumeExists = docker volume ls -q | Select-String -Pattern "^$volumeName$" -Quiet
-            
+
             if ($volumeExists) {
                 docker volume rm $volumeName 2>&1 | Out-Null
                 if ($LASTEXITCODE -eq 0) {
@@ -185,14 +185,14 @@ function Remove-KraiVolumes {
             Write-Warning "Error processing volume ${volumeName}: $_"
         }
     }
-    
+
     return $true
 }
 
 # Prune Docker networks
 function Invoke-NetworkPrune {
     Write-Status "Step 4/7: Pruning Docker networks..."
-    
+
     try {
         $output = docker network prune -f 2>&1
         Write-Success "Networks pruned successfully"
@@ -207,7 +207,7 @@ function Invoke-NetworkPrune {
 # Start containers
 function Start-DockerContainers {
     Write-Status "Step 5/7: Starting fresh Docker containers..."
-    
+
     try {
         if ($script:DockerComposeCmd -eq "docker-compose") {
             & docker-compose up -d 2>&1 | Out-Null
@@ -215,7 +215,7 @@ function Start-DockerContainers {
         else {
             & docker compose up -d 2>&1 | Out-Null
         }
-        
+
         if ($LASTEXITCODE -eq 0) {
             Write-Success "Containers started successfully"
             return $true
@@ -234,12 +234,12 @@ function Start-DockerContainers {
 # Wait for services to initialize
 function Wait-ForServices {
     Write-Status "Step 6/7: Waiting 60 seconds for services to initialize..."
-    
+
     for ($i = 60; $i -ge 1; $i--) {
         Write-Progress -Activity "Initializing Services" -Status "Time remaining: $i seconds" -PercentComplete ((60 - $i) / 60 * 100)
         Start-Sleep -Seconds 1
     }
-    
+
     Write-Progress -Activity "Initializing Services" -Completed
     Write-Success "Service initialization wait completed"
     return $true
@@ -251,7 +251,7 @@ function Get-EnvVariable {
         [string]$Name,
         [string]$Default = ""
     )
-    
+
     if (Test-Path ".env") {
         $envContent = Get-Content ".env" -ErrorAction SilentlyContinue
         foreach ($line in $envContent) {
@@ -260,24 +260,24 @@ function Get-EnvVariable {
             }
         }
     }
-    
+
     return $Default
 }
 
 # Verify seed data
 function Test-SeedData {
     Write-Status "Step 7/7: Verifying seed data..."
-    
+
     # Load database credentials from .env
     $dbHost = Get-EnvVariable -Name "DATABASE_HOST" -Default "localhost"
     $dbPort = Get-EnvVariable -Name "DATABASE_PORT" -Default "5432"
     $dbName = Get-EnvVariable -Name "DATABASE_NAME" -Default "krai"
     $dbUser = Get-EnvVariable -Name "DATABASE_USER" -Default "krai_user"
-    
+
     # Detect PostgreSQL container name
     $pgContainer = $null
     $containers = docker ps --filter "name=krai-postgres" --format "{{.Names}}" 2>$null
-    
+
     if ($containers -match "krai-postgres-prod") {
         $pgContainer = "krai-postgres-prod"
     }
@@ -288,16 +288,16 @@ function Test-SeedData {
         Write-Warning "PostgreSQL container not found, skipping seed data verification"
         return $true
     }
-    
+
     Write-InfoMessage "Using PostgreSQL container: $pgContainer"
-    
+
     $verificationFailed = $false
-    
+
     # Verify manufacturers (expected: 14)
     try {
         $manufacturersResult = docker exec $pgContainer psql -U $dbUser -d $dbName -t -c "SELECT COUNT(*) FROM krai_core.manufacturers;" 2>$null
         $manufacturersCount = [int]($manufacturersResult.Trim())
-        
+
         if ($manufacturersCount -eq 14) {
             Write-Success "Manufacturers count verified: 14"
         }
@@ -310,12 +310,12 @@ function Test-SeedData {
         Write-Warning "Failed to verify manufacturers count: $_"
         $verificationFailed = $true
     }
-    
+
     # Verify retry policies (expected: 4)
     try {
         $retryPoliciesResult = docker exec $pgContainer psql -U $dbUser -d $dbName -t -c "SELECT COUNT(*) FROM krai_system.retry_policies;" 2>$null
         $retryPoliciesCount = [int]($retryPoliciesResult.Trim())
-        
+
         if ($retryPoliciesCount -eq 4) {
             Write-Success "Retry policies count verified: 4"
         }
@@ -328,11 +328,11 @@ function Test-SeedData {
         Write-Warning "Failed to verify retry policies count: $_"
         $verificationFailed = $true
     }
-    
+
     if ($verificationFailed) {
         return $false
     }
-    
+
     return $true
 }
 
@@ -343,35 +343,35 @@ function Main {
     Write-Host "║  KRAI Docker Clean Setup Script           ║" -ForegroundColor Green
     Write-Host "╚════════════════════════════════════════════╝" -ForegroundColor Green
     Write-Host ""
-    
+
     $overallSuccess = $true
-    
+
     try {
         # Execute workflow
         if (-not (Test-Prerequisites)) {
             $overallSuccess = $false
         }
-        
+
         if ($overallSuccess -and -not (Stop-DockerContainers)) {
             $overallSuccess = $false
         }
-        
+
         if ($overallSuccess -and -not (Remove-KraiVolumes)) {
             $overallSuccess = $false
         }
-        
+
         if ($overallSuccess -and -not (Invoke-NetworkPrune)) {
             $overallSuccess = $false
         }
-        
+
         if ($overallSuccess -and -not (Start-DockerContainers)) {
             $overallSuccess = $false
         }
-        
+
         if ($overallSuccess -and -not (Wait-ForServices)) {
             $overallSuccess = $false
         }
-        
+
         if ($overallSuccess -and -not (Test-SeedData)) {
             $overallSuccess = $false
         }
@@ -380,7 +380,7 @@ function Main {
         Write-ErrorMessage "Unexpected error during execution: $_"
         $overallSuccess = $false
     }
-    
+
     # Print final summary
     Write-Host ""
     Write-Host "═══════════════════════════════════════════" -ForegroundColor Blue

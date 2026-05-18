@@ -78,7 +78,7 @@ if storage.is_configured():
         document_type="service_manual",
         metadata={'version': '1.0'}
     )
-    
+
     if result['success']:
         print(f"Uploaded to: {result['storage_url']}")
         print(f"Storage path: {result['storage_path']}")
@@ -201,10 +201,10 @@ class DocumentPipeline:
     def __init__(self):
         # (historical: supabase_client parameter removed)
         self.storage = StorageProcessor()
-    
+
     def process_document(self, document_id, file_path):
         # ... text extraction, product extraction, etc.
-        
+
         # Stage 6: Storage
         storage_result = self.storage.upload_document(
             document_id=document_id,
@@ -212,14 +212,14 @@ class DocumentPipeline:
             manufacturer=extracted_manufacturer,
             document_type="service_manual"
         )
-        
+
         if storage_result['success']:
             # Update database with storage URL
             self.supabase.table("documents").update({
                 'storage_url': storage_result['storage_url'],
                 'storage_path': storage_result['storage_path']
             }).eq('id', document_id).execute()
-        
+
         # Continue to next stages...
 ```
 
@@ -294,7 +294,7 @@ Recommended bucket setup:
 ### Upload Performance:
 
 - **Small files (<10MB)**: ~1-2 seconds
-- **Medium files (10-100MB)**: ~5-15 seconds  
+- **Medium files (10-100MB)**: ~5-15 seconds
 - **Large files (100-500MB)**: ~30-120 seconds
 
 Upload time depends on:
@@ -463,4 +463,3 @@ Before deploying to production:
 ---
 
 **Stage 6: Storage Processor - Ready for Production! 🚀**
-

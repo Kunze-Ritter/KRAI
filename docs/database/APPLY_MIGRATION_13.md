@@ -35,30 +35,30 @@ CREATE TABLE IF NOT EXISTS krai_core.document_products (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     document_id UUID NOT NULL REFERENCES krai_core.documents(id) ON DELETE CASCADE,
     product_id UUID NOT NULL REFERENCES krai_core.products(id) ON DELETE CASCADE,
-    
+
     -- Relationship metadata
     is_primary_product BOOLEAN DEFAULT false,
     confidence_score DECIMAL(3,2) DEFAULT 0.80,
     extraction_method VARCHAR(50),
     page_numbers INTEGER[],
-    
+
     -- Timestamps
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    
+
     -- Unique constraint
     UNIQUE(document_id, product_id)
 );
 
 -- Indexes
-CREATE INDEX IF NOT EXISTS idx_document_products_document_id 
+CREATE INDEX IF NOT EXISTS idx_document_products_document_id
 ON krai_core.document_products(document_id);
 
-CREATE INDEX IF NOT EXISTS idx_document_products_product_id 
+CREATE INDEX IF NOT EXISTS idx_document_products_product_id
 ON krai_core.document_products(product_id);
 
-CREATE INDEX IF NOT EXISTS idx_document_products_primary 
-ON krai_core.document_products(document_id, is_primary_product) 
+CREATE INDEX IF NOT EXISTS idx_document_products_primary
+ON krai_core.document_products(document_id, is_primary_product)
 WHERE is_primary_product = true;
 
 -- Comments
@@ -82,7 +82,7 @@ RETURNS TABLE (
 ) AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         p.id as product_id,
         p.model_number,
         m.name as manufacturer_name,
@@ -184,7 +184,7 @@ SELECT p.model_number, m.name as manufacturer
 FROM krai_core.document_products dp
 JOIN krai_core.products p ON dp.product_id = p.id
 LEFT JOIN krai_core.manufacturers m ON p.manufacturer_id = m.id
-WHERE dp.document_id = 'abc-123' 
+WHERE dp.document_id = 'abc-123'
   AND dp.is_primary_product = true;
 ```
 
@@ -228,9 +228,9 @@ python process_production.py
 
 ## 💡 **ZUSAMMENFASSUNG:**
 
-✅ **Entfernt:** 3 unnötige Spalten (storage_url, product_id, manufacturer_id)  
-✅ **Erstellt:** document_products Many-to-Many Tabelle  
-✅ **Helper Function:** `get_document_products()`  
-✅ **Script Update:** Speichert manufacturer, models, relationships  
+✅ **Entfernt:** 3 unnötige Spalten (storage_url, product_id, manufacturer_id)
+✅ **Erstellt:** document_products Many-to-Many Tabelle
+✅ **Helper Function:** `get_document_products()`
+✅ **Script Update:** Speichert manufacturer, models, relationships
 
 **→ Jetzt kann 1 Dokument VIELE Produkte haben!** 🎉

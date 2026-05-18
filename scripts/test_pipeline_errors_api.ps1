@@ -35,7 +35,7 @@ try {
     Write-Host "   ✅ Endpoint accessible!" -ForegroundColor Green
     Write-Host "   Total errors: $($errorsResponse.data.total)" -ForegroundColor Cyan
     Write-Host "   Current page: $($errorsResponse.data.page)/$($errorsResponse.data.total_pages)" -ForegroundColor Cyan
-    
+
     if ($errorsResponse.data.errors.Count -gt 0) {
         Write-Host "   First error:" -ForegroundColor Cyan
         $firstError = $errorsResponse.data.errors[0]
@@ -43,7 +43,7 @@ try {
         Write-Host "     - Document ID: $($firstError.document_id)" -ForegroundColor Gray
         Write-Host "     - Stage: $($firstError.stage_name)" -ForegroundColor Gray
         Write-Host "     - Status: $($firstError.status)" -ForegroundColor Gray
-        
+
         # Save first error ID for next test
         $script:testErrorId = $firstError.error_id
     } else {
@@ -87,7 +87,7 @@ if ($testErrorId) {
         error_id = $testErrorId
         notes = "Test resolution from API test script"
     } | ConvertTo-Json
-    
+
     try {
         $resolveResponse = Invoke-RestMethod -Uri "$baseUrl/api/v1/pipeline/mark-error-resolved" -Method Post -Body $resolveBody -Headers $headers
         Write-Host "   ✅ Endpoint accessible!" -ForegroundColor Green

@@ -1,36 +1,34 @@
-﻿"""Image CRUD and storage API routes."""
+"""Image CRUD and storage API routes."""
+
 from __future__ import annotations
 
-import io
+import json
 import logging
 import os
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from math import ceil
-from typing import Any, Dict, List, Optional
+from typing import Any
 
+import asyncpg
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile, status
 from pydantic import BaseModel
-from api.dependencies.database import get_database_pool, get_database_adapter
-import asyncpg
-import json
+
+from api.dependencies.database import get_database_adapter, get_database_pool
 from api.middleware.auth_middleware import require_permission
 from api.routes.response_models import ErrorResponse, SuccessResponse
 from models.document import DocumentResponse, PaginationParams, SortOrder
 from models.image import (
     BucketType,
-    ImageCreateRequest,
     ImageFilterParams,
     ImageListResponse,
     ImageResponse,
     ImageSortParams,
     ImageStatsResponse,
-    ImageType,
     ImageUpdateRequest,
     ImageUploadResponse,
     ImageWithRelationsResponse,
 )
-from services.object_storage_service import ObjectStorageService
 from services.storage_factory import create_storage_service
 
 LOGGER = logging.getLogger("krai.api.images")
@@ -54,12 +52,13 @@ ALLOWED_BUCKETS = {
 }
 
 
-def _infer_bucket_type_from_url(storage_url: Optional[str]) -> str:
+def _infer_bucket_type_from_url(storage_url: str | None) -> str:
     """Helper function to get public URL."""
+
     def get_public_url(bucket_type: str) -> str:
         var_name = f"OBJECT_STORAGE_PUBLIC_URL_{bucket_type.upper()}"
         return os.getenv(var_name, "")
-    
+
     public_documents = get_public_url("documents")
     public_error = get_public_url("error")
     public_parts = get_public_url("parts")
@@ -73,7 +72,7 @@ def _infer_bucket_type_from_url(storage_url: Optional[str]) -> str:
     return "document_images"
 
 
-def _guess_media_type(filename: Optional[str], image_format: Optional[str]) -> str:
+def _guess_media_type(filename: str | None, image_format: str | None) -> str:
     if image_format:
         return f"image/{image_format.lower()}"
     if filename and "." in filename:
@@ -84,9 +83,9 @@ def _guess_media_type(filename: Optional[str], image_format: Optional[str]) -> s
 
 def _error_response(
     error: str,
-    detail: Optional[str] = None,
-    error_code: Optional[str] = None,
-) -> Dict[str, Optional[str]]:
+    detail: str | None = None,
+    error_code: str | None = None,
+) -> dict[str, str | None]:
     return ErrorResponse(error=error, detail=detail, error_code=error_code).dict()
 
 
@@ -95,7 +94,7 @@ def _log_and_raise(
     message: str,
     *,
     error: str = "Error",
-    error_code: Optional[str] = None,
+    error_code: str | None = None,
 ) -> None:
     LOGGER.error(message)
     raise HTTPException(
@@ -108,26 +107,22 @@ def _calculate_total_pages(total: int, page_size: int) -> int:
     return ceil(total / page_size) if total > 0 else 1
 
 
-async def _fetch_document(pool: asyncpg.Pool, document_id: Optional[str]) -> Optional[DocumentResponse]:
+async def _fetch_document(pool: asyncpg.Pool, document_id: str | None) -> DocumentResponse | None:
     if not document_id:
         return None
     async with pool.acquire() as conn:
-        result = await conn.fetchrow(
-            "SELECT * FROM krai_core.documents WHERE id = $1 LIMIT 1",
-            document_id
-        )
+        result = await conn.fetchrow("SELECT * FROM krai_core.documents WHERE id = $1 LIMIT 1", document_id)
     if not result:
         return None
     return DocumentResponse(**dict(result))
 
 
-async def _fetch_chunk(pool: asyncpg.Pool, chunk_id: Optional[str]) -> Optional[Dict[str, Any]]:
+async def _fetch_chunk(pool: asyncpg.Pool, chunk_id: str | None) -> dict[str, Any] | None:
     if not chunk_id:
         return None
     async with pool.acquire() as conn:
         result = await conn.fetchrow(
-            "SELECT text_chunk,page_start,page_end FROM krai_intelligence.chunks WHERE id = $1 LIMIT 1",
-            chunk_id
+            "SELECT text_chunk,page_start,page_end FROM krai_intelligence.chunks WHERE id = $1 LIMIT 1", chunk_id
         )
     if not result:
         return None
@@ -136,7 +131,7 @@ async def _fetch_chunk(pool: asyncpg.Pool, chunk_id: Optional[str]) -> Optional[
 
 async def _build_relations(
     pool: asyncpg.Pool,
-    record: Dict[str, Any],
+    record: dict[str, Any],
     include_relations: bool,
 ) -> ImageWithRelationsResponse:
     image = ImageResponse(**record)
@@ -155,9 +150,9 @@ async def _insert_audit_log(
     *,
     record_id: str,
     operation: str,
-    changed_by: Optional[str],
-    new_values: Optional[Dict[str, Any]] = None,
-    old_values: Optional[Dict[str, Any]] = None,
+    changed_by: str | None,
+    new_values: dict[str, Any] | None = None,
+    old_values: dict[str, Any] | None = None,
 ) -> None:
     try:
         async with pool.acquire() as conn:
@@ -168,7 +163,7 @@ async def _insert_audit_log(
                 operation,
                 changed_by,
                 json.dumps(new_values) if new_values else None,
-                json.dumps(old_values) if old_values else None
+                json.dumps(old_values) if old_values else None,
             )
     except Exception as audit_exc:  # pragma: no cover
         LOGGER.warning("Audit log insert failed for image %s: %s", record_id, audit_exc)
@@ -177,15 +172,12 @@ async def _insert_audit_log(
 async def _validate_foreign_keys(
     pool: asyncpg.Pool,
     *,
-    document_id: Optional[str] = None,
-    chunk_id: Optional[str] = None,
+    document_id: str | None = None,
+    chunk_id: str | None = None,
 ) -> None:
     if document_id:
         async with pool.acquire() as conn:
-            document = await conn.fetchrow(
-                "SELECT id FROM krai_core.documents WHERE id = $1 LIMIT 1",
-                document_id
-            )
+            document = await conn.fetchrow("SELECT id FROM krai_core.documents WHERE id = $1 LIMIT 1", document_id)
         if not document:
             _log_and_raise(
                 status.HTTP_400_BAD_REQUEST,
@@ -195,10 +187,7 @@ async def _validate_foreign_keys(
             )
     if chunk_id:
         async with pool.acquire() as conn:
-            chunk = await conn.fetchrow(
-                "SELECT id FROM krai_intelligence.chunks WHERE id = $1 LIMIT 1",
-                chunk_id
-            )
+            chunk = await conn.fetchrow("SELECT id FROM krai_intelligence.chunks WHERE id = $1 LIMIT 1", chunk_id)
         if not chunk:
             _log_and_raise(
                 status.HTTP_400_BAD_REQUEST,
@@ -208,20 +197,17 @@ async def _validate_foreign_keys(
             )
 
 
-async def _deduplicate_hash(pool: asyncpg.Pool, file_hash: Optional[str]) -> Optional[Dict[str, Any]]:
+async def _deduplicate_hash(pool: asyncpg.Pool, file_hash: str | None) -> dict[str, Any] | None:
     if not file_hash:
         return None
     async with pool.acquire() as conn:
-        result = await conn.fetchrow(
-            "SELECT * FROM krai_content.images WHERE file_hash = $1 LIMIT 1",
-            file_hash
-        )
+        result = await conn.fetchrow("SELECT * FROM krai_content.images WHERE file_hash = $1 LIMIT 1", file_hash)
     if not result:
         return None
     return dict(result)
 
 
-def _map_bucket(bucket: Optional[str]) -> BucketType:
+def _map_bucket(bucket: str | None) -> BucketType:
     if not bucket:
         return BucketType.DOCUMENT_IMAGES
     try:
@@ -246,14 +232,14 @@ def _decode_upload(file: UploadFile) -> bytes:
     return content
 
 
-def _determine_bucket(bucket: Optional[str]) -> str:
+def _determine_bucket(bucket: str | None) -> str:
     mapped = _map_bucket(bucket)
     return mapped.value
 
 
-def _calculate_stats(records: List[Dict[str, Any]]) -> ImageStatsResponse:
-    by_type: Dict[str, int] = {}
-    by_document: Dict[str, int] = {}
+def _calculate_stats(records: list[dict[str, Any]]) -> ImageStatsResponse:
+    by_type: dict[str, int] = {}
+    by_document: dict[str, int] = {}
     total = len(records)
     with_ocr = 0
     with_ai = 0
@@ -284,7 +270,7 @@ async def list_images(
     pagination: PaginationParams = Depends(),
     filters: ImageFilterParams = Depends(),
     sort: ImageSortParams = Depends(),
-    current_user: Dict[str, Any] = Depends(require_permission("images:read")),
+    current_user: dict[str, Any] = Depends(require_permission("images:read")),
     pool: asyncpg.Pool = Depends(get_database_pool),
 ) -> SuccessResponse[ImageListResponse]:
     try:
@@ -292,28 +278,28 @@ async def list_images(
         where_clauses = []
         params = []
         param_count = 0
-        
+
         # Apply filters
         if filters.document_id:
             param_count += 1
             where_clauses.append(f"document_id = ${param_count}")
             params.append(filters.document_id)
-        
+
         if filters.bucket_type:
             param_count += 1
             where_clauses.append(f"bucket_type = ${param_count}")
             params.append(filters.bucket_type.value)
-        
+
         if filters.has_ocr_text is not None:
             param_count += 1
             where_clauses.append(f"has_ocr_text = ${param_count}")
             params.append(filters.has_ocr_text)
-        
+
         if filters.has_ai_description is not None:
             param_count += 1
             where_clauses.append(f"has_ai_description = ${param_count}")
             params.append(filters.has_ai_description)
-        
+
         if filters.search:
             search_term = f"%{filters.search}%"
             placeholders = []
@@ -344,17 +330,17 @@ async def list_images(
             param_count += 1
             where_clauses.append(f"created_at::date <= ${param_count}::date")
             params.append(filters.date_to)
-        
+
         where_clause = f" WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
-        
+
         # Apply sorting
         order_direction = "DESC" if sort.sort_order == SortOrder.DESC else "ASC"
         order_clause = f" ORDER BY {sort.sort_by} {order_direction}"
-        
+
         # Apply pagination
         offset = (pagination.page - 1) * pagination.page_size
         limit_clause = f" LIMIT {pagination.page_size} OFFSET {offset}"
-        
+
         # Execute query
         query = f"""
             SELECT *, COUNT(*) OVER() as total_count
@@ -363,20 +349,20 @@ async def list_images(
             {order_clause}
             {limit_clause}
         """
-        
+
         async with pool.acquire() as conn:
             result = await conn.fetch(query, *params)
-        
+
         # Get total count from first row or execute separate count query
         total = 0
         if result:
-            total = result[0].get('total_count', len(result))
+            total = result[0].get("total_count", len(result))
         else:
             # Fallback count query
             count_query = f"SELECT COUNT(*) as count FROM krai_content.images{where_clause}"
             async with pool.acquire() as conn:
                 count_result = await conn.fetch(count_query, *params)
-            total = count_result[0].get('count', 0) if count_result else 0
+            total = count_result[0].get("count", 0) if count_result else 0
 
         LOGGER.info(
             "Listed images page=%s size=%s total=%s",
@@ -406,15 +392,12 @@ async def list_images(
 async def get_image(
     image_id: str,
     include_relations: bool = Query(False),
-    current_user: Dict[str, Any] = Depends(require_permission("images:read")),
+    current_user: dict[str, Any] = Depends(require_permission("images:read")),
     pool: asyncpg.Pool = Depends(get_database_pool),
 ) -> SuccessResponse[ImageWithRelationsResponse]:
     try:
         async with pool.acquire() as conn:
-            result = await conn.fetchrow(
-                "SELECT * FROM krai_content.images WHERE id = $1 LIMIT 1",
-                image_id
-            )
+            result = await conn.fetchrow("SELECT * FROM krai_content.images WHERE id = $1 LIMIT 1", image_id)
         if not result:
             raise HTTPException(
                 status.HTTP_404_NOT_FOUND,
@@ -437,15 +420,12 @@ async def get_image(
 async def update_image(
     image_id: str,
     payload: ImageUpdateRequest,
-    current_user: Dict[str, Any] = Depends(require_permission("images:write")),
+    current_user: dict[str, Any] = Depends(require_permission("images:write")),
     pool: asyncpg.Pool = Depends(get_database_pool),
 ) -> SuccessResponse[ImageResponse]:
     try:
         async with pool.acquire() as conn:
-            existing = await conn.fetchrow(
-                "SELECT * FROM krai_content.images WHERE id = $1 LIMIT 1",
-                image_id
-            )
+            existing = await conn.fetchrow("SELECT * FROM krai_content.images WHERE id = $1 LIMIT 1", image_id)
         if not existing:
             raise HTTPException(
                 status.HTTP_404_NOT_FOUND,
@@ -466,21 +446,21 @@ async def update_image(
         set_clauses = []
         params = []
         param_count = 0
-        
+
         for key, value in update_payload.items():
             param_count += 1
             set_clauses.append(f"{key} = ${param_count}")
             params.append(value)
-        
+
         param_count += 1
         params.append(image_id)
-        
+
         async with pool.acquire() as conn:
             result = await conn.fetchrow(
                 f"UPDATE krai_content.images SET {', '.join(set_clauses)} WHERE id = ${param_count} RETURNING *",
-                *params
+                *params,
             )
-        
+
         if not result:
             raise HTTPException(
                 status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -510,18 +490,13 @@ async def update_image(
 )
 async def delete_image(
     image_id: str,
-    delete_from_storage: bool = Query(
-        False, description="Also delete the backing object from object storage."
-    ),
-    current_user: Dict[str, Any] = Depends(require_permission("images:delete")),
+    delete_from_storage: bool = Query(False, description="Also delete the backing object from object storage."),
+    current_user: dict[str, Any] = Depends(require_permission("images:delete")),
     pool: asyncpg.Pool = Depends(get_database_pool),
 ) -> SuccessResponse[MessagePayload]:
     try:
         async with pool.acquire() as conn:
-            existing = await conn.fetchrow(
-                "SELECT * FROM krai_content.images WHERE id = $1 LIMIT 1",
-                image_id
-            )
+            existing = await conn.fetchrow("SELECT * FROM krai_content.images WHERE id = $1 LIMIT 1", image_id)
         if not existing:
             raise HTTPException(
                 status.HTTP_404_NOT_FOUND,
@@ -531,10 +506,7 @@ async def delete_image(
 
         storage_deleted = False
         async with pool.acquire() as conn:
-            await conn.execute(
-                "DELETE FROM krai_content.images WHERE id = $1",
-                image_id
-            )
+            await conn.execute("DELETE FROM krai_content.images WHERE id = $1", image_id)
         LOGGER.info("Deleted image %s", image_id)
         await _insert_audit_log(
             pool,
@@ -594,9 +566,9 @@ async def delete_image(
 )
 async def upload_image(
     file: UploadFile = File(...),
-    document_id: Optional[str] = None,
-    alt_text: Optional[str] = None,
-    current_user: Dict[str, Any] = Depends(require_permission("images:write")),
+    document_id: str | None = None,
+    alt_text: str | None = None,
+    current_user: dict[str, Any] = Depends(require_permission("images:write")),
     pool: asyncpg.Pool = Depends(get_database_pool),
 ) -> SuccessResponse[ImageUploadResponse]:
     try:
@@ -639,31 +611,22 @@ async def upload_image(
             )
 
         storage_result = await storage_service.upload_image(
-            content=content,
-            filename=file.filename or "upload.bin",
-            bucket_type="document_images",
-            metadata={}
+            content=content, filename=file.filename or "upload.bin", bucket_type="document_images", metadata={}
         )
 
         is_duplicate = storage_result.get("is_duplicate", False)
         file_hash = storage_result.get("file_hash")
         resolved_url = (
-            storage_result.get("storage_url")
-            or storage_result.get("public_url")
-            or storage_result.get("url")
+            storage_result.get("storage_url") or storage_result.get("public_url") or storage_result.get("url")
         )
 
         # Check for duplicates
         async with pool.acquire() as conn:
-            existing = await conn.fetchrow(
-                "SELECT id FROM krai_content.images WHERE file_hash = $1 LIMIT 1",
-                file_hash
-            )
+            existing = await conn.fetchrow("SELECT id FROM krai_content.images WHERE file_hash = $1 LIMIT 1", file_hash)
         if existing:
             async with pool.acquire() as conn:
                 existing_image = await conn.fetchrow(
-                    "SELECT * FROM krai_content.images WHERE id = $1 LIMIT 1",
-                    existing["id"]
+                    "SELECT * FROM krai_content.images WHERE id = $1 LIMIT 1", existing["id"]
                 )
             existing_dict = dict(existing_image)
             return SuccessResponse(
@@ -678,7 +641,7 @@ async def upload_image(
 
         storage_path = storage_result.get("storage_path") or storage_result.get("key")
         original_filename = file.filename or "upload.bin"
-        image_format = (original_filename.rsplit(".", 1)[-1].lower() if "." in original_filename else None)
+        image_format = original_filename.rsplit(".", 1)[-1].lower() if "." in original_filename else None
         file_size = storage_result.get("size")
 
         image_id = str(uuid.uuid4())
@@ -699,7 +662,7 @@ async def upload_image(
                 image_format,
                 file_hash,
                 document_id,
-                datetime.now(timezone.utc).isoformat(),
+                datetime.now(UTC).isoformat(),
             )
 
         result_dict = dict(result)
@@ -710,7 +673,7 @@ async def upload_image(
             changed_by=current_user.get("id"),
             new_values=result_dict,
         )
-        
+
         return SuccessResponse(
             data=ImageUploadResponse(
                 image_id=result_dict["id"],
@@ -730,14 +693,14 @@ async def upload_image(
 )
 async def download_image(
     image_id: str,
-    current_user: Dict[str, Any] = Depends(require_permission("images:read")),
+    current_user: dict[str, Any] = Depends(require_permission("images:read")),
     pool: asyncpg.Pool = Depends(get_database_pool),
 ) -> Response:
     try:
         async with pool.acquire() as conn:
             existing = await conn.fetchrow(
                 "SELECT id, storage_url, storage_path, filename, image_format FROM krai_content.images WHERE id = $1 LIMIT 1",
-                image_id
+                image_id,
             )
         if not existing:
             raise HTTPException(
@@ -765,7 +728,7 @@ async def download_image(
                 prefix = public_parts
 
             if prefix:
-                trimmed = storage_url[len(prefix):]
+                trimmed = storage_url[len(prefix) :]
                 if trimmed.startswith("/"):
                     trimmed = trimmed[1:]
                 storage_path = trimmed or None
@@ -834,13 +797,13 @@ async def get_images_by_document(
     document_id: str,
     pagination: PaginationParams = Depends(),
     sort: ImageSortParams = Depends(),
-    current_user: Dict[str, Any] = Depends(require_permission("images:read")),
+    current_user: dict[str, Any] = Depends(require_permission("images:read")),
     adapter: DatabaseAdapter = Depends(get_database_adapter),
 ) -> SuccessResponse[ImageListResponse]:
     try:
         # Build base query
         base_query = """
-            SELECT 
+            SELECT
                 i.id,
                 i.filename,
                 i.original_filename,
@@ -855,24 +818,24 @@ async def get_images_by_document(
             FROM krai_content.images i
             WHERE i.document_id = $1
         """
-        
+
         params = [document_id]
-        
+
         # Add sorting
         order_by = "ORDER BY " + sort.sort_by + (" DESC" if sort.sort_order == "desc" else " ASC")
-        
+
         # Add pagination
         limit_clause = f"LIMIT {pagination.limit} OFFSET {(pagination.page - 1) * pagination.limit}"
-        
+
         full_query = f"{base_query} {order_by} {limit_clause}"
-        
+
         result = await adapter.execute_query(full_query, params)
-        
+
         # Extract total count from first row
         total_count = result[0]["total_count"] if result else 0
-        
+
         images = [ImageResponse(**row) for row in result]
-        
+
         payload = ImageListResponse(
             images=images,
             total=total_count,
@@ -892,7 +855,7 @@ async def get_images_by_document(
     response_model=SuccessResponse[ImageStatsResponse],
 )
 async def get_image_stats(
-    current_user: Dict[str, Any] = Depends(require_permission("images:read")),
+    current_user: dict[str, Any] = Depends(require_permission("images:read")),
     adapter: DatabaseAdapter = Depends(get_database_adapter),
 ) -> SuccessResponse[ImageStatsResponse]:
     try:
@@ -904,4 +867,3 @@ async def get_image_stats(
         raise
     except Exception as exc:  # pragma: no cover
         _log_and_raise(status.HTTP_500_INTERNAL_SERVER_ERROR, str(exc))
-

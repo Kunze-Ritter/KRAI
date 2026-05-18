@@ -7,9 +7,9 @@ Configuration (env vars):
   RERANKING_TOP_N    default: 5      — results returned after reranking
   RERANKING_CANDIDATES default: 20  — how many candidates to fetch before reranking
 """
+
 import logging
 import os
-from typing import Optional
 
 logger = logging.getLogger("krai.reranking")
 
@@ -31,7 +31,7 @@ class RerankingService:
         self.model_name = os.getenv("RERANKING_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2")
         self.default_top_n = int(os.getenv("RERANKING_TOP_N", "5"))
         self.candidates = int(os.getenv("RERANKING_CANDIDATES", "20"))
-        self._model: Optional[object] = None
+        self._model: object | None = None
 
         if self.enabled:
             self._load_model()
@@ -39,6 +39,7 @@ class RerankingService:
     def _load_model(self) -> None:
         try:
             from sentence_transformers import CrossEncoder
+
             self._model = CrossEncoder(self.model_name)
             logger.info("RerankingService: loaded model %s", self.model_name)
         except Exception as e:

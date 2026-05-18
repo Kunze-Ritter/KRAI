@@ -33,7 +33,7 @@ class MockDatabaseAdapter:
 
     async def execute_rpc(self, name: str, params: dict | None = None):
         self.rpc_calls.append({"name": name, "params": params or {}})
-        return None
+        return
 
     def set_stage_status(self, status: dict):
         """Set mock stage status for get_document_stage_status."""
@@ -72,11 +72,13 @@ class TestStageDependencies:
     async def test_stage_tracker_get_stage_status(self):
         """Verify get_stage_status queries documents.stage_status."""
         db = MockDatabaseAdapter()
-        db.set_stage_status({
-            "storage": {"status": "completed"},
-            "embedding": {"status": "completed"},
-            "search_indexing": {"status": "pending"},
-        })
+        db.set_stage_status(
+            {
+                "storage": {"status": "completed"},
+                "embedding": {"status": "completed"},
+                "search_indexing": {"status": "pending"},
+            }
+        )
         tracker = StageTracker(db)
 
         status = await tracker.get_stage_status(str(uuid4()))

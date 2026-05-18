@@ -33,15 +33,18 @@ class MockStorageService:
         bucket_type: str = "document_images",
         metadata: dict | None = None,
     ) -> dict:
-        self.upload_calls.append({
-            "content": content,
-            "filename": filename,
-            "bucket_type": bucket_type,
-            "metadata": metadata or {},
-        })
+        self.upload_calls.append(
+            {
+                "content": content,
+                "filename": filename,
+                "bucket_type": bucket_type,
+                "metadata": metadata or {},
+            }
+        )
         if not self.success:
             return {"success": False}
         import hashlib
+
         file_hash = hashlib.sha256(content).hexdigest()
         return {
             "success": True,
@@ -100,19 +103,25 @@ class TestStorageStage:
         try:
             document_id = str(uuid4())
             image_id = str(uuid4())
-            context = type("Context", (), {
-                "document_id": document_id,
-                "images": [{
-                    "id": image_id,
-                    "temp_path": temp_path,
-                    "path": temp_path,
-                    "filename": "test_image.png",
-                    "page_number": 1,
-                    "image_index": 0,
-                    "width": 100,
-                    "height": 100,
-                }],
-            })()
+            context = type(
+                "Context",
+                (),
+                {
+                    "document_id": document_id,
+                    "images": [
+                        {
+                            "id": image_id,
+                            "temp_path": temp_path,
+                            "path": temp_path,
+                            "filename": "test_image.png",
+                            "page_number": 1,
+                            "image_index": 0,
+                            "width": 100,
+                            "height": 100,
+                        }
+                    ],
+                },
+            )()
 
             result = await processor.process(context)
 
@@ -138,17 +147,23 @@ class TestStorageStage:
         try:
             document_id = str(uuid4())
             image_id = str(uuid4())
-            context = type("Context", (), {
-                "document_id": document_id,
-                "images": [{
-                    "id": image_id,
-                    "temp_path": temp_path,
-                    "path": temp_path,
-                    "filename": "test.png",
-                    "page_number": 1,
-                    "image_index": 0,
-                }],
-            })()
+            context = type(
+                "Context",
+                (),
+                {
+                    "document_id": document_id,
+                    "images": [
+                        {
+                            "id": image_id,
+                            "temp_path": temp_path,
+                            "path": temp_path,
+                            "filename": "test.png",
+                            "page_number": 1,
+                            "image_index": 0,
+                        }
+                    ],
+                },
+            )()
 
             await processor.process(context)
 

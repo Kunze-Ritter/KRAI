@@ -1,7 +1,7 @@
 ﻿# 🎯 KRAI Engine - Version 1.0.0
 
-**Release Date:** 2025-10-04  
-**Codename:** Foundation  
+**Release Date:** 2025-10-04
+**Codename:** Foundation
 **Status:** Stable
 
 ---
@@ -152,4 +152,3 @@ Proprietary - Kunze-Ritter GmbH
 ---
 
 **For support and questions, contact the development team.**
-

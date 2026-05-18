@@ -169,7 +169,7 @@ server {
 
     ssl_certificate /etc/nginx/ssl/fullchain.pem;
     ssl_certificate_key /etc/nginx/ssl/privkey.pem;
-    
+
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers HIGH:!aNULL:!MD5;
 
@@ -179,7 +179,7 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        
+
         # Timeouts for long-running requests
         proxy_read_timeout 300s;
         proxy_connect_timeout 75s;
@@ -403,4 +403,3 @@ curl https://your-domain.com/info
 - **Logs:** `logs/app.log`
 - **Health:** `/health`
 - **Metrics:** `/metrics` (if Prometheus enabled)
-

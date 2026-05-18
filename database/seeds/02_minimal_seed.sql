@@ -1,6 +1,6 @@
 --
 -- Minimal Seed Data for Local Development
--- 
+--
 -- This file contains essential reference data (manufacturers, products, etc.)
 -- for local testing. It does NOT include:
 -- - User data
@@ -943,4 +943,3 @@ INSERT INTO krai_core.products (id, manufacturer_id, series_id, model_number, pr
 --
 
 \unrestrict FuKe2y4Lb3aXMMBTMtAuBgPewZ5ZTIO2LQBOabNWk8qhX4odO3SPyToUEzWB1ui
-

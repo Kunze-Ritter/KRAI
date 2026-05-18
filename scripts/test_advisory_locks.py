@@ -15,11 +15,10 @@ Usage:
     python scripts/test_advisory_locks.py --doc        # Print verification steps only
 """
 
+import argparse
+import hashlib
 import os
 import sys
-import asyncio
-import hashlib
-import argparse
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(SCRIPT_DIR)
@@ -29,6 +28,7 @@ sys.path.insert(0, ROOT)
 if os.path.exists(os.path.join(ROOT, ".env")):
     try:
         from dotenv import load_dotenv
+
         load_dotenv(os.path.join(ROOT, ".env"))
     except ImportError:
         pass
@@ -37,6 +37,7 @@ if os.path.exists(os.path.join(ROOT, ".env")):
 def run_pytest() -> int:
     """Run pytest for RetryOrchestrator advisory lock tests."""
     import subprocess
+
     cmd = [
         sys.executable,
         "-m",
@@ -55,6 +56,7 @@ def run_pytest() -> int:
 def test_lock_id_determinism():
     """Verify lock ID is deterministic and within PostgreSQL bigint range."""
     from backend.core.retry_engine import RetryOrchestrator
+
     doc_id = "550e8400-e29b-41d4-a716-446655440000"
     stage = "image_processing"
     lock_key = f"{doc_id}:{stage}"
@@ -74,7 +76,8 @@ def test_lock_id_determinism():
 
 def print_doc():
     """Print verification steps for advisory locks."""
-    print("""
+    print(
+        """
 === Advisory Lock Verification Steps ===
 
 1. Lock acquisition: orchestrator.acquire_advisory_lock(document_id, stage_name)
@@ -92,7 +95,8 @@ def print_doc():
 
 5. Active locks: SELECT * FROM pg_locks WHERE locktype = 'advisory';
    - Release all; verify locks removed
-""")
+"""
+    )
 
 
 def main():

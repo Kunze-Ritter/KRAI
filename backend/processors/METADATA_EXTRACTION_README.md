@@ -42,7 +42,7 @@ first_pages_text = ' '.join([page_texts[p] for p in first_page_keys])
 ```python
 def _extract_metadata_pymupdf(doc, pdf_path, document_id):
     pdf_metadata = doc.metadata
-    
+
     return DocumentMetadata(
         document_id=document_id,
         title=pdf_metadata.get('title') or pdf_path.stem,
@@ -60,7 +60,7 @@ def _extract_metadata_pymupdf(doc, pdf_path, document_id):
 ```python
 def _extract_metadata_pdfplumber(pdf, pdf_path, document_id):
     pdf_metadata = pdf.metadata or {}
-    
+
     return DocumentMetadata(
         document_id=document_id,
         title=pdf_metadata.get('Title') or pdf_path.stem,
@@ -149,7 +149,7 @@ Das System klassifiziert Dokumente automatisch basierend auf **Title** und **Fil
 ```python
 def _classify_document_type(title: str, filename: str) -> str:
     text = f"{title} {filename}".lower()
-    
+
     if any(kw in text for kw in ['service', 'repair', 'maintenance']):
         return 'service_manual'
     elif any(kw in text for kw in ['user', 'guide', 'manual', 'handbook']):
@@ -218,14 +218,14 @@ Die Sprache wird aus dem Dokumenttext erkannt:
 def _detect_language(doc) -> str:
     # Sample first page
     first_page_text = doc[0].get_text() if len(doc) > 0 else ""
-    
+
     # Simple heuristics
     if any(word in first_page_text.lower() for word in ['the', 'and', 'of', 'to']):
         return 'en'
     elif any(word in first_page_text.lower() for word in ['der', 'die', 'das', 'und']):
         return 'de'
     # ... weitere Sprachen
-    
+
     return 'en'  # Default
 ```
 
@@ -259,7 +259,7 @@ Das System loggt die Metadaten-Extraktion:
    Pages: 245
    Title: "Lexmark CS943 Service Manual"  ← Metadata
    Author: "Lexmark International"  ← Metadata
-   
+
 🔍 Auto-detected manufacturer: Lexmark
    Confidence score: 17 (filename, title, text(2x))
    ✅ Very high confidence (multiple sources)

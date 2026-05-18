@@ -17,8 +17,8 @@ test_data = {
         "max_print_speed_ppm": 80,
         "max_resolution_dpi": 1200,
         "paper_size_max_sra3": True,
-        "duplex_standard": True
-    }
+        "duplex_standard": True,
+    },
 }
 
 print("Testing ExtractedProduct validation...")
@@ -33,17 +33,18 @@ try:
         confidence=0.85,
         source_page=1,
         extraction_method="llm",
-        specifications=test_data.get("specifications", {})
+        specifications=test_data.get("specifications", {}),
     )
-    
+
     print("✓ Validation SUCCESS!")
     print(f"  Model: {product.model_number}")
     print(f"  Series: {product.product_series}")
     print(f"  Display: {product.display_name}")
     print(f"  Specs: {product.specifications}")
-    
+
 except Exception as e:
-    print(f"✗ Validation FAILED!")
+    print("✗ Validation FAILED!")
     print(f"  Error: {e}")
     import traceback
+
     traceback.print_exc()

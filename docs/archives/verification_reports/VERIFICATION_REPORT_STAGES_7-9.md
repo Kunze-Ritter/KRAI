@@ -2,9 +2,9 @@
 
 ## Executive Summary
 
-- **Date:** 2026-02-06  
-- **Verified By:** Intelligence Extraction Verification Plan (Stages 7–9)  
-- **Scope:** Chunk preprocessing (Stage 8), classification (Stage 9), metadata extraction (Stage 10), parts extraction (Stage 11), series detection (Stage 12), LLM integration with Ollama, and stage dependencies.  
+- **Date:** 2026-02-06
+- **Verified By:** Intelligence Extraction Verification Plan (Stages 7–9)
+- **Scope:** Chunk preprocessing (Stage 8), classification (Stage 9), metadata extraction (Stage 10), parts extraction (Stage 11), series detection (Stage 12), LLM integration with Ollama, and stage dependencies.
 - **Status:** ✅ **PASSED** (Code verification complete; E2E tests blocked by MockDatabaseAdapter fixture requiring abstract method implementations.)
 
 This report summarizes the verification of the intelligence extraction stages in the KRAI pipeline based on the **Verification Plan: Intelligence Extraction Stages (7–9)**. It covers DatabaseAdapter integration, Supabase removal, processor logic verification, error code patterns, stage dependencies, and documentation of known test infrastructure limitations.
@@ -279,24 +279,24 @@ The `DatabaseAdapter` ABC in `backend/services/database_adapter.py` has been ext
 
 ### 10.1 Known Issues
 
-1. **MockDatabaseAdapter Abstract Methods (High)**  
-   - `MockDatabaseAdapter` in `conftest.py` does not implement: `complete_stage`, `create_unified_embedding`, `disconnect`, `fail_stage`, `fetch_all`, `fetch_one`, `get_stage_status`, `insert_chunk`, `insert_link`, `insert_part`, `insert_table`, `skip_stage`, `start_stage`.  
-   - **Impact:** All E2E and unit tests that use `mock_database_adapter` fail at setup.  
+1. **MockDatabaseAdapter Abstract Methods (High)**
+   - `MockDatabaseAdapter` in `conftest.py` does not implement: `complete_stage`, `create_unified_embedding`, `disconnect`, `fail_stage`, `fetch_all`, `fetch_one`, `get_stage_status`, `insert_chunk`, `insert_link`, `insert_part`, `insert_table`, `skip_stage`, `start_stage`.
+   - **Impact:** All E2E and unit tests that use `mock_database_adapter` fail at setup.
    - **Fix:** Add stub implementations (or `NotImplementedError` with docstrings) for these methods in `MockDatabaseAdapter`.
 
-2. **Legacy `.client` Usage (Medium)**  
-   - `chunk_preprocessor`, `classification_processor`, and `metadata_processor_ai` still use `database_service.client.table()` in fallback paths.  
-   - **Impact:** Tight coupling to Supabase-style client; migration to full adapter pattern incomplete.  
+2. **Legacy `.client` Usage (Medium)**
+   - `chunk_preprocessor`, `classification_processor`, and `metadata_processor_ai` still use `database_service.client.table()` in fallback paths.
+   - **Impact:** Tight coupling to Supabase-style client; migration to full adapter pattern incomplete.
    - **Recommendation:** Migrate these paths to adapter methods (e.g., `get_chunks_by_document`, `update_chunk`, `get_document`, `insert_error_codes`) for full PostgreSQL/DatabaseAdapter consistency.
 
-3. **Series Processor Imports (Low)**  
-   - `series_processor.py` uses `from core.base_processor` and `from utils.series_detector` instead of `backend.core` and `backend.utils`.  
-   - **Impact:** Works when `backend` is in `sys.path`; may fail in some run contexts.  
+3. **Series Processor Imports (Low)**
+   - `series_processor.py` uses `from core.base_processor` and `from utils.series_detector` instead of `backend.core` and `backend.utils`.
+   - **Impact:** Works when `backend` is in `sys.path`; may fail in some run contexts.
    - **Recommendation:** Align with other processors: `from backend.core.base_processor`, `from backend.utils.series_detector`.
 
-4. **Metadata E2E Tests Skipped (Low)**  
-   - 16 metadata processor E2E tests are skipped ("by v2 tests" / "v2 Processor-aligned tests").  
-   - **Impact:** Reduced coverage for metadata processor in current test run.  
+4. **Metadata E2E Tests Skipped (Low)**
+   - 16 metadata processor E2E tests are skipped ("by v2 tests" / "v2 Processor-aligned tests").
+   - **Impact:** Reduced coverage for metadata processor in current test run.
    - **Recommendation:** Clarify v2 test strategy and either enable or remove skipped tests.
 
 ### 10.2 Recommendations

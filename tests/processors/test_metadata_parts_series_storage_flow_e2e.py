@@ -4,13 +4,13 @@ import json
 import sys
 import types
 from types import SimpleNamespace
-from typing import Any, Dict, List
+from typing import Any
 
 import pytest
 
 import backend.core.base_processor as backend_base_processor
-import backend.utils.series_detector as backend_series_detector
 import backend.processors.parts_processor as parts_mod
+import backend.utils.series_detector as backend_series_detector
 from backend.core.base_processor import ProcessingContext
 from backend.processors.metadata_processor_ai import MetadataProcessorAI
 from backend.processors.parts_processor import PartsProcessor
@@ -30,25 +30,25 @@ from backend.processors.series_processor import SeriesProcessor  # noqa: E402
 
 
 class MockResult:
-    def __init__(self, data: List[Dict[str, Any]]):
+    def __init__(self, data: list[dict[str, Any]]):
         self.data = data
 
 
 class MockTable:
-    def __init__(self, storage: List[Dict[str, Any]], name: str):
+    def __init__(self, storage: list[dict[str, Any]], name: str):
         self._storage = storage
         self._name = name
-        self._filters: Dict[str, Any] = {}
-        self._insert_buffer: List[Dict[str, Any]] | None = None
+        self._filters: dict[str, Any] = {}
+        self._insert_buffer: list[dict[str, Any]] | None = None
 
-    def select(self, *_args: Any, **_kwargs: Any) -> "MockTable":
+    def select(self, *_args: Any, **_kwargs: Any) -> MockTable:
         return self
 
-    def eq(self, key: str, value: Any) -> "MockTable":
+    def eq(self, key: str, value: Any) -> MockTable:
         self._filters[key] = value
         return self
 
-    def insert(self, payload: Dict[str, Any] | List[Dict[str, Any]]) -> "MockTable":
+    def insert(self, payload: dict[str, Any] | list[dict[str, Any]]) -> MockTable:
         if isinstance(payload, list):
             self._insert_buffer = payload
         else:
@@ -65,7 +65,7 @@ class MockTable:
             self._insert_buffer = None
             return MockResult(data)
 
-        data: List[Dict[str, Any]] = []
+        data: list[dict[str, Any]] = []
         for row in self._storage:
             match = True
             for key, value in self._filters.items():
@@ -79,7 +79,7 @@ class MockTable:
 
 class MockClient:
     def __init__(self) -> None:
-        self.tables: Dict[str, List[Dict[str, Any]]] = {
+        self.tables: dict[str, list[dict[str, Any]]] = {
             "vw_processing_queue": [],
             "vw_links": [],
             "vw_videos": [],
@@ -106,15 +106,15 @@ class AsyncStorageService:
     def __init__(self, success: bool = True) -> None:
         self.client = object()
         self.success = success
-        self.upload_calls: List[Dict[str, Any]] = []
+        self.upload_calls: list[dict[str, Any]] = []
 
     async def upload_image(
         self,
         content: bytes,
         filename: str,
         bucket_type: str = "document_images",
-        metadata: Dict[str, Any] | None = None,
-    ) -> Dict[str, Any]:
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         self.upload_calls.append(
             {
                 "content": content,
@@ -136,87 +136,76 @@ class AsyncStorageService:
 class UnifiedMockDatabase:
     def __init__(self) -> None:
         self.client = MockClient()
-        self.error_code_part_links: List[Dict[str, Any]] = []
+        self.error_code_part_links: list[dict[str, Any]] = []
 
-    async def get_document(self, document_id: str) -> Dict[str, Any] | None:
+    async def get_document(self, document_id: str) -> dict[str, Any] | None:
         for row in self.client.tables["documents"]:
             if row.get("id") == document_id:
                 return row
         return None
 
-    async def update_document(self, document_id: str, updates: Dict[str, Any]) -> bool:
+    async def update_document(self, document_id: str, updates: dict[str, Any]) -> bool:
         doc = await self.get_document(document_id)
         if not doc:
             return False
         doc.update(updates)
         return True
 
-    async def get_chunks_by_document(self, document_id: str) -> List[Dict[str, Any]]:
-        return [
-            c
-            for c in self.client.tables["chunks"]
-            if c.get("document_id") == document_id
-        ]
+    async def get_chunks_by_document(self, document_id: str) -> list[dict[str, Any]]:
+        return [c for c in self.client.tables["chunks"] if c.get("document_id") == document_id]
 
-    async def get_chunk(self, chunk_id: str) -> Dict[str, Any] | None:
+    async def get_chunk(self, chunk_id: str) -> dict[str, Any] | None:
         for c in self.client.tables["chunks"]:
             if c.get("id") == chunk_id:
                 return c
         return None
 
-    async def get_error_codes_by_document(self, document_id: str) -> List[Dict[str, Any]]:
-        return [
-            e
-            for e in self.client.tables["error_codes"]
-            if e.get("document_id") == document_id
-        ]
+    async def get_error_codes_by_document(self, document_id: str) -> list[dict[str, Any]]:
+        return [e for e in self.client.tables["error_codes"] if e.get("document_id") == document_id]
 
     async def get_part_by_number_and_manufacturer(
         self, part_number: str, manufacturer_id: str
-    ) -> Dict[str, Any] | None:
+    ) -> dict[str, Any] | None:
         for p in self.client.tables["parts_catalog"]:
-            if (
-                p.get("part_number") == part_number
-                and p.get("manufacturer_id") == manufacturer_id
-            ):
+            if p.get("part_number") == part_number and p.get("manufacturer_id") == manufacturer_id:
                 return p
         return None
 
-    async def get_part_by_number(self, part_number: str) -> Dict[str, Any] | None:
+    async def get_part_by_number(self, part_number: str) -> dict[str, Any] | None:
         for p in self.client.tables["parts_catalog"]:
             if p.get("part_number") == part_number:
                 return p
         return None
 
-    async def create_part(self, part_data: Dict[str, Any]) -> None:
+    async def create_part(self, part_data: dict[str, Any]) -> None:
         stored = dict(part_data)
         if "id" not in stored:
             stored["id"] = f"part-{len(self.client.tables['parts_catalog']) + 1}"
         self.client.tables["parts_catalog"].append(stored)
 
-    async def update_part(self, part_id: str, updates: Dict[str, Any]) -> bool:
+    async def update_part(self, part_id: str, updates: dict[str, Any]) -> bool:
         for p in self.client.tables["parts_catalog"]:
             if p.get("id") == part_id:
                 p.update(updates)
                 return True
         return False
 
-    async def create_error_code_part_link(self, data: Dict[str, Any]) -> None:
+    async def create_error_code_part_link(self, data: dict[str, Any]) -> None:
         self.error_code_part_links.append(dict(data))
 
-    async def get_product(self, product_id: str) -> Dict[str, Any] | None:
+    async def get_product(self, product_id: str) -> dict[str, Any] | None:
         for p in self.client.tables["products"]:
             if p.get("id") == product_id:
                 return p
         return None
 
-    async def get_manufacturer(self, manufacturer_id: str) -> Dict[str, Any] | None:
+    async def get_manufacturer(self, manufacturer_id: str) -> dict[str, Any] | None:
         for m in self.client.tables["manufacturers"]:
             if m.get("id") == manufacturer_id:
                 return m
         return None
 
-    async def update_product(self, product_id: str, updates: Dict[str, Any]) -> bool:
+    async def update_product(self, product_id: str, updates: dict[str, Any]) -> bool:
         for p in self.client.tables["products"]:
             if p.get("id") == product_id:
                 p.update(updates)
@@ -225,7 +214,7 @@ class UnifiedMockDatabase:
 
     async def get_product_series_by_name_and_pattern(
         self, manufacturer_id: str, series_name: str, model_pattern: str | None
-    ) -> Dict[str, Any] | None:
+    ) -> dict[str, Any] | None:
         for s in self.client.tables["product_series"]:
             if (
                 s.get("manufacturer_id") == manufacturer_id
@@ -235,21 +224,15 @@ class UnifiedMockDatabase:
                 return s
         return None
 
-    async def create_product_series(self, series_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def create_product_series(self, series_data: dict[str, Any]) -> dict[str, Any]:
         stored = dict(series_data)
         if "id" not in stored:
             stored["id"] = f"series-{len(self.client.tables['product_series']) + 1}"
         self.client.tables["product_series"].append(stored)
         return stored
 
-    async def get_product_series_by_manufacturer(
-        self, manufacturer_id: str
-    ) -> List[Dict[str, Any]]:
-        return [
-            s
-            for s in self.client.tables["product_series"]
-            if s.get("manufacturer_id") == manufacturer_id
-        ]
+    async def get_product_series_by_manufacturer(self, manufacturer_id: str) -> list[dict[str, Any]]:
+        return [s for s in self.client.tables["product_series"] if s.get("manufacturer_id") == manufacturer_id]
 
 
 @pytest.fixture
@@ -285,9 +268,7 @@ async def test_metadata_parts_series_storage_flow(
             "model_number": "M404n",
         }
     )
-    unified_db.client.tables["manufacturers"].append(
-        {"id": manufacturer_id, "name": "HP"}
-    )
+    unified_db.client.tables["manufacturers"].append({"id": manufacturer_id, "name": "HP"})
     unified_db.client.tables["products"].append(
         {
             "id": product_id,

@@ -1,5 +1,5 @@
 <x-filament-panels::page>
-    <div x-data="{ 
+    <div x-data="{
         copied: false,
         copyToClipboard(text) {
             navigator.clipboard.writeText(text).then(() => {
