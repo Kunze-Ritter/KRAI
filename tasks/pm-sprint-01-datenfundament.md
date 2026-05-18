@@ -28,19 +28,25 @@
 
 ## Detaillierte Aufgaben
 
-### Aufgabe 1.1: DB-Migrations erstellen (019 + 020)
+### Aufgabe 1.1: DB-Migrations erstellen (034 + 035)
 
-- [ ] Datei `database/migrations_postgresql/019_create_krai_pm_schema.sql` anlegen
+- [x] Datei `database/migrations_postgresql/034_create_krai_pm_schema.sql` anlegen
   - Schemas: `krai_pm` mit fünf Tabellen:
-    - `service_tickets` (Harmonisierung aller Ticket-Quellen)
-    - `part_lifetimes` (Hersteller-Sollwerte)
-    - `device_lifecycle` (Zählerstände aus Docuform)
-    - `predictions` (Modell-Outputs)
-    - `entity_mapping` (Pseudonymisierung)
-  - Indizes nach Spezifikation
-- [ ] Datei `database/migrations_postgresql/020_create_krai_pm_views.sql` anlegen
-  - Views: `vw_service_tickets`, `vw_part_lifetimes`, `vw_device_lifecycle`, `vw_predictions`
-- [ ] Lokal testen: Migrations applyen, Tabellen verifizieren
+    - `service_tickets` (Harmonisierung aller Ticket-Quellen) ✓
+    - `part_lifetimes` (Hersteller-Sollwerte) ✓
+    - `device_lifecycle` (Zählerstände aus Docuform) ✓
+    - `predictions` (Modell-Outputs) ✓
+    - `entity_mapping` (Pseudonymisierung) ✓
+  - Indizes nach Spezifikation ✓
+- [x] Datei `database/migrations_postgresql/035_create_krai_pm_views.sql` anlegen
+  - Views: `vw_service_tickets`, `vw_part_lifetimes`, `vw_device_lifecycle`, `vw_predictions` ✓
+- [x] Lokal testen: Migrations applyen, Tabellen verifizieren ✓
+  - Migrations erfolgreich angewendet (Migration 034 & 035)
+  - Alle 5 Tabellen erstellt
+  - Alle 4 Views erstellt
+  - Insert-Tests erfolgreich
+  - Foreign Keys funktionieren
+  - Indizes vorhanden und funktionsfähig
 
 ### Aufgabe 1.2: Excel-Importer für KM-Anfragedaten
 
@@ -108,5 +114,5 @@
 
 ---
 
-**Sprint-Kickoff-Datum:** 19.05.2026  
+**Sprint-Kickoff-Datum:** 19.05.2026
 **Sprint-End-Datum:** 01.06.2026
