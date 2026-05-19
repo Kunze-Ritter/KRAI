@@ -5,10 +5,14 @@ Loads all unpredicted tickets, runs them through the classifier,
 and stores results in krai_pm.predictions table.
 """
 
+import logging
+
 from backend.pm.features.feature_engineer import FeatureEngineer
 from backend.pm.models.long_tail_classifier import LongTailClassifier
 from backend.pm.models.ticket import PredictionResult
 from backend.services.database_adapter import DatabaseAdapter
+
+logger = logging.getLogger(__name__)
 
 
 class PredictionService:
@@ -56,6 +60,7 @@ class PredictionService:
         """
         # Get all ticket IDs without predictions
         unpredicted_ticket_ids = await self._get_unpredicted_tickets(limit)
+        logger.info(f"Found {len(unpredicted_ticket_ids)} unpredicted tickets")
 
         # Extract features for unpredicted tickets
         features_list = []
@@ -64,9 +69,10 @@ class PredictionService:
                 features = await self.feature_engineer.extract_features(ticket_id)
                 features_list.append(features)
             except Exception as e:
-                # Log error and continue to next ticket
-                print(f"Error extracting features for {ticket_id}: {e}")
+                logger.warning(f"Error extracting features for {ticket_id}: {e}")
                 continue
+
+        logger.info(f"Extracted features for {len(features_list)} tickets")
 
         # Run predictions
         predicted_count = 0
@@ -77,13 +83,13 @@ class PredictionService:
                 await self._save_prediction(result)
                 predicted_count += 1
             except Exception as e:
-                # Log error and continue to next prediction
-                print(f"Error predicting for {features.ticket_id}: {e}")
+                logger.error(f"Error predicting for {features.ticket_id}: {e}")
                 error_count += 1
 
         # Calculate skipped count (tickets that weren't in our unpredicted list)
         # This is implicit - tickets already in krai_pm.predictions
         skipped_count = len(unpredicted_ticket_ids) - len(features_list) - error_count
+        logger.info(f"Batch complete: predicted={predicted_count}, skipped={skipped_count}, " f"errors={error_count}")
 
         return {
             "predicted": predicted_count,

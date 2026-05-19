@@ -15,6 +15,16 @@ class FeatureEngineer:
 
     Loads service tickets, parts data, and error codes; normalizes and encodes them
     into feature vectors compatible with XGBoost/LightGBM.
+
+    Caching Strategy:
+    - _top_problems: Top N problem_short values by frequency (loaded once, reused for batch)
+    - _top_error_codes: Top 10 error codes across all tickets (loaded once, reused for batch)
+    - _manufacturer_map: Mapping of manufacturer_id to integer encoding (loaded once, reused)
+
+    All caches are lazy-loaded on first extract_features() or extract_features_batch() call
+    and persist for the lifetime of the FeatureEngineer instance. This avoids redundant
+    database queries during batch processing, significantly reducing query count from O(n)
+    to O(1) for per-batch lookups.
     """
 
     def __init__(self, db_adapter: DatabaseAdapter) -> None:

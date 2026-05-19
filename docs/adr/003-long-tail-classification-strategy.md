@@ -57,6 +57,22 @@ Use a **binary XGBoost classifier** trained with a 80/20 threshold on problem fr
 - Evaluation: `backend/pm/evaluation/model_evaluator.py` (Accuracy, Precision, Recall, F1, AUC-ROC)
 - Persistence: `prediction_service.py` stores results in `krai_pm.predictions`
 
+**Performance Considerations:**
+
+Database query optimization for batch prediction:
+1. **Idempotency Index**: Add index on `krai_pm.predictions(metadata->>'ticket_id')` to accelerate LEFT JOIN detection of already-predicted tickets.
+   ```sql
+   CREATE INDEX idx_predictions_ticket_id
+   ON krai_pm.predictions USING gin (metadata)
+   WHERE metadata->>'ticket_id' IS NOT NULL;
+   ```
+
+2. **Service Ticket Scan**: Index `krai_pm.service_tickets(id)` is implicit via primary key and covers `_get_unpredicted_tickets()` efficiently.
+
+3. **Batch Insert**: Use `COPY FROM` or multi-row INSERT for > 1000 predictions to avoid per-row overhead.
+
+4. **Feature Extraction Caching**: `FeatureEngineer.extract_features_batch()` loads all tickets in one query, then iterates locally. No in-memory caching since tickets are processed sequentially per batch.
+
 **Follow-up:**
 - ADR-004 (deferred): Multi-manufacturer hierarchical classification when Docuware volume permits
 - ADR-005 (deferred): Active learning strategy for Long-Tail refinement
