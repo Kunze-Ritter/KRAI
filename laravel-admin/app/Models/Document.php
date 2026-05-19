@@ -6,6 +6,7 @@ use App\Enums\DocumentProcessingStatus;
 use App\Models\Manufacturer;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Document extends Model
 {
@@ -70,6 +71,16 @@ class Document extends Model
     public function manufacturer(): BelongsTo
     {
         return $this->belongsTo(Manufacturer::class, 'manufacturer_id');
+    }
+
+    public function relatedDocuments(): HasMany
+    {
+        return $this->hasMany(DocumentRelationship::class, 'primary_document_id');
+    }
+
+    public function relatedToDocuments(): HasMany
+    {
+        return $this->hasMany(DocumentRelationship::class, 'secondary_document_id');
     }
 
     public function getStageActivityLog(): array

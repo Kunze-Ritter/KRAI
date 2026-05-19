@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Documents;
 use App\Filament\Resources\Documents\Pages\CreateDocument;
 use App\Filament\Resources\Documents\Pages\EditDocument;
 use App\Filament\Resources\Documents\Pages\ListDocuments;
+use App\Filament\Resources\Documents\RelationManagers\RelatedDocumentsRelationManager;
 use App\Filament\Resources\Documents\Schemas\DocumentForm;
 use App\Filament\Resources\Documents\Tables\DocumentsTable;
 use App\Models\Document;
@@ -50,7 +51,7 @@ class DocumentResource extends Resource
     public static function getRelations(): array
     {
         return [
-            // Relations können später ergänzt werden
+            RelatedDocumentsRelationManager::class,
         ];
     }
 
