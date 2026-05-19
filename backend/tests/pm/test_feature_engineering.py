@@ -21,22 +21,36 @@ def mock_db_adapter() -> Mock:
 @pytest.mark.asyncio
 async def test_extract_features_basic(mock_db_adapter: Mock) -> None:
     """Test basic feature extraction for a single ticket."""
-    # Setup: Mock database response
-    mock_db_adapter.fetch_one.return_value = {
-        "id": "tk-001",
-        "problem_short": "Fuser Error",
-        "problem_long": "Fuser unit failed",
-        "error_codes": ["13.B9", "50.FF"],
-        "replaced_parts": ["Fuser Unit", "Thermistor"],
-        "repair_time_minutes": 45.5,
-        "manufacturer_id": "HP",
-        "metadata": {},
-    }
+    # Setup: Mock fetch_one for ticket and problem frequency
+    mock_db_adapter.fetch_one.side_effect = [
+        {  # extract_features ticket lookup
+            "id": "tk-001",
+            "problem_short": "Fuser Error",
+            "problem_long": "Fuser unit failed",
+            "error_codes": ["E1", "E2"],
+            "replaced_parts": ["Fuser Unit", "Thermistor"],
+            "repair_time_minutes": 45.5,
+            "manufacturer_id": "HP",
+            "metadata": {},
+        },
+        {"cnt": 12},  # _get_problem_frequency
+    ]
 
-    # Mock helper methods
+    # Mock fetch_all for cache initialization (need exactly 10 error codes)
     mock_db_adapter.fetch_all.side_effect = [
         [{"problem_short": "Fuser Error", "cnt": 12}],  # get_top_problems
-        [{"code": "13.B9", "cnt": 8}, {"code": "50.FF", "cnt": 5}],  # _get_top10_error_codes
+        [  # _get_top10_error_codes (exactly 10)
+            {"code": "E1", "cnt": 8},
+            {"code": "E2", "cnt": 5},
+            {"code": "E3", "cnt": 4},
+            {"code": "E4", "cnt": 3},
+            {"code": "E5", "cnt": 2},
+            {"code": "E6", "cnt": 2},
+            {"code": "E7", "cnt": 1},
+            {"code": "E8", "cnt": 1},
+            {"code": "E9", "cnt": 1},
+            {"code": "E10", "cnt": 1},
+        ],
         [{"manufacturer_id": "HP"}],  # _get_manufacturer_map
     ]
 
@@ -48,6 +62,8 @@ async def test_extract_features_basic(mock_db_adapter: Mock) -> None:
     assert features.repair_time_minutes == 45.5
     assert features.part_replacement_count == 2
     assert features.error_code_count == 2
+    assert features.problem_frequency == 12
+    assert len(features.error_code_top10) == 10
 
 
 @pytest.mark.asyncio
@@ -64,21 +80,32 @@ async def test_extract_features_missing_ticket(mock_db_adapter: Mock) -> None:
 @pytest.mark.asyncio
 async def test_extract_features_batch(mock_db_adapter: Mock) -> None:
     """Test batch feature extraction."""
-    # Mock fetch_all for ticket IDs
+    # Mock fetch_all for cache initialization and batch query
     mock_db_adapter.fetch_all.side_effect = [
         # get_top_problems
         [{"problem_short": "Problem A", "cnt": 10}],
-        # _get_top10_error_codes
-        [{"code": "E1", "cnt": 5}],
+        # _get_top10_error_codes (exactly 10 codes)
+        [
+            {"code": "E1", "cnt": 5},
+            {"code": "E2", "cnt": 4},
+            {"code": "E3", "cnt": 3},
+            {"code": "E4", "cnt": 2},
+            {"code": "E5", "cnt": 2},
+            {"code": "E6", "cnt": 1},
+            {"code": "E7", "cnt": 1},
+            {"code": "E8", "cnt": 1},
+            {"code": "E9", "cnt": 1},
+            {"code": "E10", "cnt": 1},
+        ],
         # _get_manufacturer_map
         [{"manufacturer_id": "HP"}],
-        # Main fetch_all for ticket IDs
+        # Main fetch_all for ticket IDs in extract_features_batch
         [{"id": "tk-001"}, {"id": "tk-002"}],
     ]
 
-    # Mock fetch_one for individual tickets
+    # Mock fetch_one for individual tickets and problem frequency
     mock_db_adapter.fetch_one.side_effect = [
-        {
+        {  # tk-001 ticket
             "id": "tk-001",
             "problem_short": "Problem A",
             "error_codes": ["E1"],
@@ -87,7 +114,8 @@ async def test_extract_features_batch(mock_db_adapter: Mock) -> None:
             "manufacturer_id": "HP",
             "metadata": {},
         },
-        {
+        {"cnt": 10},  # tk-001 problem frequency
+        {  # tk-002 ticket
             "id": "tk-002",
             "problem_short": "Problem A",
             "error_codes": ["E1"],
@@ -96,6 +124,7 @@ async def test_extract_features_batch(mock_db_adapter: Mock) -> None:
             "manufacturer_id": "HP",
             "metadata": {},
         },
+        {"cnt": 10},  # tk-002 problem frequency
     ]
 
     engineer = FeatureEngineer(mock_db_adapter)
@@ -104,6 +133,7 @@ async def test_extract_features_batch(mock_db_adapter: Mock) -> None:
     assert len(features_list) == 2
     assert features_list[0].ticket_id == "tk-001"
     assert features_list[1].ticket_id == "tk-002"
+    assert len(features_list[0].error_code_top10) == 10
 
 
 @pytest.mark.asyncio
@@ -142,23 +172,37 @@ async def test_manufacturer_encoding(mock_db_adapter: Mock) -> None:
     """Test manufacturer ID encoding."""
     mock_db_adapter.fetch_all.side_effect = [
         [{"problem_short": "Problem", "cnt": 1}],  # get_top_problems
-        [{"code": "E1", "cnt": 1}],  # _get_top10_error_codes
+        [  # _get_top10_error_codes (exactly 10 codes)
+            {"code": "E1", "cnt": 1},
+            {"code": "E2", "cnt": 1},
+            {"code": "E3", "cnt": 1},
+            {"code": "E4", "cnt": 1},
+            {"code": "E5", "cnt": 1},
+            {"code": "E6", "cnt": 1},
+            {"code": "E7", "cnt": 1},
+            {"code": "E8", "cnt": 1},
+            {"code": "E9", "cnt": 1},
+            {"code": "E10", "cnt": 1},
+        ],
         [{"manufacturer_id": "HP"}, {"manufacturer_id": "Konica"}],  # _get_manufacturer_map
-        [{"id": "tk-001"}],  # fetch_all for ticket IDs
     ]
 
-    mock_db_adapter.fetch_one.return_value = {
-        "id": "tk-001",
-        "problem_short": "Problem",
-        "error_codes": ["E1"],
-        "replaced_parts": [],
-        "repair_time_minutes": 30.0,
-        "manufacturer_id": "Konica",
-        "metadata": {},
-    }
+    mock_db_adapter.fetch_one.side_effect = [
+        {  # extract_features ticket lookup
+            "id": "tk-001",
+            "problem_short": "Problem",
+            "error_codes": ["E1"],
+            "replaced_parts": [],
+            "repair_time_minutes": 30.0,
+            "manufacturer_id": "Konica",
+            "metadata": {},
+        },
+        {"cnt": 1},  # _get_problem_frequency
+    ]
 
     engineer = FeatureEngineer(mock_db_adapter)
     features = await engineer.extract_features("tk-001")
 
     # Konica should be encoded as 2 (second in map)
     assert features.manufacturer_encoded == 2
+    assert len(features.error_code_top10) == 10

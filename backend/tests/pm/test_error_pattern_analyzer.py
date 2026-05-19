@@ -49,8 +49,9 @@ async def test_analyze_by_manufacturer_skewed_distribution(
 ) -> None:
     """Test detection of skewed error distribution."""
     # Setup: 80%+ of tickets have top 20% of codes
+    # Note: _compute_cooccurrence makes queries for each error code
     mock_db_adapter.fetch_all.side_effect = [
-        # Top 5 codes
+        # Top 5 codes query (for analysis)
         [
             {"code": "E1", "cnt": 40},
             {"code": "E2", "cnt": 25},
@@ -58,8 +59,12 @@ async def test_analyze_by_manufacturer_skewed_distribution(
             {"code": "E4", "cnt": 10},
             {"code": "E5", "cnt": 10},
         ],
-        [],
-        [],
+        # Cooccurrence queries - one for each error code (5 codes = 5 queries)
+        [],  # E1 cooccurrence
+        [],  # E2 cooccurrence
+        [],  # E3 cooccurrence
+        [],  # E4 cooccurrence
+        [],  # E5 cooccurrence
     ]
 
     mock_db_adapter.fetch_one.return_value = {"cnt": 100}
