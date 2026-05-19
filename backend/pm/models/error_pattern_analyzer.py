@@ -7,7 +7,7 @@ failure modes, and dominant issue categories.
 
 from typing import Any
 
-from backend.core.database import DatabaseAdapter
+from backend.services.database_adapter import DatabaseAdapter
 
 
 class ErrorPatternAnalyzer:

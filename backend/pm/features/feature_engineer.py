@@ -5,8 +5,8 @@ Converts raw service tickets and maintenance data into normalized feature vector
 for consumption by ML models.
 """
 
-from backend.core.database import DatabaseAdapter
 from backend.pm.models.ticket import ServiceTicketFeatures
+from backend.services.database_adapter import DatabaseAdapter
 
 
 class FeatureEngineer:
