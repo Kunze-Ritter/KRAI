@@ -107,3 +107,66 @@ class TicketBatchPredictionResponse(BaseModel):
             }
         }
     )
+
+
+class PartReliabilityMetrics(BaseModel):
+    """
+    Part reliability metrics aggregated by manufacturer and category.
+
+    Compares nominal (manufacturer-specified) lifespans vs. actual observed
+    runtimes to quantify early failures and warranty impact.
+    """
+
+    manufacturer_name: str = Field(..., description="Manufacturer name (e.g. 'Konica Minolta')")
+    part_category: str = Field(..., description="Part category (e.g. 'drum', 'fuser', 'toner')")
+    total_replacements: int = Field(..., ge=0, description="Total part replacements for this manufacturer+category")
+    nominal_lifetime_pages: int | None = Field(None, ge=0, description="Avg nominal lifetime pages from part_lifetimes")
+    actual_avg_runtime_pages: float | None = Field(
+        None, ge=0, description="Avg actual runtime pages (Docuware/Radix placeholder)"
+    )
+    mismatch_ratio: float | None = Field(None, ge=0.0, description="Avg actual/nominal ratio (< 1.0 = early failure)")
+    warranty_eligible_count: int = Field(
+        0, ge=0, description="Replacements within warranty window (typically 365 days)"
+    )
+    warranty_rate_pct: float = Field(
+        0.0, ge=0.0, le=100.0, description="Warranty_eligible_count / total_replacements * 100"
+    )
+    risk_level: str = Field(
+        "unknown", description="Risk classification: critical (>50%), high (>30%), medium (>15%), low (<15%), unknown"
+    )
+    financial_impact_eur: float | None = Field(
+        None, ge=0.0, description="Estimated total repair cost (warranty claims)"
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "manufacturer_name": "Konica Minolta",
+                "part_category": "drum",
+                "total_replacements": 12,
+                "nominal_lifetime_pages": 500000,
+                "actual_avg_runtime_pages": 200000.0,
+                "mismatch_ratio": 0.4,
+                "warranty_eligible_count": 8,
+                "warranty_rate_pct": 66.67,
+                "risk_level": "critical",
+                "financial_impact_eur": 2400.00,
+            }
+        }
+    )
+
+
+class WarrantyAnalysisSummary(BaseModel):
+    """
+    Complete warranty analysis across all manufacturers and part categories.
+
+    Provides executive-level view of part reliability issues and warranty exposure.
+    """
+
+    total_events: int = Field(..., ge=0, description="Total warranty events tracked")
+    warranty_eligible: int = Field(..., ge=0, description="Events within warranty window")
+    total_manufacturers: int = Field(..., ge=0, description="Number of unique manufacturers")
+    by_manufacturer: dict[str, list[PartReliabilityMetrics]] = Field(
+        ..., description="Metrics grouped by manufacturer name, then by part category"
+    )
+    analysis_timestamp: datetime = Field(..., description="When analysis was generated")
