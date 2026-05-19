@@ -227,6 +227,7 @@ benchmark-documents/*.pdf
 # Model files (if stored locally)
 models/
 !backend/models/
+!backend/pm/models/
 *.bin
 *.pkl
 *.joblib

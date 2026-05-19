@@ -93,6 +93,9 @@ module = [
     "asyncpg.*",
     "psycopg2.*",
     "python_multipart.*",
+    "sklearn.*",
+    "xgboost.*",
+    "lightgbm.*",
 ]
 ignore_missing_imports = true
 
