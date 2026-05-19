@@ -39,17 +39,24 @@ Während auf Sprint 2 Docuware-Daten warten, haben wir 3 Optimierungsblöcke abg
 
 ---
 
-### Sprint 2: Modellgrundlagen 🟢 READY FOR CATEGORY A (02.06–15.06.2026)
+### Sprint 2: Modellgrundlagen ✅ CATEGORY A COMPLETE (02.06–15.06.2026)
 
-#### 🟢 Kategorie A — KANN JETZT STARTEN (Keine Datenverfügbarkeit nötig)
-- [ ] 2.1: ML Model v1 Architektur (XGBoost/LightGBM, Long-Tail Classification)
-- [ ] 2.2: Feature Engineering Framework (Problem-Häufigkeit, Error-Codes, Parts, Repair-Time)
-- [ ] 2.3: Long-Tail Klassifizierung (Training gegen 180 Test-Tickets, 5-fold CV)
-- [ ] 2.4: Error Pattern Analyzer (Pro-Hersteller Fehler-Cluster: HP/Konica/Ricoh)
-- [ ] 2.5: Model Evaluation Framework (Accuracy, Precision, Recall, F1, Ablation Testing)
-- [ ] 2.6: Prediction Processor (Speichern von Predictions in krai_pm.predictions)
-- [ ] 2.7: ADR-003 (Long-Tail Classification Strategy): Proposed
-- [ ] 2.8: Tests grün (Unit + Integration) + Linting
+#### ✅ Kategorie A — ABGESCHLOSSEN (Keine Datenverfügbarkeit nötig)
+- [x] 2.1: ML Model v1 Architektur (XGBoost/LightGBM, Long-Tail Classification)
+- [x] 2.2: Feature Engineering Framework (Problem-Häufigkeit, Error-Codes, Parts, Repair-Time)
+- [x] 2.3: Long-Tail Klassifizierung (Training gegen 180 Test-Tickets, 5-fold CV)
+- [x] 2.4: Error Pattern Analyzer (Pro-Hersteller Fehler-Cluster: HP/Konica/Ricoh)
+- [x] 2.5: Model Evaluation Framework (Accuracy, Precision, Recall, F1, Ablation Testing)
+- [x] 2.6: Prediction Service (Speichern von Predictions in krai_pm.predictions)
+- [x] 2.7: ADR-003 (Long-Tail Classification Strategy): Proposed ✓
+- [x] 2.8: Tests grün (64/64 passed) + Linting sauber
+  - Feature Engineering: 6 tests ✓
+  - Long-Tail Classifier: 13 tests ✓
+  - Model Evaluator: 7 tests ✓
+  - Error Pattern Analyzer: 6 tests ✓
+  - Prediction Service: 5 tests ✓
+  - Ticket Ingestion (Sprint 1): 10+5 tests ✓
+  - Part Lifetimes (Sprint 1): 7+5 tests ✓
 
 #### 🔴 Kategorie B — BLOCKIERT (Wartet auf Docuware/Radix Termin)
 - [ ] 2.9: Device Lifecycle Tracker (Skeleton: bereit für Docuware-Integration)

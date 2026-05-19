@@ -115,12 +115,12 @@ class FeatureEngineer:
         # Fetch all tickets
         query = """
             SELECT id FROM krai_pm.service_tickets
-            ORDER BY created_at DESC
+            ORDER BY completed_date DESC NULLS LAST
         """
         if limit:
             query += f" LIMIT {limit}"
 
-        tickets = await self.db.fetch_all(query, ())
+        tickets = await self.db.fetch_all(query, None)
         features_list = []
 
         for row in tickets:

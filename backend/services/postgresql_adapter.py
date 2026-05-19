@@ -124,6 +124,20 @@ class PostgreSQLAdapter(DatabaseAdapter):
 
         # Handle single scalar parameter
         if not isinstance(params, dict):
+            # Convert %s to $1 if present
+            if "%s" in query:
+                # Check cache
+                if query in self._query_cache:
+                    cached_query, cache_data = self._query_cache[query]
+                    if cache_data is True:  # True indicates positional mapping
+                        return cached_query, [params]
+
+                # Replace first %s with $1
+                formatted_query = query.replace("%s", "$1", 1)
+                # Store in cache
+                if len(self._query_cache) < 1000:
+                    self._query_cache[query] = (formatted_query, True)
+                return formatted_query, [params]
             return query, [params]
 
         # Handle named parameters (dict)

@@ -163,6 +163,13 @@ These rules come from `.windsurf/rules/project-rules.md` and must be followed:
 - Catch specific exception types, not generic `Exception`
 - Never run benchmarks in production — use staging (`docker-compose.staging.yml`)
 
+### External Systems & Data Access
+- **READ-ONLY MODE ONLY**: Never write to external systems (Radix, Docuware, etc.). Only GET requests allowed.
+- No INSERT, UPDATE, DELETE, PATCH, or POST mutations to external APIs — data flows inbound only
+- All external data imports must be idempotent (duplicate detection via ID or hash)
+- Validate external data before inserting into KRAI database (schema conformance, manufacturer mapping, etc.)
+- Log all external data source, import count, and skip count for audit trail
+
 ### Commit Messages
 Format: `[Component] What was changed`
 Example: `[Pipeline] Add idempotency checks to ChunkPreprocessor`

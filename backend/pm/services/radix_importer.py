@@ -92,7 +92,7 @@ class RadixImporter:
 
     async def _import_single_activity(self, activity: RadixActivity, skip_duplicates: bool = True) -> bool:
         """
-        Import single Radix activity to database.
+        Import single Radix activity to database with extended device and routing data.
 
         Args:
             activity: Parsed RadixActivity
@@ -128,6 +128,13 @@ class RadixImporter:
         except Exception as e:
             logger.warning(f"Failed to fetch work times for {activity.id}: {e}")
 
+        # Extract employee info from work times
+        employee_id = None
+        employee_name = None
+        if work_times:
+            employee_id = work_times[0].employee_id
+            employee_name = work_times[0].employee_name
+
         # Map to KRAI schema
         replaced_parts = [sp.part_name for sp in spare_parts if sp.part_name]
         error_codes = []  # Radix doesn't have error codes; would need to extract from notes
@@ -135,40 +142,74 @@ class RadixImporter:
         metadata = {
             "radix_id": activity.id,
             "radix_customer": activity.customer_name,
+            "radix_customer_id": activity.customer_id,
             "radix_device_model": activity.device_model,
             "radix_device_serial": activity.device_serial,
             "radix_state": activity.state,
             "radix_type": activity.activity_type,
             "radix_code": activity.code,
+            "radix_priority": activity.priority,
+            "radix_notes": activity.notes,
+            "radix_assigned_to": activity.assigned_to,
             "source_system": "Radix",
+            "spare_parts_count": len(spare_parts),
+            "work_time_entries": len(work_times),
         }
 
-        # Insert ticket
+        # Insert ticket with extended fields
         query = """
             INSERT INTO krai_pm.service_tickets (
-                id, problem_short, problem_long, error_codes, replaced_parts,
-                repair_time_minutes, manufacturer_id, created_at, updated_at, metadata
+                id, device_id, device_serial_number, device_model,
+                problem_short, problem_long, error_codes, replaced_parts,
+                repair_time_minutes, device_runtime_hours, toner_level,
+                customer_id, customer_name, customer_address, service_location_address,
+                employee_id, employee_name, manufacturer_id,
+                scheduled_date, completed_date, activity_state,
+                created_at, updated_at, metadata
             ) VALUES (
-                %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s
+                %s, %s, %s, %s,
+                %s, %s, %s, %s,
+                %s, %s, %s,
+                %s, %s, %s, %s,
+                %s, %s, %s,
+                %s, %s, %s,
+                %s, %s, %s
             )
         """
 
-        await self.db.execute(
-            query,
+        params = (
             activity.id,
+            activity.code,  # Use code as device_id
+            activity.device_serial,
+            activity.device_model,
             activity.problem_short or "Unknown",
             activity.problem_description or "",
             error_codes,
             replaced_parts,
             total_repair_time if total_repair_time > 0 else None,
-            activity.code,  # Radix "code" is location/branch; map to manufacturer_id if available
+            None,  # device_runtime_hours - would come from custom fields
+            None,  # toner_level - would come from custom fields
+            activity.customer_id,
+            activity.customer_name,
+            None,  # customer_address - would need additional lookup
+            None,  # service_location_address - would need additional lookup
+            employee_id,
+            employee_name,
+            activity.code,  # Radix "code" is location/branch
+            activity.scheduled_date or datetime.utcnow(),
+            activity.completed_date,
+            activity.state,
             activity.created_date or datetime.utcnow(),
             activity.modified_date or datetime.utcnow(),
             metadata,
         )
+        await self.db.execute_query(query, params)
 
-        logger.info(f"Imported activity {activity.id} ({len(spare_parts)} parts, {total_repair_time}min)")
+        logger.info(
+            f"Imported activity {activity.id} "
+            f"({activity.customer_name} | {activity.problem_short} | "
+            f"{len(spare_parts)} parts | {total_repair_time}min repair)"
+        )
         return True
 
     async def get_activity_summary(self) -> dict[str, Any]:
