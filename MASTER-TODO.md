@@ -75,6 +75,76 @@ Während auf Sprint 2 Docuware-Daten warten, haben wir 3 Optimierungsblöcke abg
 **Linting:** Ruff clean (Core Category C modules)
 **Status:** ✅ SPRINT 2 CATEGORY C COMPLETE
 
+#### ✅ Kategorie D — WARRANTY DATA ANALYSIS (19.05.2026)
+**Real Radix Warranty Analysis — Complete Device Lifecycle with Laufleistung**
+
+- [x] **D.1: Device History Extraction** — Complete device replacement histories with page counters
+  * Extracted: 3,068 unique devices | 8,071 service events
+  * System IDs: Extracted from descriptions using regex
+  * Page counters: 199 devices with Schwarzdruck/Farbdruck data
+  * Part numbers: Article numbers and manufacturer part codes captured
+  * Script: `build_device_part_history.py`
+  * Output: `docs/device_part_replacement_history.json`
+
+- [x] **D.2: Warranty Analysis Framework** — Calculated warranty eligibility and failure rates
+  * Warranty failure rate: **92.3%** (4,620 of 5,003 parts fail within 365 days)
+  * High-maintenance devices: 417 devices with 5+ service events per year
+  * Part frequency analysis: Trommel (22.9%), Toner (16.5%), Transfer (14.8%)
+  * Script: `analyze_warranty_from_device_history.py`
+  * Output: `docs/warranty_analysis_detailed.json`
+
+- [x] **D.3: Laufleistung Mismatch Analysis** — Actual page counts vs nominal specs
+  * 226 part failures with actual page counter documentation
+  * **133 critical failures** (<30% of nominal lifetime)
+  * Trommel average: 27.9% of nominal | Fixier average: 24.9% of nominal
+  * Kyocera most critical: Fusers failing at 44.2% of nominal
+  * Script: `analyze_laufleistung_mismatch.py`
+  * Output: `docs/laufleistung_mismatch_analysis.json`
+
+- [x] **D.4: Warranty Claims Export** — Unsubmitted warranty claims with device serials
+  * **EUR 3.37 million in unsubmitted warranty claims**
+  * Breakdown: Konica Minolta EUR 1.39M (2,609 claims) | Samsung EUR 950k (1,660 claims)
+  * Top device: Konica Minolta PRESS C1085 (Serial 14883) = EUR 30,450
+  * CSV export: `warranty_claims_for_negotiation.csv` (6,053 records)
+  * Script: `export_warranty_claims_for_negotiation.py`
+  * Output: `docs/warranty_claims_detailed.json`
+
+- [x] **D.5: Negotiation Brief** — Executive summary for manufacturer discussions
+  * Brief: `docs/warranty_negotiation_brief.md`
+  * Manufacturer strategy analysis (Konica Minolta, Samsung, Lexmark, HP, Kyocera)
+  * Critical findings: 92.3% warranty failure rate, EUR 3.37M recovery opportunity
+  * Schwarzdruck vs Farbdruck impact analysis
+  * Recommended negotiation phases with timelines
+
+**Data Quality & Traceability:**
+- All findings linked to Radix ticket IDs
+- Device serials and manufacturer serial numbers captured
+- Page counter extraction from unstructured German/English text
+- Counter types detected: Total (79 devices), Color/Farbdruck (54), BW/Schwarzdruck (20)
+
+**Financial Impact Summary:**
+```
+Total unsubmitted warranty claims: EUR 3,377,500
+- Konica Minolta: EUR 1,396,600 (41%)
+- Samsung: EUR 950,450 (28%)
+- Lexmark: EUR 344,450 (10%)
+- Others: EUR 686,000 (21%)
+
+Negotiation value: EUR 3.37M recovery + design review leverage
+```
+
+- [x] **D.6: Real Radix Tickets Import** — Import complete device history data into production database
+  * Imported: **3,418 real service tickets** from `docs/device_part_replacement_history.json`
+  * Replaced: 180 mock test tickets (MOCK* prefix) with real Radix data
+  * Breakdown: Konica Minolta 1,760 | Lexmark 1,202 | Kyocera 455 | Canon 1
+  * Data source: 8,071 events from 3,068 unique devices
+  * Database: `krai_pm.service_tickets` with source_ticket_id indexing
+  * Script: `scripts/import_device_history_tickets.py` (with --clear-mock flag)
+  * Schema fix: Updated INSERT to match table structure (source_system, source_ticket_id, created_at_source)
+  * Status: ✅ COMPLETE (0 errors, all tickets successfully imported)
+
+**Status:** ✅ SPRINT 2 CATEGORY D COMPLETE (Ad-hoc warranty analysis + real ticket import)
+
 ---
 
 ## ✅ Erledigt (Kurzübersicht)
