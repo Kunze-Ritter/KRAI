@@ -55,6 +55,7 @@ from api.routes.configuration import router as configuration_router
 from api.routes.dashboard import router as dashboard_router
 from api.routes.document_processing import router as document_processing_router
 from api.routes.error_codes import router as error_codes_router
+from api.routes.foliant import router as foliant_router
 from api.routes.images import router as images_router
 from api.routes.openai_compat import router as openai_compat_router
 from api.routes.search import router as search_router
@@ -1181,6 +1182,7 @@ from api.routes import pipeline_errors, scraping
 # app.include_router(auth_router, prefix="/api/v1")
 app.include_router(documents.router, prefix="/api/v1")
 app.include_router(products.router, prefix="/api/v1")
+app.include_router(foliant_router, prefix="/api/v1")
 app.include_router(configuration_router, prefix="/api/v1")
 app.include_router(error_codes_router, prefix="/api/v1")
 app.include_router(videos_router, prefix="/api/v1")
