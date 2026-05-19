@@ -1,5 +1,63 @@
 # KRAI Master TODO
-> Kompakte Projekt-Übersicht - Letzte Aktualisierung: 13.05.2026
+> Kompakte Projekt-Übersicht - Letzte Aktualisierung: 19.05.2026
+
+---
+
+## ⚡ Code Quality Optimization Blocks ✅ COMPLETE
+
+Während auf Sprint 2 Docuware-Daten warten, haben wir 3 Optimierungsblöcke abgeschlossen:
+
+- [x] **Block 1: Type Annotations** — MyPy kritische Paths verbessert (5 Core-Dateien)
+  * Commit: `df2f960 [Backend] Improve type annotations in pipeline and processor critical paths`
+
+- [x] **Block 2: Dashboard Links** — Verwandte Dokumente im Filament-Dashboard anzeigen
+  * Commit: `535eaa2 [Dashboard] Add related documents panel using existing document_relationships table`
+
+- [x] **Block 3: Foliant System** — Konica Minolta Foliant PDF-Import & Kompatibilitätsprüfung
+  * Migrations: 036 (requires_accessory_id)
+  * Commits: `25243d7 [Foliant] Add PDF import script and compatibility validation service`
+  * Commit: `2dab34d [API] Add Foliant upload endpoint with compatibility check`
+  * Tests: 19 Unit-Tests (9 Compatibility Service + 10 Import Script), 100% Pass Rate
+
+---
+
+## 📌 PM Sprint Status (Predictive Maintenance Initiative)
+
+### Sprint 1: Datenfundament ✅ COMPLETE (19.05–01.06.2026)
+**Status:** SHIPPED TO MASTER
+- [x] DB Schema (krai_pm): 5 Tabellen + 4 Views (Migrations 034/035)
+- [x] TicketIngestionProcessor: 180 Test-Tickets (OF/PP/SOL) + 10 Unit-Tests + 5 Integration-Tests
+- [x] PartLifetimesImporter: 120+ Part-Einträge + 7 Unit-Tests + 6 Integration-Tests
+- [x] Data Exploration Notebook: 9-Abschnitte, Long-Tail-Analyse validiert
+- [x] ADR-001 (Eigenes PM-Schema): Accepted
+- [x] ADR-002 (SHA-256 Pseudonymisierung): Accepted
+- [x] Research Log (Kickoff + Closeout): Dokumentiert
+- [x] Commits: 8x [KRAI-PM] Prefix, saubere History
+- [x] GitHub: Auf master gepusht (commit 3f4cde7)
+
+**Test-Ergebnisse:** 28 Total (17 Unit + 11 Integration), 100% Pass Rate
+
+---
+
+### Sprint 2: Modellgrundlagen 🟢 READY FOR CATEGORY A (02.06–15.06.2026)
+
+#### 🟢 Kategorie A — KANN JETZT STARTEN (Keine Datenverfügbarkeit nötig)
+- [ ] 2.1: ML Model v1 Architektur (XGBoost/LightGBM, Long-Tail Classification)
+- [ ] 2.2: Feature Engineering Framework (Problem-Häufigkeit, Error-Codes, Parts, Repair-Time)
+- [ ] 2.3: Long-Tail Klassifizierung (Training gegen 180 Test-Tickets, 5-fold CV)
+- [ ] 2.4: Error Pattern Analyzer (Pro-Hersteller Fehler-Cluster: HP/Konica/Ricoh)
+- [ ] 2.5: Model Evaluation Framework (Accuracy, Precision, Recall, F1, Ablation Testing)
+- [ ] 2.6: Prediction Processor (Speichern von Predictions in krai_pm.predictions)
+- [ ] 2.7: ADR-003 (Long-Tail Classification Strategy): Proposed
+- [ ] 2.8: Tests grün (Unit + Integration) + Linting
+
+#### 🔴 Kategorie B — BLOCKIERT (Wartet auf Docuware/Radix Termin)
+- [ ] 2.9: Device Lifecycle Tracker (Skeleton: bereit für Docuware-Integration)
+- [ ] 2.10: Datenvolumen-Validierung (6.000+ echte Tickets, wenn Docuware verfügbar)
+- [ ] 2.11: Cross-Manufacturer Model Validation (Pro-Hersteller Klassifizierer)
+
+**Blockade:** ⏳ Docuware + Radix Datenverfügbarkeit — Termin wird intern abgestimmt
+**Dokumentation:** `tasks/pm-sprint-02-modellgrundlagen.md` (mit Placeholders für Termin)
 
 ---
 
@@ -58,16 +116,16 @@
 
 | # | Task | Beschreibung | Status |
 |---|------|--------------|--------|
-| 4 | **Type Annotations** | MyPy konfigurieren, viele `Any` entfernen | 🔄 In Progress |
+| 4 | **Type Annotations** | MyPy konfigurieren, viele `Any` entfernen | ✅ DONE |
 | 5 | **Performance Profiling** | Benchmark für Stage-Zeiten nach Fixes | ✅ DONE |
 | 6 | **Fehler-Alerting** | Automatische Benachrichtigungen bei Stage-Fehlern | ✅ DONE |
-| 7 | **Dashboard Verbindungen** | Visuelle Links zwischen verwandten Dokumenten | 📝 TODO |
+| 7 | **Dashboard Verbindungen** | Visuelle Links zwischen verwandten Dokumenten | ✅ DONE |
 
 ### Niedrige Priorität (Nice-to-Have)
 
 | # | Task | Beschreibung | Status |
 |---|------|--------------|--------|
-| 8 | **Foliant-System** | Siehe `TODO_FOLIANT.md` | 📋 Backlog |
+| 8 | **Foliant-System** | PDF-Import für Konica Minolta Produktdaten | ✅ DONE |
 | 9 | **Product Accessories** | Siehe `TODO_PRODUCT_ACCESSORIES.md` | 📋 Backlog |
 | 10 | **Documentation Audit** | DATABASE_SCHEMA.md, API-Docs aktualisieren | 📋 Backlog |
 
