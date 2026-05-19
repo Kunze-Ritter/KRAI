@@ -66,6 +66,15 @@ Während auf Sprint 2 Docuware-Daten warten, haben wir 3 Optimierungsblöcke abg
 **Blockade:** ⏳ Docuware + Radix Datenverfügbarkeit — Termin wird intern abgestimmt
 **Dokumentation:** `tasks/pm-sprint-02-modellgrundlagen.md` (mit Placeholders für Termin)
 
+#### ✅ Kategorie C — ABGESCHLOSSEN (02.06–29.05.2026)
+- [x] 2.C1: Migration 037 — part_warranty_events Schema + Bug-Fix predictions.metadata
+- [x] 2.C2: PartReliabilityAnalyzer + WarrantyTracker + Pydantic-Modelle
+- [x] 2.C3: ADR-004 (Part Warranty Analysis) + Tests (13/13 passing) + MASTER-TODO Update
+
+**Tests:** 13 Total (7 analyzer + 6 tracker), 100% Pass Rate
+**Linting:** Ruff clean (Core Category C modules)
+**Status:** ✅ SPRINT 2 CATEGORY C COMPLETE
+
 ---
 
 ## ✅ Erledigt (Kurzübersicht)
