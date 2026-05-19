@@ -8,6 +8,7 @@ Uses pattern matching and AI for intelligent extraction.
 """
 
 import re as _re
+from typing import Any
 
 from backend.core.base_processor import BaseProcessor, ProcessingContext, ProcessingError, ProcessingResult, Stage
 from backend.core.data_models import ErrorCodeModel
@@ -24,7 +25,12 @@ class MetadataProcessorAI(BaseProcessor):
     Uses pattern matching for error codes and AI for complex metadata.
     """
 
-    def __init__(self, database_service=None, ai_service=None, config_service=None):
+    def __init__(
+        self,
+        database_service: Any | None = None,
+        ai_service: Any | None = None,
+        config_service: Any | None = None,
+    ) -> None:
         """
         Initialize metadata processor
 
@@ -465,7 +471,7 @@ class MetadataProcessorAI(BaseProcessor):
 
         return saved_count
 
-    async def _update_document_version(self, document_id: str, version_info: str, adapter):
+    async def _update_document_version(self, document_id: str, version_info: str, adapter: Any) -> None:
         """Update document with version information via DatabaseAdapter or Supabase client. Fails or logs when neither is available."""
         if not self.database_service:
             adapter.error("Cannot update document version: no database_service available")
@@ -491,7 +497,7 @@ class MetadataProcessorAI(BaseProcessor):
         except Exception as e:
             adapter.warning("Failed to update document version: %s", e)
 
-    def _create_result(self, success: bool, message: str, data: dict) -> ProcessingResult:
+    def _create_result(self, success: bool, message: str, data: dict[str, Any]) -> ProcessingResult:
         """Create a processing result object using BaseProcessor helpers."""
 
         if success:

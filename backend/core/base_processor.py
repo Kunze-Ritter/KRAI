@@ -40,7 +40,7 @@ class BaseProcessor(ABC):
     9. Finalization → krai_system.processing_queue
     """
 
-    def __init__(self, name: str, config: dict[str, Any] = None):
+    def __init__(self, name: str, config: dict[str, Any] | None = None) -> None:
         self.name = name
         self.config = config or {}
         processor_logger = get_logger(name=f"processor.{name}")
@@ -131,7 +131,7 @@ class BaseProcessor(ABC):
 
         return True
 
-    def log_processing_start(self, context: ProcessingContext):
+    def log_processing_start(self, context: ProcessingContext) -> None:
         """Log the start of processing"""
         with self.logger_context(document_id=context.document_id) as adapter:
             adapter.info(
@@ -141,7 +141,7 @@ class BaseProcessor(ABC):
             )
             adapter.debug("Context: %s", context)
 
-    def log_processing_end(self, result: ProcessingResult | dict[str, Any]):
+    def log_processing_end(self, result: ProcessingResult | dict[str, Any]) -> None:
         """Log the end of processing"""
         document_id = None
         stage = None
@@ -220,7 +220,7 @@ class BaseProcessor(ABC):
 
         raise TypeError(f"{self.name}.process() must return ProcessingResult or dict, got {type(result).__name__}")
 
-    def create_success_result(self, data: dict[str, Any], metadata: dict[str, Any] = None) -> ProcessingResult:
+    def create_success_result(self, data: dict[str, Any], metadata: dict[str, Any] | None = None) -> ProcessingResult:
         """Create a successful processing result"""
         return ProcessingResult(
             success=True,
@@ -234,7 +234,7 @@ class BaseProcessor(ABC):
     def create_error_result(
         self,
         error: ProcessingError,
-        metadata: dict[str, Any] = None,
+        metadata: dict[str, Any] | None = None,
         data: dict[str, Any] | None = None,
     ) -> ProcessingResult:
         """Create a failed processing result with error_id and correlation_id support"""
@@ -249,7 +249,7 @@ class BaseProcessor(ABC):
             processing_time=0.0,  # Will be set by caller
         )
 
-    def create_retrying_result(self, correlation_id: str, metadata: dict[str, Any] = None) -> ProcessingResult:
+    def create_retrying_result(self, correlation_id: str, metadata: dict[str, Any] | None = None) -> ProcessingResult:
         """Create a result indicating async retry is in progress"""
         result_metadata = metadata or {}
         result_metadata["correlation_id"] = correlation_id
@@ -263,7 +263,7 @@ class BaseProcessor(ABC):
         )
 
     def create_result(
-        self, status: str, data: dict[str, Any] = None, metadata: dict[str, Any] = None
+        self, status: str, data: dict[str, Any] | None = None, metadata: dict[str, Any] | None = None
     ) -> ProcessingResult:
         """Create a generic processing result for special cases"""
         return ProcessingResult(

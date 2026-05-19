@@ -345,7 +345,7 @@ class ClassificationProcessor(BaseProcessor):
 
         return None
 
-    def _detect_manufacturer_from_pages(self, page_texts: dict[int, str], adapter) -> str | None:
+    def _detect_manufacturer_from_pages(self, page_texts: dict[int, str], adapter: Any) -> str | None:
         """
         Detect manufacturer from first and last pages
 
@@ -447,7 +447,7 @@ class ClassificationProcessor(BaseProcessor):
 
         return None
 
-    def _extract_potential_models(self, file_path: Path, context) -> list:
+    def _extract_potential_models(self, file_path: Path, context: ProcessingContext) -> list[str]:
         """
         Extract potential model numbers from filename and context for web verification.
 

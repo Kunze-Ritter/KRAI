@@ -50,7 +50,12 @@ class KRMasterPipeline:
     Master Pipeline für alle KR-AI-Engine Funktionen
     """
 
-    def __init__(self, database_adapter=None, force_continue_on_errors=True, performance_collector=None):
+    def __init__(
+        self,
+        database_adapter: Any | None = None,
+        force_continue_on_errors: bool = True,
+        performance_collector: Any | None = None,
+    ) -> None:
         self.database_adapter = database_adapter
         self.database_service = None
         self.storage_service = None
@@ -86,7 +91,7 @@ class KRMasterPipeline:
         self.logger.info(f"Performance settings: concurrent_documents={self.max_concurrent}, cpu_cores={cpu_count}")
         self.logger.info(f"KR Master Pipeline initialized with {self.max_concurrent} concurrent document capacity")
 
-    async def initialize_services(self):
+    async def initialize_services(self) -> None:
         """Initialize all services"""
         self.logger.info("Initializing KR Master Pipeline services")
 
@@ -121,7 +126,7 @@ class KRMasterPipeline:
         # Initialize services after environment is loaded
         await self._initialize_services_after_env_loaded()
 
-    def _try_create_env_from_templates(self):
+    def _try_create_env_from_templates(self) -> None:
         """Try to create .env files from templates if available"""
         try:
             # Template mappings
@@ -1972,7 +1977,7 @@ class KRMasterPipeline:
         self.logger.info("💡 Please create a 'service_documents' directory and add PDF files")
         return None
 
-    def print_status_summary(self, results: dict[str, Any]):
+    def print_status_summary(self, results: dict[str, Any]) -> None:
         """Print status summary"""
         self.logger.info("%s", "=" * 80)
         self.logger.info("KR MASTER PIPELINE SUMMARY")

@@ -38,7 +38,7 @@ from requests import exceptions as requests_exceptions
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from backend.core.base_processor import BaseProcessor, Stage
+from backend.core.base_processor import BaseProcessor, ProcessingContext, Stage
 from backend.pipeline.metrics import metrics
 from backend.processors.logger import text_stats
 
@@ -405,7 +405,7 @@ class EmbeddingProcessor(BaseProcessor):
     def _vector_literal(values: list[float]) -> str:
         return "[" + ",".join(f"{v:.8f}" for v in values) + "]"
 
-    async def process(self, context) -> dict[str, Any]:
+    async def process(self, context: ProcessingContext) -> dict[str, Any]:
         """Async pipeline entrypoint wrapping `process_document`."""
         if not hasattr(context, "document_id"):
             raise ValueError("Processing context must include 'document_id'")
