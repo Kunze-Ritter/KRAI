@@ -43,7 +43,7 @@ class PipelineMonitor:
                 COUNT(*) as total_docs,
                 COUNT(CASE WHEN manufacturer IS NOT NULL THEN 1 END) as classified_docs,
                 COUNT(CASE WHEN manufacturer IS NULL THEN 1 END) as pending_classification,
-                COUNT(CASE WHEN id IN (SELECT document_id FROM krai_content.chunks) THEN 1 END) as with_chunks,
+                COUNT(CASE WHEN id IN (SELECT document_id FROM krai_intelligence.chunks) THEN 1 END) as with_chunks,
                 COUNT(CASE WHEN id IN (SELECT document_id FROM krai_content.images) THEN 1 END) as with_images
             FROM krai_core.documents
         """
@@ -56,7 +56,7 @@ class PipelineMonitor:
                 COUNT(*) as total_chunks,
                 COUNT(DISTINCT document_id) as docs_with_chunks,
                 MAX(created_at) as latest_chunk
-            FROM krai_content.chunks
+            FROM krai_intelligence.chunks
         """
         )
 

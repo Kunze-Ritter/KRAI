@@ -152,7 +152,7 @@ class ProductModel(BaseModel):
 
 # Content Models
 class ChunkModel(BaseModel):
-    """Chunk model for krai_content.chunks"""
+    """Chunk model for krai_intelligence.chunks"""
 
     id: str | None = Field(default_factory=lambda: str(uuid.uuid4()))
     document_id: str

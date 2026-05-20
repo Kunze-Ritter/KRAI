@@ -27,7 +27,7 @@ class BaseProcessor(ABC):
 
     Follows the enhanced processing pipeline with multi-modal support:
     1. Upload Processor → krai_core.documents (Database only)
-    2. Text Processor → krai_content.chunks + krai_intelligence.chunks
+    2. Text Processor → krai_intelligence.chunks
     2b. Table Processor → krai_intelligence.structured_tables
     3a. SVG Processor → Convert vector graphics to PNG for Vision AI
     3. Image Processor → krai_content.images (Object Storage)

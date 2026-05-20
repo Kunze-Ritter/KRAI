@@ -1,0 +1,1224 @@
+// KRAI Database Schema — AUTO-GENERATED from live PostgreSQL
+// Database: krai | Generated: 20.05.2026 um 11:49 UTC
+// Fingerprint: 98c8bb67f30dd682
+// Edit column-traps.yaml for business notes; re-run generate_schema_docs.py
+// Visualize: https://dbdiagram.io — import this file
+
+Project KRAI {
+  database_type: "PostgreSQL"
+  Note: "Live DB `krai` — 857 columns, 54 FKs"
+}
+
+TableGroup krai_content {
+  krai_content.document_media_context
+  krai_content.images
+  krai_content.instructional_videos
+  krai_content.links
+  krai_content.print_defects
+  krai_content.video_products
+  krai_content.videos
+}
+
+Table krai_content.document_media_context {
+  Note: 'Unified view for agent context: documents with images, figures, and links'
+  document_id uuid
+  filename varchar
+  manufacturer varchar
+  document_type varchar
+  image_id uuid
+  image_filename varchar
+  figure_number varchar
+  figure_context text
+  image_page int
+  image_url text
+  link_id uuid
+  link_url text
+  link_type varchar
+  link_page int
+  link_description text
+}
+
+Table krai_content.images {
+  id uuid [pk]
+  document_id uuid
+  chunk_id uuid
+  filename varchar
+  original_filename varchar
+  storage_path text
+  storage_url text [not null]
+  file_size int
+  image_format varchar
+  width_px int
+  height_px int
+  page_number int
+  image_index int
+  image_type varchar
+  ai_description text
+  ai_confidence decimal
+  contains_text boolean
+  ocr_text text
+  ocr_confidence decimal
+  manual_description text
+  tags text
+  file_hash varchar
+  figure_number varchar
+  figure_context text
+  created_at timestamptz
+  updated_at timestamptz
+  svg_storage_url text
+  original_svg_content text
+  is_vector_graphic boolean
+  has_png_derivative boolean
+  context_caption text
+  page_header text
+  surrounding_paragraphs text
+  related_error_codes text
+  related_products text
+  related_chunks text
+  context_embedding varchar [note: 'vector(768)']
+  figure_reference text
+}
+
+Table krai_content.instructional_videos {
+  id uuid [pk]
+  manufacturer_id uuid [not null]
+  title varchar [not null]
+  description text
+  video_url text [not null]
+  thumbnail_url text
+  duration_seconds int
+  file_size_mb int
+  video_format varchar
+  resolution varchar
+  language varchar
+  created_at timestamptz
+}
+
+Table krai_content.links {
+  Note: 'External links extracted from PDFs (videos, tutorials, etc.)'
+  id uuid [pk]
+  document_id uuid [not null]
+  url text [not null]
+  link_type varchar [not null]
+  page_number int [not null]
+  description text
+  position_data json
+  is_active boolean
+  created_at timestamptz
+  updated_at timestamptz
+  metadata json
+  link_category varchar
+  confidence_score decimal
+  manufacturer_id uuid
+  series_id uuid
+  related_error_codes text
+  context_description text
+  related_chunks text
+  scraped_content text
+  scraped_metadata json
+  scrape_status varchar
+  content_hash varchar
+  retry_count int
+  last_scraped_at timestamptz
+}
+
+Table krai_content.print_defects {
+  id uuid [pk]
+  manufacturer_id uuid [not null]
+  product_id uuid
+  original_image_id uuid
+  defect_name varchar [not null]
+  defect_category varchar
+  defect_description text
+  example_image_url text
+  annotated_image_url text
+  detection_confidence decimal
+  common_causes json
+  recommended_solutions json
+  related_error_codes text
+  created_at timestamptz
+}
+
+Table krai_content.video_products {
+  id uuid [pk]
+  video_id uuid [not null]
+  product_id uuid [not null]
+  created_at timestamptz
+}
+
+Table krai_content.videos {
+  id uuid [pk]
+  link_id uuid
+  youtube_id varchar
+  platform varchar
+  video_url text
+  title varchar [not null]
+  description text
+  thumbnail_url text
+  duration int
+  channel_id varchar
+  channel_title varchar
+  published_at timestamptz
+  manufacturer_id uuid
+  series_id uuid
+  document_id uuid
+  metadata json
+  created_at timestamptz
+  updated_at timestamptz
+  enriched_at timestamptz
+  context_description text
+  related_products text
+  related_chunks text
+  page_number int
+  context_embedding varchar [note: 'vector(768)']
+  product_id uuid
+}
+
+TableGroup krai_core {
+  krai_core.document_products
+  krai_core.document_relationships
+  krai_core.documents
+  krai_core.manufacturers
+  krai_core.product_accessories
+  krai_core.product_series
+  krai_core.products
+  krai_core.public_products
+  krai_core.vw_documents_by_stage
+  krai_core.vw_stage_statistics
+}
+
+Table krai_core.document_products {
+  id uuid [pk]
+  document_id uuid [not null]
+  product_id uuid [not null]
+  relevance_score decimal
+  created_at timestamptz
+}
+
+Table krai_core.document_relationships {
+  id uuid [pk]
+  primary_document_id uuid [not null]
+  secondary_document_id uuid [not null]
+  relationship_type varchar [not null]
+  relationship_strength decimal
+  auto_discovered boolean
+  manual_verification boolean
+  verification_date timestamptz
+  verified_by varchar
+  notes text
+  created_at timestamptz
+}
+
+Table krai_core.documents {
+  id uuid [pk]
+  manufacturer_id uuid
+  product_id uuid
+  filename varchar [not null]
+  original_filename varchar
+  file_size bigint
+  file_hash varchar
+  storage_path text
+  storage_url text
+  document_type varchar
+  language varchar
+  version varchar
+  publish_date date
+  page_count int
+  word_count int
+  character_count int
+  content_text text
+  content_summary text
+  extracted_metadata json
+  processing_status varchar
+  confidence_score decimal
+  manual_review_required boolean
+  manual_review_completed boolean
+  manual_review_notes text
+  ocr_confidence decimal
+  manufacturer varchar
+  series varchar
+  models text
+  created_at timestamptz
+  updated_at timestamptz
+  stage_status json [not null]
+}
+
+Table krai_core.manufacturers {
+  Note: 'Printer and office equipment manufacturers. Seeded with 14 major manufacturers on 2025-10-09.'
+  id uuid [pk]
+  name varchar [not null]
+  short_name varchar
+  country varchar
+  founded_year int
+  website varchar
+  support_email varchar
+  support_phone varchar
+  logo_url text
+  is_competitor boolean
+  market_share_percent decimal
+  annual_revenue_usd bigint
+  employee_count int
+  headquarters_address text
+  stock_symbol varchar
+  primary_business_segment varchar
+  created_at timestamptz
+  updated_at timestamptz
+}
+
+Table krai_core.product_accessories {
+  id uuid [pk]
+  product_id uuid [not null]
+  accessory_id uuid [not null]
+  accessory_type varchar
+  is_required boolean
+  created_at timestamptz
+}
+
+Table krai_core.product_series {
+  id uuid [pk]
+  manufacturer_id uuid [not null]
+  series_name varchar [not null]
+  series_code varchar
+  launch_date date
+  end_of_life_date date
+  target_market varchar
+  price_range varchar
+  key_features json
+  series_description text
+  marketing_name varchar
+  successor_series_id uuid
+  created_at timestamptz
+  updated_at timestamptz
+}
+
+Table krai_core.products {
+  id uuid [pk]
+  parent_id uuid
+  manufacturer_id uuid [not null]
+  series_id uuid
+  model_number varchar [not null]
+  model_name varchar
+  product_type varchar [not null]
+  launch_date date
+  end_of_life_date date
+  msrp_usd decimal
+  weight_kg decimal
+  dimensions_mm json
+  color_options text
+  connectivity_options text
+  print_technology varchar
+  max_print_speed_ppm int
+  max_resolution_dpi int
+  max_paper_size varchar
+  duplex_capable boolean
+  network_capable boolean
+  mobile_print_support boolean
+  supported_languages text
+  energy_star_certified boolean
+  warranty_months int
+  service_manual_url text
+  parts_catalog_url text
+  driver_download_url text
+  firmware_version varchar
+  option_dependencies json
+  replacement_parts json
+  common_issues json
+  created_at timestamptz
+  updated_at timestamptz
+  specifications json
+  pricing json
+  lifecycle json
+  urls json
+  metadata json
+  oem_manufacturer varchar
+  oem_relationship_type varchar
+  oem_notes text
+  article_code varchar
+}
+
+Table krai_core.public_products {
+  Note: 'Public view of products with non-sensitive information only'
+  id uuid
+  manufacturer_id uuid
+  series_id uuid
+  model_number varchar
+  model_name varchar
+  product_type varchar
+  launch_date date
+  print_technology varchar
+  max_print_speed_ppm int
+  max_resolution_dpi int
+  created_at timestamptz
+}
+
+Table krai_core.vw_documents_by_stage {
+  id uuid
+  filename varchar
+  processing_status varchar
+  current_stage text
+  progress_percentage decimal
+  upload_status text
+  text_extraction_status text
+  image_processing_status text
+  classification_status text
+  metadata_extraction_status text
+  storage_status text
+  embedding_status text
+  search_indexing_status text
+  created_at timestamptz
+  updated_at timestamptz
+}
+
+Table krai_core.vw_stage_statistics {
+  stage_name text
+  pending_count bigint
+  processing_count bigint
+  completed_count bigint
+  failed_count bigint
+  skipped_count bigint
+  avg_duration_seconds decimal
+}
+
+TableGroup krai_intelligence {
+  krai_intelligence.chunks
+  krai_intelligence.error_codes
+  krai_intelligence.manufacturer_verification_cache
+  krai_intelligence.search_analytics
+  krai_intelligence.structured_tables
+  krai_intelligence.unified_embeddings
+}
+
+Table krai_intelligence.chunks {
+  id uuid [pk]
+  document_id uuid [not null]
+  text_chunk text [not null] [note: 'NICHT chunk_text — use text_chunk']
+  chunk_index int [not null]
+  page_start int
+  page_end int
+  processing_status varchar
+  fingerprint varchar [not null]
+  metadata json
+  created_at timestamptz
+  updated_at timestamptz
+  embedding varchar [note: 'vector(768)']
+}
+
+Table krai_intelligence.error_codes {
+  id uuid [pk]
+  chunk_id uuid
+  document_id uuid
+  manufacturer_id uuid
+  error_code varchar [not null]
+  error_description text
+  page_number int
+  confidence_score decimal
+  extraction_method varchar
+  requires_parts boolean
+  estimated_fix_time_minutes int
+  severity_level varchar
+  created_at timestamptz
+  parent_code varchar
+  is_category boolean
+  solution_customer_text text
+  solution_agent_text text
+  solution_technician_text text [note: 'NICHT solution_text — use solution_technician_text']
+  product_ids text
+}
+
+Table krai_intelligence.manufacturer_verification_cache {
+  Note: 'Cache for web-based manufacturer verification results from Firecrawl searches'
+  id uuid [pk]
+  verification_type varchar [not null]
+  cache_key varchar [not null]
+  manufacturer varchar
+  model_number varchar
+  verification_data json [not null]
+  confidence double
+  source_url text
+  cached_at timestamptz
+  cache_valid_until timestamptz
+  created_at timestamptz
+  updated_at timestamptz
+}
+
+Table krai_intelligence.search_analytics {
+  id uuid [pk]
+  search_query text [not null]
+  search_type varchar
+  results_count int
+  click_through_rate decimal
+  user_satisfaction_rating int
+  search_duration_ms int
+  result_relevance_scores json
+  user_session_id varchar
+  user_id uuid
+  manufacturer_filter uuid
+  product_filter uuid
+  document_type_filter varchar
+  language_filter varchar
+  created_at timestamptz
+}
+
+Table krai_intelligence.structured_tables {
+  id uuid [pk]
+  document_id uuid [not null]
+  chunk_id uuid
+  page_number int
+  table_index int
+  table_data json [not null]
+  table_markdown text
+  column_headers text
+  row_count int
+  column_count int
+  table_embedding varchar [note: 'vector(768)']
+  context_embedding varchar [note: 'vector(768)']
+  column_embeddings json
+  metadata json
+  created_at timestamptz
+  updated_at timestamptz
+  table_type varchar
+  caption text
+  context_text text
+  bbox json
+}
+
+Table krai_intelligence.unified_embeddings {
+  id uuid [pk]
+  source_id uuid [not null]
+  source_type varchar [not null]
+  embedding varchar [not null] [note: 'vector(768)']
+  model_name varchar [not null]
+  embedding_context text
+  metadata json
+  created_at timestamptz
+}
+
+TableGroup krai_parts {
+  krai_parts.inventory_levels
+  krai_parts.parts_catalog
+}
+
+Table krai_parts.inventory_levels {
+  id uuid [pk]
+  part_id uuid [not null]
+  warehouse_location varchar
+  current_stock int
+  minimum_stock_level int
+  maximum_stock_level int
+  last_updated timestamptz
+}
+
+Table krai_parts.parts_catalog {
+  id uuid [pk]
+  manufacturer_id uuid [not null]
+  part_number varchar [not null]
+  part_name varchar
+  part_description text
+  part_category varchar
+  unit_price_usd decimal
+  created_at timestamptz
+  product_id uuid
+}
+
+TableGroup krai_pm {
+  krai_pm.device_lifecycle
+  krai_pm.entity_mapping
+  krai_pm.part_lifetimes
+  krai_pm.part_warranty_events
+  krai_pm.predictions
+  krai_pm.service_routes
+  krai_pm.service_tickets
+  krai_pm.vw_daily_routes
+  krai_pm.vw_service_efficiency
+  krai_pm.vw_warranty_analysis
+  krai_pm.vw_warranty_analysis_detailed
+}
+
+Table krai_pm.device_lifecycle {
+  Note: 'Device counter readings and maintenance events from Docuform, pseudonymized.'
+  id uuid [pk]
+  device_serial_hash varchar [not null]
+  product_id uuid
+  counter_total bigint
+  counter_color bigint
+  counter_bw bigint
+  measured_at timestamptz [not null]
+  toner_levels json
+  maintenance_events json
+  metadata json
+  ingested_at timestamptz
+  radix_device_id varchar
+  radix_system_id varchar
+}
+
+Table krai_pm.entity_mapping {
+  Note: 'Pseudonymization mapping â€“ access restricted.'
+  id uuid [pk]
+  entity_type varchar [not null]
+  raw_value text [not null]
+  hash_value varchar [not null]
+  created_at timestamptz
+}
+
+Table krai_pm.part_lifetimes {
+  Note: 'OEM nominal lifetimes for consumables per manufacturer/product/part.'
+  id uuid [pk]
+  manufacturer_id uuid [not null]
+  product_id uuid
+  part_category varchar [not null]
+  part_number varchar
+  nominal_lifetime_pages int
+  color_channel varchar
+  source varchar [not null]
+  metadata json
+  ingested_at timestamptz
+  radix_part_id varchar
+  part_number_variants text
+  manufacturer_part_code varchar
+}
+
+Table krai_pm.part_warranty_events {
+  id int [pk]
+  ticket_id varchar
+  manufacturer_id uuid
+  part_category varchar [not null]
+  part_number varchar
+  failure_date timestamp [not null]
+  warranty_expiry_date timestamp
+  is_in_warranty boolean
+  nominal_lifetime_pages int
+  actual_runtime_pages int
+  mismatch_ratio decimal
+  estimated_repair_cost_eur decimal
+  warranty_status varchar
+  metadata json
+  created_at timestamp
+  radix_device_id varchar
+  radix_part_id varchar
+  device_serial varchar
+}
+
+Table krai_pm.predictions {
+  Note: 'Model outputs for predictive maintenance.'
+  id uuid [pk]
+  device_serial_hash varchar
+  prediction_type varchar [not null]
+  target_part_category varchar
+  predicted_event_date date
+  predicted_remaining_pages int
+  risk_score double
+  confidence double
+  model_name varchar [not null]
+  model_version varchar [not null]
+  mlflow_run_id varchar
+  created_at timestamptz
+  ground_truth_event_date date
+  ground_truth_set_at timestamptz
+  metadata json
+}
+
+Table krai_pm.service_routes {
+  id int [pk]
+  activity_id varchar [not null]
+  route_sequence int
+  employee_id varchar
+  employee_name varchar
+  from_address text
+  to_address text
+  departure_time timestamp
+  arrival_time timestamp
+  duration_minutes int
+  distance_km decimal
+  route_calculation_method varchar
+  metadata json
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table krai_pm.service_tickets {
+  Note: 'Harmonized service tickets from multiple sources.'
+  id varchar [pk]
+  source_system varchar [not null]
+  source_ticket_id varchar [not null]
+  manufacturer_id uuid
+  product_id uuid
+  model_string_raw text
+  created_at_source timestamptz
+  problem_short text
+  problem_long text
+  solution_text text
+  error_codes text
+  replaced_parts text
+  replaced_part_categories text
+  repair_time_minutes int
+  ticket_embedding varchar [note: 'vector(768)']
+  metadata json
+  ingested_at timestamptz
+  device_id varchar
+  device_serial_number varchar
+  device_model varchar
+  customer_id varchar
+  customer_name varchar
+  customer_address text
+  service_location_address text
+  employee_id varchar
+  employee_name varchar
+  device_runtime_hours int
+  toner_level int
+  total_travel_time_minutes int
+  total_travel_distance_km decimal
+  scheduled_date timestamp
+  completed_date timestamp
+  activity_state varchar
+  radix_device_id varchar
+  device_serial varchar
+  part_numbers text
+}
+
+Table krai_pm.vw_daily_routes {
+  service_date date
+  employee_id varchar
+  employee_name varchar
+  stop_count bigint
+  total_travel_minutes bigint
+  total_distance_km decimal
+}
+
+Table krai_pm.vw_service_efficiency {
+  id varchar
+  device_id varchar
+  customer_name varchar
+  employee_name varchar
+  problem_short text
+  repair_time_minutes int
+  total_travel_time_minutes int
+  total_service_time_minutes int
+  completed_date timestamp
+  activity_state varchar
+}
+
+Table krai_pm.vw_warranty_analysis {
+  manufacturer_name varchar
+  part_category varchar
+  total_replacements bigint
+  warranty_eligible_count bigint
+  warranty_rate_pct decimal
+  avg_nominal_lifetime int
+  avg_actual_runtime int
+  avg_mismatch_ratio decimal
+  total_repair_cost_eur decimal
+}
+
+Table krai_pm.vw_warranty_analysis_detailed {
+  Note: 'Warranty analysis with device and part IDs for complete traceability to source systems'
+  manufacturer_name varchar
+  part_category varchar
+  radix_device_id varchar
+  radix_part_id varchar
+  total_replacements bigint
+  warranty_eligible_count bigint
+  warranty_rate_pct decimal
+  avg_nominal_lifetime int
+  avg_actual_runtime int
+  avg_mismatch_ratio decimal
+  total_repair_cost_eur decimal
+  affected_device_serials text
+}
+
+TableGroup krai_system {
+  krai_system.alert_configurations
+  krai_system.alert_queue
+  krai_system.alerts
+  krai_system.audit_log
+  krai_system.benchmark_documents
+  krai_system.crawled_pages
+  krai_system.health_checks
+  krai_system.link_scraping_jobs
+  krai_system.manufacturer_crawl_jobs
+  krai_system.manufacturer_crawl_schedules
+  krai_system.migrations
+  krai_system.performance_baselines
+  krai_system.pipeline_errors
+  krai_system.processing_queue
+  krai_system.prompt_templates
+  krai_system.retry_policies
+  krai_system.stage_completion_markers
+  krai_system.stage_metrics
+  krai_system.stage_tracking
+  krai_system.system_metrics
+}
+
+Table krai_system.alert_configurations {
+  Note: 'Stores alert rules and recipients configured via Dashboard'
+  id uuid [pk]
+  rule_name varchar [not null]
+  description text
+  is_enabled boolean [not null]
+  error_types text
+  stages text
+  severity_threshold varchar [not null]
+  error_count_threshold int [not null]
+  time_window_minutes int [not null]
+  aggregation_window_minutes int [not null]
+  email_recipients text
+  slack_webhooks text
+  created_by uuid
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table krai_system.alert_queue {
+  id uuid
+  alert_type varchar
+  severity varchar
+  message text
+  details json
+  source_service varchar
+  correlation_id varchar
+  aggregation_key varchar
+  aggregation_count int
+  first_occurrence timestamp
+  last_occurrence timestamp
+  status varchar
+  sent_at timestamp
+  created_at timestamp
+}
+
+Table krai_system.alerts {
+  Note: 'Alert queue for aggregation; recipients/webhooks metadata in alert_configurations'
+  id uuid [pk]
+  alert_type varchar [not null]
+  severity varchar [not null]
+  message text [not null]
+  details json
+  source_service varchar
+  correlation_id varchar
+  aggregation_key varchar
+  aggregation_count int [not null]
+  first_occurrence timestamp [not null]
+  last_occurrence timestamp [not null]
+  status varchar [not null]
+  sent_at timestamp
+  created_at timestamp [not null]
+}
+
+Table krai_system.audit_log {
+  id uuid [pk]
+  table_name varchar [not null]
+  record_id uuid [not null]
+  operation varchar [not null]
+  old_values json
+  new_values json
+  changed_by varchar
+  changed_at timestamptz
+  session_id varchar
+  ip_address text
+  user_agent text
+}
+
+Table krai_system.benchmark_documents {
+  Note: 'Stores selected benchmark documents for performance testing and baseline measurements'
+  id uuid [pk]
+  document_id uuid [not null]
+  snapshot_id varchar [not null]
+  file_size bigint
+  selected_at timestamptz
+  metadata json
+}
+
+Table krai_system.crawled_pages {
+  id uuid [pk]
+  crawl_job_id uuid
+  url text [not null]
+  content_hash text
+  content_text text
+  metadata json
+  crawled_at timestamptz
+}
+
+Table krai_system.health_checks {
+  id uuid [pk]
+  service_name varchar [not null]
+  check_type varchar [not null]
+  status varchar [not null]
+  response_time_ms int
+  error_message text
+  details json
+  checked_at timestamptz
+}
+
+Table krai_system.link_scraping_jobs {
+  Note: 'Web scraping jobs for enriching links with actual content'
+  id uuid [pk]
+  url text [not null]
+  manufacturer_id uuid
+  document_id uuid
+  source_link_id uuid
+  scrape_status varchar [not null]
+  scrape_priority int
+  retry_count int
+  scraped_content text
+  content_hash varchar
+  content_type varchar
+  scraped_metadata json
+  scrape_error text
+  created_at timestamptz
+  scraped_at timestamptz
+  updated_at timestamptz
+  next_retry_at timestamptz
+}
+
+Table krai_system.manufacturer_crawl_jobs {
+  id uuid [pk]
+  schedule_id uuid
+  manufacturer_id text [not null]
+  status text
+  pages_crawled int
+  started_at timestamptz
+  completed_at timestamptz
+  error_message text
+  created_at timestamptz
+}
+
+Table krai_system.manufacturer_crawl_schedules {
+  id uuid [pk]
+  manufacturer_id text [not null]
+  crawl_type text [not null]
+  start_url text [not null]
+  max_pages int
+  max_depth int
+  schedule_cron text
+  next_run timestamptz
+  enabled boolean
+  created_at timestamptz
+  updated_at timestamptz
+  url_patterns text
+  exclude_patterns text
+  crawl_options json
+  next_run_at timestamptz
+  last_run_at timestamptz
+}
+
+Table krai_system.migrations {
+  migration_name varchar [pk]
+  applied_at timestamptz
+  description text
+}
+
+Table krai_system.performance_baselines {
+  Note: 'Stores performance baselines and measurements'
+  id uuid [pk]
+  stage_name varchar [not null]
+  baseline_avg_seconds decimal [not null]
+  baseline_p50_seconds decimal [not null]
+  baseline_p95_seconds decimal [not null]
+  baseline_p99_seconds decimal [not null]
+  current_avg_seconds decimal
+  current_p50_seconds decimal
+  current_p95_seconds decimal
+  current_p99_seconds decimal
+  improvement_percentage decimal
+  test_document_ids text
+  measurement_date timestamp [not null]
+  notes text
+  created_at timestamp [not null]
+}
+
+Table krai_system.pipeline_errors {
+  Note: 'Primary table for error tracking and Dashboard queries'
+  id uuid [pk]
+  correlation_id varchar [not null]
+  stage_name varchar [not null]
+  error_type varchar [not null]
+  error_message text [not null]
+  error_details json
+  document_id uuid
+  file_path text
+  metadata json
+  severity varchar
+  is_resolved boolean
+  resolved_by varchar
+  resolved_at timestamptz
+  resolution_notes text
+  created_at timestamptz
+  updated_at timestamptz
+  error_id varchar [not null]
+  error_category varchar
+  stack_trace text
+  context json
+  retry_count int [not null]
+  max_retries int [not null]
+  status varchar [not null]
+  is_transient boolean [not null]
+  next_retry_at timestamp
+}
+
+Table krai_system.processing_queue {
+  id uuid [pk]
+  document_id uuid
+  chunk_id uuid
+  image_id uuid
+  video_id uuid
+  task_type varchar [not null]
+  priority int
+  status varchar
+  scheduled_at timestamptz
+  started_at timestamptz
+  completed_at timestamptz
+  error_message text
+  retry_count int
+  max_retries int
+  created_at timestamptz
+  stage varchar [not null]
+  payload json
+  updated_at timestamptz
+}
+
+Table krai_system.prompt_templates {
+  id int [pk]
+  title varchar [not null]
+  description varchar
+  prompt_text text [not null]
+  category varchar [not null]
+  icon varchar
+  sort_order int [not null]
+  is_active boolean [not null]
+  created_at timestamptz
+  updated_at timestamptz
+}
+
+Table krai_system.retry_policies {
+  Note: 'Configurable retry policies per service/stage'
+  id uuid [pk]
+  policy_name varchar [not null]
+  service_name varchar [not null]
+  stage_name varchar
+  max_retries int [not null]
+  base_delay_seconds decimal [not null]
+  max_delay_seconds decimal [not null]
+  exponential_base decimal [not null]
+  jitter_enabled boolean [not null]
+  circuit_breaker_enabled boolean [not null]
+  circuit_breaker_threshold int [not null]
+  circuit_breaker_timeout_seconds int [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table krai_system.stage_completion_markers {
+  Note: 'Tracks stage completion with data hashing for idempotency checks'
+  document_id uuid [pk]
+  stage_name varchar [pk]
+  completed_at timestamptz
+  data_hash varchar
+  metadata json
+}
+
+Table krai_system.stage_metrics {
+  Note: 'Real-time stage processing metrics for each document'
+  id uuid [pk]
+  document_id uuid [not null]
+  stage_name varchar [not null]
+  processing_time decimal [not null]
+  success boolean [not null]
+  error_message text
+  correlation_id varchar
+  created_at timestamp [not null]
+}
+
+Table krai_system.stage_tracking {
+  Note: 'Tracks pipeline stage execution per document'
+  id uuid [pk]
+  document_id uuid [not null]
+  stage_number int [not null]
+  stage_name varchar [not null]
+  status varchar [not null]
+  started_at timestamptz
+  completed_at timestamptz
+  error_message text
+  metadata json
+  created_at timestamptz
+  updated_at timestamptz
+}
+
+Table krai_system.system_metrics {
+  id uuid [pk]
+  metric_name varchar [not null]
+  metric_value decimal
+  metric_unit varchar
+  metric_category varchar
+  collection_timestamp timestamptz
+  server_instance varchar
+  additional_context json
+}
+
+TableGroup krai_users {
+  krai_users.chat_messages
+  krai_users.chat_sessions
+  krai_users.token_blacklist
+  krai_users.user_sessions
+  krai_users.users
+}
+
+Table krai_users.chat_messages {
+  id bigint [pk]
+  session_id uuid [not null]
+  role varchar [not null]
+  content text [not null]
+  created_at timestamptz
+}
+
+Table krai_users.chat_sessions {
+  id uuid [pk]
+  user_id uuid
+  session_key varchar [not null]
+  title varchar
+  created_at timestamptz
+  updated_at timestamptz
+  last_active timestamptz
+}
+
+Table krai_users.token_blacklist {
+  id uuid [pk]
+  jti varchar [not null]
+  user_id uuid [not null]
+  token_type varchar [not null]
+  expires_at timestamptz [not null]
+  blacklisted_at timestamptz [not null]
+  reason varchar
+}
+
+Table krai_users.user_sessions {
+  id uuid [pk]
+  user_id uuid [not null]
+  session_token varchar [not null]
+  expires_at timestamptz [not null]
+  created_at timestamptz
+}
+
+Table krai_users.users {
+  id uuid [pk]
+  preferred_manufacturer_id uuid
+  username varchar [not null]
+  email varchar [not null]
+  role varchar
+  created_at timestamptz
+  password_hash varchar
+  first_name varchar
+  last_name varchar
+  is_active boolean
+  last_login timestamptz
+  status varchar
+  is_verified boolean
+  login_count int
+  failed_login_attempts int
+  updated_at timestamptz
+  locked_until timestamptz
+  permissions json
+}
+
+TableGroup public {
+  public.vw_device_lifecycle
+  public.vw_part_lifetimes
+  public.vw_predictions
+}
+
+Table public.vw_device_lifecycle {
+  id uuid
+  device_serial_hash varchar
+  product_id uuid
+  counter_total bigint
+  counter_color bigint
+  counter_bw bigint
+  measured_at timestamptz
+  toner_levels json
+  maintenance_events json
+  metadata json
+  ingested_at timestamptz
+}
+
+Table public.vw_part_lifetimes {
+  id uuid
+  manufacturer_id uuid
+  product_id uuid
+  part_category varchar
+  part_number varchar
+  nominal_lifetime_pages int
+  color_channel varchar
+  source varchar
+  metadata json
+  ingested_at timestamptz
+}
+
+Table public.vw_predictions {
+  id uuid
+  device_serial_hash varchar
+  prediction_type varchar
+  target_part_category varchar
+  predicted_event_date date
+  predicted_remaining_pages int
+  risk_score double
+  confidence double
+  model_name varchar
+  model_version varchar
+  mlflow_run_id varchar
+  created_at timestamptz
+  ground_truth_event_date date
+  ground_truth_set_at timestamptz
+}
+
+// Foreign keys
+Ref: krai_content.images.document_id > krai_core.documents.id
+Ref: krai_content.instructional_videos.manufacturer_id > krai_core.manufacturers.id
+Ref: krai_content.links.document_id > krai_core.documents.id
+Ref: krai_content.print_defects.manufacturer_id > krai_core.manufacturers.id
+Ref: krai_content.print_defects.original_image_id > krai_content.images.id
+Ref: krai_content.print_defects.product_id > krai_core.products.id
+Ref: krai_content.videos.product_id > krai_core.products.id
+Ref: krai_core.document_products.document_id > krai_core.documents.id
+Ref: krai_core.document_products.product_id > krai_core.products.id
+Ref: krai_core.document_relationships.primary_document_id > krai_core.documents.id
+Ref: krai_core.document_relationships.secondary_document_id > krai_core.documents.id
+Ref: krai_core.documents.manufacturer_id > krai_core.manufacturers.id
+Ref: krai_core.documents.product_id > krai_core.products.id
+Ref: krai_core.product_accessories.accessory_id > krai_core.products.id
+Ref: krai_core.product_accessories.product_id > krai_core.products.id
+Ref: krai_core.product_series.manufacturer_id > krai_core.manufacturers.id
+Ref: krai_core.product_series.successor_series_id > krai_core.product_series.id
+Ref: krai_core.products.manufacturer_id > krai_core.manufacturers.id
+Ref: krai_core.products.parent_id > krai_core.products.id
+Ref: krai_core.products.series_id > krai_core.product_series.id
+Ref: krai_intelligence.chunks.document_id > krai_core.documents.id
+Ref: krai_intelligence.error_codes.chunk_id > krai_intelligence.chunks.id
+Ref: krai_intelligence.error_codes.document_id > krai_core.documents.id
+Ref: krai_intelligence.error_codes.manufacturer_id > krai_core.manufacturers.id
+Ref: krai_intelligence.search_analytics.manufacturer_filter > krai_core.manufacturers.id
+Ref: krai_intelligence.search_analytics.product_filter > krai_core.products.id
+Ref: krai_intelligence.structured_tables.chunk_id > krai_intelligence.chunks.id
+Ref: krai_intelligence.structured_tables.document_id > krai_core.documents.id
+Ref: krai_parts.inventory_levels.part_id > krai_parts.parts_catalog.id
+Ref: krai_parts.parts_catalog.manufacturer_id > krai_core.manufacturers.id
+Ref: krai_pm.device_lifecycle.product_id > krai_core.products.id
+Ref: krai_pm.part_lifetimes.manufacturer_id > krai_core.manufacturers.id
+Ref: krai_pm.part_lifetimes.product_id > krai_core.products.id
+Ref: krai_pm.part_warranty_events.manufacturer_id > krai_core.manufacturers.id
+Ref: krai_pm.part_warranty_events.ticket_id > krai_pm.service_tickets.id
+Ref: krai_pm.service_routes.activity_id > krai_pm.service_tickets.id
+Ref: krai_pm.service_tickets.manufacturer_id > krai_core.manufacturers.id
+Ref: krai_pm.service_tickets.product_id > krai_core.products.id
+Ref: krai_system.benchmark_documents.document_id > krai_core.documents.id
+Ref: krai_system.crawled_pages.crawl_job_id > krai_system.manufacturer_crawl_jobs.id
+Ref: krai_system.link_scraping_jobs.document_id > krai_core.documents.id
+Ref: krai_system.link_scraping_jobs.manufacturer_id > krai_core.manufacturers.id
+Ref: krai_system.link_scraping_jobs.source_link_id > krai_content.links.id
+Ref: krai_system.manufacturer_crawl_jobs.schedule_id > krai_system.manufacturer_crawl_schedules.id
+Ref: krai_system.processing_queue.chunk_id > krai_intelligence.chunks.id
+Ref: krai_system.processing_queue.document_id > krai_core.documents.id
+Ref: krai_system.processing_queue.image_id > krai_content.images.id
+Ref: krai_system.processing_queue.video_id > krai_content.instructional_videos.id
+Ref: krai_system.stage_metrics.document_id > krai_core.documents.id
+Ref: krai_system.stage_tracking.document_id > krai_core.documents.id
+Ref: krai_users.chat_messages.session_id > krai_users.chat_sessions.id
+Ref: krai_users.chat_sessions.user_id > krai_users.users.id
+Ref: krai_users.user_sessions.user_id > krai_users.users.id
+Ref: krai_users.users.preferred_manufacturer_id > krai_core.manufacturers.id

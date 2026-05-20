@@ -36,9 +36,9 @@ async def test_connection():
         print(f"✅ Found {result} images in krai_content.images")
 
         # Test cross-schema query (chunks)
-        print("\n📊 Testing cross-schema query (krai_content.chunks)...")
-        result = await conn.fetchval("SELECT COUNT(*) FROM krai_content.chunks")
-        print(f"✅ Found {result} chunks in krai_content.chunks")
+        print("\n📊 Testing cross-schema query (krai_intelligence.chunks)...")
+        result = await conn.fetchval("SELECT COUNT(*) FROM krai_intelligence.chunks")
+        print(f"✅ Found {result} chunks in krai_intelligence.chunks")
 
         # Test image deduplication query
         print("\n🔍 Testing image deduplication query...")

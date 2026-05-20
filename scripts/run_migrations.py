@@ -61,7 +61,11 @@ def first_comment(path: Path) -> str:
 
 
 def split_statements(sql: str) -> list[str]:
-    """Split SQL into statements on top-level semicolons (ignoring those in parens)."""
+    """Split SQL into statements on top-level semicolons (ignoring those in parens).
+
+    Strips ``--`` line comments first so semicolons inside comments don't split.
+    """
+    sql = "\n".join(line.split("--", 1)[0] for line in sql.splitlines())
     statements, current, depth = [], [], 0
     for c in sql:
         if c == "(":

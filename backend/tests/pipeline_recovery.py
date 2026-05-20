@@ -71,9 +71,9 @@ class PipelineRecovery:
                 d.created_at,
                 COUNT(c.id) as chunk_count
             FROM krai_core.documents d
-            LEFT JOIN krai_content.chunks c ON d.id = c.document_id
+            LEFT JOIN krai_intelligence.chunks c ON d.id = c.document_id
             WHERE d.manufacturer IS NULL AND d.id IN (
-                SELECT DISTINCT document_id FROM krai_content.chunks
+                SELECT DISTINCT document_id FROM krai_intelligence.chunks
             )
             GROUP BY d.id, d.filename, d.file_path, d.created_at
             ORDER BY d.created_at ASC

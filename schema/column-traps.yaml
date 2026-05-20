@@ -1,0 +1,83 @@
+# Bekannte Spalten-/Query-Fallen (manuell gepflegt, in Docs injiziert).
+# Die Tabellenstruktur kommt aus der Live-DB via scripts/generate_schema_docs.py
+
+traps:
+  - wrong: chunk_text
+    correct: text_chunk
+    table: krai_intelligence.chunks
+    description: Text-Inhalt der Chunks
+
+  - wrong: enrichment_error
+    correct: "metadata->>'enrichment_error'"
+    table: krai_content.videos
+    description: Keine eigene Spalte — Wert liegt in JSONB metadata
+
+  - wrong: tags
+    correct: "metadata->>'tags'"
+    table: krai_content.videos
+    description: Keine eigene Spalte — Wert liegt in JSONB metadata
+
+  - wrong: solution_text
+    correct: solution_technician_text
+    table: krai_intelligence.error_codes
+    description: Seit Migration 025 in drei solution_* Spalten aufgeteilt
+
+  - wrong: requires_technician
+    correct: "(entfernt)"
+    table: krai_intelligence.error_codes
+    description: Spalte existiert nicht mehr
+
+  - wrong: Error-Code Großbuchstaben
+    correct: error_code (Kleinbuchstaben)
+    table: krai_intelligence.error_codes
+    description: error_code immer lowercase speichern/abfragen
+
+notes:
+  embeddings:
+    table: krai_intelligence.chunks
+    column: embedding
+    type: "vector(768)"
+    detail: "Kein separates krai_embeddings Schema. Embeddings nur in dieser Tabelle."
+
+  views:
+    prefix: vw_
+    schema: public
+    active_views:
+      - vw_device_lifecycle
+      - vw_part_lifetimes
+      - vw_predictions
+    warning: "Embeddings liegen in krai_intelligence.chunks.embedding — nicht in Views suchen."
+
+pipeline_stages:
+  - stage: UPLOAD
+    target: krai_core.documents
+  - stage: TEXT_EXTRACTION
+    target: krai_intelligence.chunks
+  - stage: IMAGE_PROCESSING
+    target: krai_content.images
+  - stage: CLASSIFICATION
+    target: "krai_core.products, krai_core.manufacturers"
+  - stage: METADATA_EXTRACTION
+    target: krai_intelligence.error_codes
+  - stage: PARTS_EXTRACTION
+    target: krai_parts.parts_catalog
+  - stage: STORAGE
+    target: MinIO (nicht in DB)
+  - stage: EMBEDDING
+    target: krai_intelligence.chunks.embedding
+  - stage: SEARCH_INDEXING
+    target: krai_analytics.search_analytics
+
+schema_purposes:
+  krai_core: "Business-Entitäten — documents, products, manufacturers, series"
+  krai_intelligence: "AI/ML — chunks, embeddings, error_codes, solutions"
+  krai_content: "Media — images, videos, links, print_defects"
+  krai_system: "Pipeline, Queue, Alerts, Metrics, Migrations, Stage-Tracking"
+  krai_parts: "Ersatzteile — parts_catalog, accessories"
+  krai_users: "Benutzer und Sessions"
+  krai_analytics: "Such- und Nutzungsanalysen"
+  krai_config: "Konfiguration und Feature-Flags"
+  krai_pm: "Project Management (eigenes Schema)"
+  krai_integrations: "Externe Integrationen"
+  krai_ml: "ML-Modelle und Training"
+  krai_service: "Service-/Support-Entitäten"
