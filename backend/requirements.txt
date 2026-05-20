@@ -46,11 +46,18 @@ langdetect>=1.0.9  # Document language detection
 # ================================
 # AI & MACHINE LEARNING
 # ================================
-sentence-transformers>=2.2.0
-transformers>=4.45.0  # ColQwen2.5 / colpali-engine (needs Python 3.11 final via deadsnakes; rc1 lacks sys.get_int_max_str_digits)
-torch>=2.2.0
-torchvision>=0.17.0
-numpy>=1.24.0
+# Pinned to the proven-working set (from the prior working image, see
+# backups/working_pip_freeze.txt). A fresh unpinned resolve pulled a newer
+# transitive dep that broke `transformers` import on the base Python.
+sentence-transformers==5.3.0
+transformers==4.47.1
+tokenizers==0.21.4
+huggingface_hub==0.36.2
+safetensors==0.7.0
+accelerate==1.13.0
+torch==2.11.0
+torchvision==0.26.0
+numpy==2.4.3
 scikit-learn>=1.3.0
 xgboost>=2.0.0  # Gradient boosting for PM long-tail classification
 lightgbm>=4.3.0  # Alternative GBDT framework
@@ -60,7 +67,7 @@ langchain-community>=0.4.0,<2.0.0
 langchain-core>=1.0.0,<2.0.0
 langgraph>=1.0.0,<2.0.0
 # Visual Document Embeddings (ColQwen2.5)
-colpali-engine>=0.3.7  # ColQwen2.5 for visual document retrieval
+colpali-engine==0.3.8  # ColQwen2.5 for visual document retrieval (pinned to working set)
 pdf2image>=1.17.0  # PDF to PIL Image conversion (optional for ColQwen)
 
 # CUDA SUPPORT NOTE:
