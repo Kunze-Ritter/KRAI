@@ -1,0 +1,116 @@
+-- Drop existing tables
+DROP TABLE IF EXISTS nuq.queue_scrape CASCADE;
+DROP TABLE IF EXISTS nuq.queue_crawl CASCADE;
+DROP TABLE IF EXISTS nuq.queue_map CASCADE;
+
+-- Create queue_scrape with VARCHAR id for UUID support
+CREATE TABLE nuq.queue_scrape (
+    id VARCHAR(255) PRIMARY KEY,
+    job_id UUID NOT NULL UNIQUE,
+    team_id VARCHAR(255) NOT NULL,
+    url TEXT NOT NULL,
+    scrape_options JSONB DEFAULT '{}'::jsonb,
+    formats JSONB DEFAULT '["markdown"]'::jsonb,
+    status VARCHAR(50) DEFAULT 'pending',
+    priority INTEGER DEFAULT 0,
+    retry_count INTEGER DEFAULT 0,
+    max_retries INTEGER DEFAULT 3,
+    error_message TEXT,
+    result JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    started_at TIMESTAMP WITH TIME ZONE,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    metadata JSONB DEFAULT '{}'::jsonb,
+    data JSONB DEFAULT '{}'::jsonb,
+    listen_channel_id VARCHAR(255),
+    owner_id VARCHAR(255),
+    group_id VARCHAR(255),
+    finished_at TIMESTAMP WITH TIME ZONE,
+    returnvalue JSONB,
+    failedreason TEXT,
+    lock VARCHAR(255),
+    attemptsmade INTEGER DEFAULT 0,
+    processedOn BIGINT,
+    delay INTEGER DEFAULT 0,
+    timestamp BIGINT,
+    name VARCHAR(255),
+    stacktrace TEXT[],
+    opts JSONB DEFAULT '{}'::jsonb
+);
+
+-- Create queue_crawl
+CREATE TABLE nuq.queue_crawl (
+    id VARCHAR(255) PRIMARY KEY,
+    job_id UUID NOT NULL UNIQUE,
+    team_id VARCHAR(255) NOT NULL,
+    url TEXT NOT NULL,
+    crawl_options JSONB DEFAULT '{}'::jsonb,
+    status VARCHAR(50) DEFAULT 'pending',
+    priority INTEGER DEFAULT 0,
+    retry_count INTEGER DEFAULT 0,
+    max_retries INTEGER DEFAULT 3,
+    error_message TEXT,
+    result JSONB,
+    pages_scraped INTEGER DEFAULT 0,
+    pages_total INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    started_at TIMESTAMP WITH TIME ZONE,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    metadata JSONB DEFAULT '{}'::jsonb,
+    data JSONB DEFAULT '{}'::jsonb,
+    listen_channel_id VARCHAR(255),
+    owner_id VARCHAR(255),
+    group_id VARCHAR(255),
+    finished_at TIMESTAMP WITH TIME ZONE,
+    returnvalue JSONB,
+    failedreason TEXT,
+    lock VARCHAR(255),
+    attemptsmade INTEGER DEFAULT 0,
+    processedOn BIGINT,
+    delay INTEGER DEFAULT 0,
+    timestamp BIGINT,
+    name VARCHAR(255),
+    stacktrace TEXT[],
+    opts JSONB DEFAULT '{}'::jsonb
+);
+
+-- Create queue_map
+CREATE TABLE nuq.queue_map (
+    id VARCHAR(255) PRIMARY KEY,
+    job_id UUID NOT NULL UNIQUE,
+    team_id VARCHAR(255) NOT NULL,
+    url TEXT NOT NULL,
+    map_options JSONB DEFAULT '{}'::jsonb,
+    status VARCHAR(50) DEFAULT 'pending',
+    priority INTEGER DEFAULT 0,
+    retry_count INTEGER DEFAULT 0,
+    max_retries INTEGER DEFAULT 3,
+    error_message TEXT,
+    result JSONB,
+    urls_found INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    started_at TIMESTAMP WITH TIME ZONE,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    metadata JSONB DEFAULT '{}'::jsonb,
+    data JSONB DEFAULT '{}'::jsonb,
+    listen_channel_id VARCHAR(255),
+    owner_id VARCHAR(255),
+    group_id VARCHAR(255),
+    finished_at TIMESTAMP WITH TIME ZONE,
+    returnvalue JSONB,
+    failedreason TEXT,
+    lock VARCHAR(255),
+    attemptsmade INTEGER DEFAULT 0,
+    processedOn BIGINT,
+    delay INTEGER DEFAULT 0,
+    timestamp BIGINT,
+    name VARCHAR(255),
+    stacktrace TEXT[],
+    opts JSONB DEFAULT '{}'::jsonb
+);
+
+-- Grant permissions
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA nuq TO krai_user;

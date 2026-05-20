@@ -67,6 +67,14 @@ state/
 *.sql
 *.dump
 
+# ...but migrations ARE version-controlled (they define the schema)
+!database/migrations_postgresql/
+!database/migrations_postgresql/*.sql
+!database/migrations/
+!database/migrations/*.sql
+!database/seeds/
+!database/seeds/*.sql
+
 # Node.js
 node_modules/
 npm-debug.log*
