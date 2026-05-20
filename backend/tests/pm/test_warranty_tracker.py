@@ -54,13 +54,13 @@ async def test_register_ticket_events_basic(tracker: WarrantyTracker, mock_db_ad
             return existing_check
         return None
 
-    mock_db_adapter.fetchrow = AsyncMock(side_effect=side_effect_query)
-    mock_db_adapter.execute = AsyncMock()
+    mock_db_adapter.fetch_one = AsyncMock(side_effect=side_effect_query)
+    mock_db_adapter.execute_query = AsyncMock()
 
     count = await tracker.register_ticket_events("TK-001")
 
     assert count == 2
-    assert mock_db_adapter.execute.call_count == 2
+    assert mock_db_adapter.execute_query.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -88,14 +88,14 @@ async def test_register_ticket_events_in_warranty(tracker: WarrantyTracker, mock
             return existing_check
         return None
 
-    mock_db_adapter.fetchrow = AsyncMock(side_effect=side_effect_query)
-    mock_db_adapter.execute = AsyncMock()
+    mock_db_adapter.fetch_one = AsyncMock(side_effect=side_effect_query)
+    mock_db_adapter.execute_query = AsyncMock()
 
     count = await tracker.register_ticket_events("TK-002", warranty_days=365)
 
     assert count == 1
-    call_args = mock_db_adapter.execute.call_args
-    warranty_expiry = call_args[0][5]
+    call_args = mock_db_adapter.execute_query.call_args
+    warranty_expiry = call_args[0][1][4]
     expected_expiry = completed_date + timedelta(days=365)
     assert warranty_expiry == expected_expiry
 
@@ -111,12 +111,12 @@ async def test_register_ticket_events_no_parts(tracker: WarrantyTracker, mock_db
         "replaced_part_categories": None,
     }
 
-    mock_db_adapter.fetchrow = AsyncMock(return_value=ticket_row)
+    mock_db_adapter.fetch_one = AsyncMock(return_value=ticket_row)
 
     count = await tracker.register_ticket_events("TK-003")
 
     assert count == 0
-    mock_db_adapter.execute.assert_not_called()
+    mock_db_adapter.execute_query.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -150,7 +150,7 @@ async def test_run_batch_registration_basic(tracker: WarrantyTracker, mock_db_ad
 
     async def fetchrow_side_effect(*args: object, **kwargs: object) -> object:
         if "service_tickets" in str(args):
-            ticket_id = args[1]
+            ticket_id = args[1][0]
             details = ticket_details.get(ticket_id)  # type: ignore
             if details:
                 return {"id": ticket_id, **details, "mfr_name": "Konica Minolta"}
@@ -161,9 +161,9 @@ async def test_run_batch_registration_basic(tracker: WarrantyTracker, mock_db_ad
             return None
         return None
 
-    mock_db_adapter.fetch = AsyncMock(return_value=tickets)
-    mock_db_adapter.fetchrow = AsyncMock(side_effect=fetchrow_side_effect)
-    mock_db_adapter.execute = AsyncMock()
+    mock_db_adapter.fetch_all = AsyncMock(return_value=tickets)
+    mock_db_adapter.fetch_one = AsyncMock(side_effect=fetchrow_side_effect)
+    mock_db_adapter.execute_query = AsyncMock()
 
     result = await tracker.run_batch_registration(limit=None)
 
@@ -192,7 +192,7 @@ async def test_run_batch_registration_idempotency(tracker: WarrantyTracker, mock
     async def fetchrow_side_effect(*args: object, **kwargs: object) -> object:
         nonlocal call_count
         if "service_tickets" in str(args):
-            ticket_id = args[1]
+            ticket_id = args[1][0]
             details = ticket_details.get(ticket_id)  # type: ignore
             if details:
                 return {"id": ticket_id, **details, "mfr_name": "Konica Minolta"}
@@ -206,9 +206,9 @@ async def test_run_batch_registration_idempotency(tracker: WarrantyTracker, mock
             return {"id": 1}
         return None
 
-    mock_db_adapter.fetch = AsyncMock(return_value=tickets)
-    mock_db_adapter.fetchrow = AsyncMock(side_effect=fetchrow_side_effect)
-    mock_db_adapter.execute = AsyncMock()
+    mock_db_adapter.fetch_all = AsyncMock(return_value=tickets)
+    mock_db_adapter.fetch_one = AsyncMock(side_effect=fetchrow_side_effect)
+    mock_db_adapter.execute_query = AsyncMock()
 
     result = await tracker.run_batch_registration(limit=None)
 
@@ -225,7 +225,7 @@ async def test_get_summary(tracker: WarrantyTracker, mock_db_adapter: MagicMock)
         "avg_warranty_rate_pct": 42.86,
     }
 
-    mock_db_adapter.fetchrow = AsyncMock(return_value=summary_row)
+    mock_db_adapter.fetch_one = AsyncMock(return_value=summary_row)
 
     summary = await tracker.get_summary()
 

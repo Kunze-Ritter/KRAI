@@ -896,7 +896,7 @@ class TestLinkEnrichmentRealE2E:
     @pytest.mark.asyncio
     async def test_real_link_enrichment_skip_already_enriched(self, real_link_enrichment_service, test_database):
         """Test that already enriched links are skipped without force_refresh."""
-        from conftest import create_test_link
+        from .conftest import create_test_link
 
         # Create link with success status
         test_url = "https://example.com"
@@ -928,7 +928,7 @@ class TestLinkEnrichmentRealE2E:
     @pytest.mark.asyncio
     async def test_real_link_enrichment_force_refresh(self, real_link_enrichment_service, test_database):
         """Test force refresh of already enriched links."""
-        from conftest import create_test_link
+        from .conftest import create_test_link
 
         # Create link with success status
         test_url = "https://example.com"
@@ -1020,7 +1020,7 @@ class TestLinkEnrichmentBatchProcessing:
     @pytest.mark.asyncio
     async def test_real_batch_enrichment_mixed_status(self, real_link_enrichment_service, test_database):
         """Test batch enrichment with mixed link statuses."""
-        from conftest import create_test_link
+        from .conftest import create_test_link
 
         # Create links with different statuses
         pending_link = await create_test_link(test_database, "https://example.com")
@@ -1112,7 +1112,7 @@ class TestLinkEnrichmentBatchProcessing:
     @pytest.mark.asyncio
     async def test_real_batch_enrichment_force_refresh_batch(self, real_link_enrichment_service, test_database):
         """Test batch enrichment with force_refresh on already enriched links."""
-        from conftest import create_test_link
+        from .conftest import create_test_link
 
         # Create already enriched links
         link_ids = []

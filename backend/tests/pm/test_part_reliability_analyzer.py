@@ -27,7 +27,7 @@ def analyzer(mock_db_adapter: MagicMock) -> PartReliabilityAnalyzer:
 @pytest.mark.asyncio
 async def test_analyze_by_manufacturer_basic(analyzer: PartReliabilityAnalyzer, mock_db_adapter: MagicMock) -> None:
     """Test basic manufacturer analysis with one part category."""
-    mock_db_adapter.fetch = AsyncMock(
+    mock_db_adapter.fetch_all = AsyncMock(
         return_value=[
             {
                 "manufacturer_name": "Konica Minolta",
@@ -57,7 +57,7 @@ async def test_analyze_by_manufacturer_basic(analyzer: PartReliabilityAnalyzer, 
 @pytest.mark.asyncio
 async def test_analyze_by_manufacturer_no_data(analyzer: PartReliabilityAnalyzer, mock_db_adapter: MagicMock) -> None:
     """Test manufacturer analysis with no data."""
-    mock_db_adapter.fetch = AsyncMock(return_value=[])
+    mock_db_adapter.fetch_all = AsyncMock(return_value=[])
 
     metrics = await analyzer.analyze_by_manufacturer("Unknown Manufacturer")
 
@@ -67,8 +67,8 @@ async def test_analyze_by_manufacturer_no_data(analyzer: PartReliabilityAnalyzer
 @pytest.mark.asyncio
 async def test_analyze_all_empty(analyzer: PartReliabilityAnalyzer, mock_db_adapter: MagicMock) -> None:
     """Test analyze_all with empty data."""
-    mock_db_adapter.fetch = AsyncMock(return_value=[])
-    mock_db_adapter.fetchrow = AsyncMock(
+    mock_db_adapter.fetch_all = AsyncMock(return_value=[])
+    mock_db_adapter.fetch_one = AsyncMock(
         return_value={"total_events": 0, "warranty_eligible": 0, "total_manufacturers": 0}
     )
 
@@ -85,7 +85,7 @@ async def test_analyze_all_multiple_manufacturers(
     analyzer: PartReliabilityAnalyzer, mock_db_adapter: MagicMock
 ) -> None:
     """Test analyze_all with multiple manufacturers."""
-    mock_db_adapter.fetch = AsyncMock(
+    mock_db_adapter.fetch_all = AsyncMock(
         return_value=[
             {
                 "manufacturer_name": "HP",
@@ -111,7 +111,7 @@ async def test_analyze_all_multiple_manufacturers(
             },
         ]
     )
-    mock_db_adapter.fetchrow = AsyncMock(
+    mock_db_adapter.fetch_one = AsyncMock(
         return_value={"total_events": 13, "warranty_eligible": 6, "total_manufacturers": 2}
     )
 
@@ -136,7 +136,7 @@ async def test_compute_replacement_frequency_basic(
     now = datetime.utcnow()
     past_date = datetime(2026, 1, 1)
 
-    mock_db_adapter.fetchrow = AsyncMock(
+    mock_db_adapter.fetch_one = AsyncMock(
         return_value={
             "replacement_count": 12,
             "nominal_lifetime_pages": 500000,
@@ -160,7 +160,7 @@ async def test_compute_replacement_frequency_no_data(
     analyzer: PartReliabilityAnalyzer, mock_db_adapter: MagicMock
 ) -> None:
     """Test replacement frequency with no data."""
-    mock_db_adapter.fetchrow = AsyncMock(
+    mock_db_adapter.fetch_one = AsyncMock(
         return_value={"replacement_count": 0, "earliest_failure": None, "latest_failure": None}
     )
 

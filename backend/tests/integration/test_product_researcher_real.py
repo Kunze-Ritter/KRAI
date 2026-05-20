@@ -120,7 +120,7 @@ class TestProductResearcherScraping:
     @pytest.mark.asyncio
     async def test_real_product_research_beautifulsoup_fallback(self, real_product_researcher, test_database):
         """Test BeautifulSoup fallback for product scraping."""
-        from conftest import simulate_firecrawl_failure
+        from .conftest import simulate_firecrawl_failure
 
         # Simulate Firecrawl failure
         async with simulate_firecrawl_failure(real_product_researcher._web_scraping_service):
@@ -289,7 +289,7 @@ class TestProductResearcherCaching:
     async def test_real_product_research_cache_hit(self, real_product_researcher, test_database):
         """Test cache hit for previously researched product."""
         # First research (cache miss)
-        result1 = await real_product_researcher.research_product(manufacturer="HP", model="LaserJet Enterprise M507")
+        await real_product_researcher.research_product(manufacturer="HP", model="LaserJet Enterprise M507")
 
         # Second research (cache hit)
         result2 = await real_product_researcher.research_product(manufacturer="HP", model="LaserJet Enterprise M507")
@@ -336,7 +336,7 @@ class TestProductResearcherCaching:
     async def test_real_product_research_force_refresh(self, real_product_researcher, test_database):
         """Test force refresh ignores cache."""
         # First research
-        result1 = await real_product_researcher.research_product(manufacturer="Brother", model="HL-L8360CDW")
+        await real_product_researcher.research_product(manufacturer="Brother", model="HL-L8360CDW")
 
         # Force refresh (ignore cache)
         result2 = await real_product_researcher.research_product(
@@ -389,7 +389,7 @@ class TestProductResearcherCompleteWorkflows:
     @pytest.mark.asyncio
     async def test_real_product_research_complete_workflow_beautifulsoup(self, real_product_researcher, test_database):
         """Test complete workflow with BeautifulSoup fallback."""
-        from conftest import simulate_firecrawl_failure
+        from .conftest import simulate_firecrawl_failure
 
         # Complete workflow with fallback
         async with simulate_firecrawl_failure(real_product_researcher._web_scraping_service):

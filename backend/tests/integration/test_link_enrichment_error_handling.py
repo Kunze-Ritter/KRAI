@@ -7,7 +7,8 @@ Tests error recovery, retry logic, and fallback mechanisms with real failures.
 from datetime import datetime
 
 import pytest
-from conftest import create_test_link, simulate_firecrawl_failure
+
+from .conftest import create_test_link, simulate_firecrawl_failure
 
 
 @pytest.mark.integration
@@ -28,7 +29,7 @@ class TestLinkEnrichmentErrorHandling:
         link_id = link["id"]
 
         # Enrich with short timeout (should timeout)
-        result = await real_link_enrichment_service.enrich_link(link_id, timeout=5)
+        await real_link_enrichment_service.enrich_link(link_id, timeout=5)
 
         # Verify timeout handling
         query = "SELECT scrape_status, scrape_error FROM krai_content.links WHERE id = $1"
@@ -48,7 +49,7 @@ class TestLinkEnrichmentErrorHandling:
         link_id = link["id"]
 
         # Enrich link
-        result = await real_link_enrichment_service.enrich_link(link_id)
+        await real_link_enrichment_service.enrich_link(link_id)
 
         # Verify 404 handling
         query = "SELECT scrape_status, scrape_error FROM krai_content.links WHERE id = $1"
@@ -68,7 +69,7 @@ class TestLinkEnrichmentErrorHandling:
         link_id = link["id"]
 
         # Enrich link
-        result = await real_link_enrichment_service.enrich_link(link_id)
+        await real_link_enrichment_service.enrich_link(link_id)
 
         # Verify network error handling
         query = "SELECT scrape_status, scrape_error FROM krai_content.links WHERE id = $1"
@@ -90,7 +91,7 @@ class TestLinkEnrichmentErrorHandling:
         link_id = link["id"]
 
         # Enrich link
-        result = await real_link_enrichment_service.enrich_link(link_id)
+        await real_link_enrichment_service.enrich_link(link_id)
 
         # Verify empty content handling
         query = "SELECT scrape_status, scrape_error, scraped_content FROM krai_content.links WHERE id = $1"
@@ -119,7 +120,7 @@ class TestLinkEnrichmentErrorHandling:
         await test_database.execute_query(update_query, link_id)
 
         # Retry enrichment
-        result = await real_link_enrichment_service.enrich_link(link_id)
+        await real_link_enrichment_service.enrich_link(link_id)
 
         # Verify retry was attempted
         query = "SELECT scrape_status, scraped_metadata FROM krai_content.links WHERE id = $1"
@@ -149,7 +150,7 @@ class TestLinkEnrichmentErrorHandling:
         await test_database.execute_query(update_query, link_id)
 
         # Try to enrich (should be skipped)
-        result = await real_link_enrichment_service.enrich_link(link_id)
+        await real_link_enrichment_service.enrich_link(link_id)
 
         # Verify not retried
         query = "SELECT scrape_status, scraped_metadata FROM krai_content.links WHERE id = $1"
@@ -176,7 +177,7 @@ class TestLinkEnrichmentErrorHandling:
         await test_database.execute_query(update_query, link_id)
 
         # Try to enrich (should be skipped due to time threshold)
-        result = await real_link_enrichment_service.enrich_link(link_id)
+        await real_link_enrichment_service.enrich_link(link_id)
 
         # Verify not retried yet
         query = "SELECT scrape_status, scraped_at FROM krai_content.links WHERE id = $1"
@@ -244,7 +245,7 @@ class TestLinkEnrichmentFirecrawlFallback:
         real_link_enrichment_service._web_scraping_service.scrape_url = rate_limit_scrape
 
         try:
-            result = await real_link_enrichment_service.enrich_link(link_id)
+            await real_link_enrichment_service.enrich_link(link_id)
 
             # Verify fallback handled rate limit
             query = "SELECT scrape_status, scraped_metadata FROM krai_content.links WHERE id = $1"
@@ -275,7 +276,7 @@ class TestLinkEnrichmentFirecrawlFallback:
         real_link_enrichment_service._web_scraping_service.scrape_url = timeout_scrape
 
         try:
-            result = await real_link_enrichment_service.enrich_link(link_id)
+            await real_link_enrichment_service.enrich_link(link_id)
 
             # Verify fallback handled timeout
             query = "SELECT scrape_status FROM krai_content.links WHERE id = $1"
@@ -334,9 +335,7 @@ class TestLinkEnrichmentDocumentLinks:
         # Create document with all successful links
         document_id = f"test-doc-no-pending-{pytest.mark.timestamp}"
 
-        link_id = await create_test_link(
-            test_database, "https://example.com", document_id=document_id, scrape_status="success"
-        )
+        await create_test_link(test_database, "https://example.com", document_id=document_id, scrape_status="success")
 
         # Try to enrich (should find no pending links)
         result = await real_link_enrichment_service.enrich_document_links(document_id)
