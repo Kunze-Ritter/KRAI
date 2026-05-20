@@ -47,6 +47,19 @@ repos:
         additional_dependencies: ["bandit[toml]"]
 
   # ===========================================
+  # Schema-doc drift check (opt-in: needs a live DB, so manual stage only).
+  # Run: pre-commit run schema-docs-check --hook-stage manual   (or in CI)
+  # ===========================================
+  - repo: local
+    hooks:
+      - id: schema-docs-check
+        name: schema docs match live DB
+        entry: python scripts/generate_schema_docs.py --check
+        language: system
+        pass_filenames: false
+        stages: [manual]
+
+  # ===========================================
   # Git hooks
   # ===========================================
   - repo: https://github.com/pre-commit/pre-commit-hooks

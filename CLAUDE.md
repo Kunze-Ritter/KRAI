@@ -77,17 +77,44 @@ Each processor lives in `backend/processors/` and inherits from `BaseProcessor` 
 
 ### Database
 
-PostgreSQL 15+ with pgvector. Six schemas:
-- `krai_core` - documents, products, manufacturers, series
-- `krai_intelligence` - chunks (with `embedding vector(768)`), error_codes (with hierarchy), solutions
-- `krai_content` - images, links, videos
-- `krai_parts` - parts_catalog, accessories
-- `krai_system` - alerts, retries, metrics, stage_tracking, completion_markers
-- `krai_users` - users
+PostgreSQL 15+ with pgvector. Multiple `krai_*` schemas (see `DB_QUICK_REFERENCE.md` for current list from live DB).
 
-All views use `vw_` prefix in `public` schema. Embeddings are in `krai_intelligence.chunks`, not a separate schema. `vw_embeddings` is an alias for `vw_chunks`.
+Core schemas: `krai_core`, `krai_intelligence`, `krai_content`, `krai_parts`, `krai_system`, `krai_users` — plus others (e.g. `krai_pm`, `krai_config`) as introspected from Docker.
 
-**Always consult `DATABASE_SCHEMA.md` before writing any DB queries.** Never guess column names or schema locations.
+All views use `vw_` prefix in `public` schema. Embeddings are in `krai_intelligence.chunks`, not a separate schema.
+
+**Agent rules:** See `AGENTS.md` and `agent.md` (root) — especially schema sync and parallel documentation agent.
+
+**Schema docs (live DB as source of truth):**
+- **Semantic/architecture** (what each schema is for, canonical sources, lifecycle): `DATABASE_ARCHITECTURE.md` (hand-maintained) — read this first to understand the DB
+- Regenerate after **every** schema change: `python scripts/generate_schema_docs.py`
+- Verify before done: `python scripts/generate_schema_docs.py --check`
+- Migrations: `python scripts/run_migrations.py --status|--baseline` (tracked in `krai_system.migrations`; `public.migrations` is Laravel's)
+- Full reference: `DATABASE_SCHEMA.md` (auto-generated — do not edit by hand)
+- Quick + traps: `DB_QUICK_REFERENCE.md` (auto-generated)
+- Visual ERD: `schema/krai.dbml` (auto-generated → dbdiagram.io)
+- Manual traps only: `schema/column-traps.yaml`
+- **Never** use `docs/database/DATABASE_SCHEMA.md` (deprecated redirect)
+
+**Always consult `DATABASE_SCHEMA.md` or `schema/krai.dbml` before writing any DB queries.** Never guess column names or schema locations.
+
+#### Schema documentation sync (MANDATORY)
+
+Whenever you add/change migrations, tables, columns, FKs, or views:
+
+1. Apply migration to local Docker PostgreSQL (`krai-postgres-prod`, DB `krai`)
+2. Run `python scripts/generate_schema_docs.py`
+3. Update `schema/column-traps.yaml` if new naming traps or JSONB-only fields
+4. Run `python scripts/generate_schema_docs.py --check` — must pass before completing the task
+5. Commit generated files **together** with migration/code changes
+
+Do **not** hand-edit `schema/krai.dbml`, `DATABASE_SCHEMA.md`, or `DB_QUICK_REFERENCE.md`.
+
+#### Parallel Schema Documentation Agent
+
+For migration or schema work, **start a parallel agent** (Cursor Task / second session) using the prompt in `AGENTS.md` § Parallel Schema Documentation Agent. That agent regenerates docs and runs `--check` while the primary agent implements code.
+
+If parallel agents are unavailable, the **same agent** must run steps 1–4 above — no exceptions.
 
 **Known column name traps** (historically caused bugs — use the correct name on the right):
 
@@ -154,9 +181,12 @@ These rules come from `.windsurf/rules/project-rules.md` and must be followed:
 - Never use `time.sleep()` for retry delays; `safe_process()` handles hybrid sync/async retries
 
 ### Database
-- Always read `DATABASE_SCHEMA.md` before making assumptions about tables/columns
+- Live PostgreSQL is the source of truth; **always** run `generate_schema_docs.py` + `--check` after schema changes (see `AGENTS.md`)
+- For migrations: spawn parallel **Schema Documentation Agent** per `AGENTS.md`, or run doc sync yourself before done
+- Never hand-edit `krai.dbml` / `DATABASE_SCHEMA.md` / `DB_QUICK_REFERENCE.md`
+- Always read `DATABASE_SCHEMA.md` / `schema/krai.dbml` before making assumptions about tables/columns
 - Manufacturer names must go through mapping (e.g., `HP Inc.` → `Hewlett Packard`). See `ManufacturerVerificationService`
-- Migrations go in `database/migrations_postgresql/` as sequential SQL files
+- Migrations go in `database/migrations_postgresql/` as sequential SQL files (applied to DB, then regenerate docs)
 
 ### Code Style
 - Raise `ProcessingError` (from `backend/processors/exceptions.py`) with descriptive messages, processor name, and original exception
@@ -222,5 +252,9 @@ Large processor files have been split for better maintainability:
 
 ### New Files
 - `backend/pipeline/service_locator.py` - Lazy service loading
-- `DB_QUICK_REFERENCE.md` - Compact database reference
+- `AGENTS.md` / `agent.md` - Agent rules (schema sync, parallel doc agent)
+- `DB_QUICK_REFERENCE.md` - Compact database reference (auto-generated)
+- `schema/krai.dbml` - Visual ERD (auto-generated from live DB)
+- `schema/column-traps.yaml` - Known column/query traps (manual)
+- `scripts/generate_schema_docs.py` - Regenerate schema docs from live Docker DB
 - `MASTER-TODO.md` - Project task overview
