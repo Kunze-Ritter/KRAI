@@ -16,10 +16,16 @@ WORKDIR /app
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 
-# Install Python and system dependencies
-RUN apt-get update && apt-get install -y \
+# Install Python and system dependencies.
+# Ubuntu 22.04's apt ships Python 3.11.0rc1, which lacks sys.get_int_max_str_digits
+# and breaks newer transformers. Use the deadsnakes PPA for a final Python 3.11.x.
+RUN apt-get update && apt-get install -y software-properties-common && \
+    add-apt-repository -y ppa:deadsnakes/ppa && \
+    apt-get update && apt-get install -y \
     python3.11 \
     python3.11-dev \
+    python3.11-venv \
+    python3.11-distutils \
     python3-pip \
     curl \
     tesseract-ocr \
@@ -42,11 +48,8 @@ RUN ln -fs /usr/share/zoneinfo/Europe/Berlin /etc/localtime && \
 # Create symlink for python
 RUN ln -s /usr/bin/python3.11 /usr/bin/python
 
-# Set PYTHONPATH to project root; all imports use the 'backend.' package prefix
-ENV PYTHONPATH=/app:${PYTHONPATH}
-
-# Upgrade pip
-RUN python -m pip install --upgrade pip
+# Bootstrap & upgrade pip for the deadsnakes Python 3.11
+RUN python -m ensurepip --upgrade && python -m pip install --upgrade pip
 
 # Copy requirements
 COPY backend/requirements.txt .
@@ -60,6 +63,10 @@ RUN pip install --no-cache-dir -r requirements.txt gunicorn \
 # Install PyTorch with CUDA support separately to ensure correct version
 RUN pip install --no-cache-dir torch torchvision \
     --index-url https://download.pytorch.org/whl/cu124
+
+# Set PYTHONPATH to project root; all imports use the 'backend.' package prefix.
+# Placed after pip so dependency layers stay cached when only code changes.
+ENV PYTHONPATH=/app:${PYTHONPATH}
 
 # Copy application code to /app/backend/
 COPY backend/ /app/backend/

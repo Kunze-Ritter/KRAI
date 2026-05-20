@@ -133,6 +133,9 @@ venv.bak/
 .env.production.local
 credentials.txt
 
+# Database seed/data backups (pg_dump output)
+backups/
+
 # Environment file backups and temporary files
 .env.bak*
 .env.backup*

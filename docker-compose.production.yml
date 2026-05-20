@@ -24,7 +24,12 @@ services:
     env_file:
       - .env
     environment:
-      - POSTGRES_URL=${DATABASE_CONNECTION_URL}
+      # Engine runs on the bridge network and must reach postgres by its service
+      # name. .env points DATABASE_CONNECTION_URL/POSTGRES_URL at localhost for
+      # host-side tools (scripts, tests), which is unreachable from the container.
+      # database_factory prefers DATABASE_CONNECTION_URL, so both are overridden.
+      - DATABASE_CONNECTION_URL=postgresql://${DATABASE_USER:-krai_user}:${DATABASE_PASSWORD}@krai-postgres:5432/${DATABASE_NAME:-krai}
+      - POSTGRES_URL=postgresql://${DATABASE_USER:-krai_user}:${DATABASE_PASSWORD}@krai-postgres:5432/${DATABASE_NAME:-krai}
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
