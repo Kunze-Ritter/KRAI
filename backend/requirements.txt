@@ -47,7 +47,7 @@ langdetect>=1.0.9  # Document language detection
 # AI & MACHINE LEARNING
 # ================================
 sentence-transformers>=2.2.0
-transformers>=4.45.0,<4.46  # ColQwen2.5; cap <4.46 (newer needs sys.get_int_max_str_digits, absent in the base image's Python 3.11.0rc1)
+transformers>=4.45.0  # ColQwen2.5 / colpali-engine (needs Python 3.11 final via deadsnakes; rc1 lacks sys.get_int_max_str_digits)
 torch>=2.2.0
 torchvision>=0.17.0
 numpy>=1.24.0
