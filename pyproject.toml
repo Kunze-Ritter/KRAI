@@ -41,7 +41,7 @@ ignore = [
     "E402",   # imports after code: intentional bootstrap (env loading / sys.path) precedes imports
     "N806",   # non-lowercase var in function: allowed (response models, math/df-style names)
     "N803",   # non-lowercase argument name: allowed
-    "N999",   # invalid module name (e.g. main1.py): addressed via file cleanup, not lint
+    "N999",   # invalid module name: a few generated test files use uppercase error codes
     "ASYNC109", # async fn with timeout param: deliberate API design in this codebase
     "SIM117", # nested with-statements: readability preference, deferred
     "SIM102", # nested if-statements: readability preference, deferred
@@ -63,8 +63,6 @@ classmethod-decorators = ["classmethod", "validator", "field_validator", "root_v
 "__init__.py" = ["F401"]
 "tests/*" = ["E501", "S101", "B011"]
 "legacy/*" = ["E501", "F401", "C901"]
-# Optional-dependency probes: imports exist only to set *_AVAILABLE flags
-"backend/optimizations/gpu_npu_optimization.py" = ["F401"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
