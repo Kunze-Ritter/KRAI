@@ -384,18 +384,18 @@ class TestRetryPolicyManager:
         RetryPolicyManager.set_db_adapter(mock_db_adapter)
         try:
             # First call - should query database
-            policy1 = await RetryPolicyManager.get_policy("firecrawl", "image_processing")
+            await RetryPolicyManager.get_policy("firecrawl", "image_processing")
             assert mock_db_adapter.fetch_one.call_count == 1
 
             # Second call - should hit cache
-            policy2 = await RetryPolicyManager.get_policy("firecrawl", "image_processing")
+            await RetryPolicyManager.get_policy("firecrawl", "image_processing")
             assert mock_db_adapter.fetch_one.call_count == 1  # No additional call
 
             # Clear cache to simulate expiration
             RetryPolicyManager.clear_cache()
 
             # Third call - should query database again
-            policy3 = await RetryPolicyManager.get_policy("firecrawl", "image_processing")
+            await RetryPolicyManager.get_policy("firecrawl", "image_processing")
             assert mock_db_adapter.fetch_one.call_count == 2
         finally:
             RetryPolicyManager.set_db_adapter(None)
@@ -645,7 +645,7 @@ class TestRetryEngineIntegration:
         assert classification.error_category == "permanent"
 
         # Even with a retry policy, permanent errors should not be retried
-        policy = await RetryPolicyManager.get_policy("firecrawl")
+        await RetryPolicyManager.get_policy("firecrawl")
 
         # Application logic should check classification before using policy
         if not classification.is_transient:

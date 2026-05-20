@@ -163,7 +163,6 @@ def get_rate_limit_config(config: SecurityConfig | None = None) -> dict:
 
 
 def is_production(config: SecurityConfig | None = None) -> bool:
-    cfg = config or get_security_config()
     return os.getenv("ENV", os.getenv("ENVIRONMENT", "development")).lower() == "production"
 
 

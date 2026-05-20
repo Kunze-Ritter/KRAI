@@ -203,7 +203,6 @@ async def two_stage_search(
     """
     try:
         start_time = datetime.utcnow()
-        rerank_start = None
 
         # Perform two-stage search
         results = await search_service.search_two_stage(

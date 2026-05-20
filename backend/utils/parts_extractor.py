@@ -116,8 +116,6 @@ def extract_parts_by_manufacturer(text: str, manufacturer_key: str) -> str | Non
 
 def _filter_false_positives(parts: list[str], config: dict) -> list[str]:
     """Filter out common false positives"""
-    rules = config.get("extraction_rules", {})
-    exclude_near = rules.get("exclude_if_near", [])
 
     # Filter by length
     parts = [p for p in parts if 5 <= len(p) <= 25]
@@ -178,7 +176,6 @@ def _is_context_noise_for_part(context: str, part: str, rules: dict, manufacture
         return True
 
     context_l = context.lower()
-    require_keywords = rules.get("require_context_keywords", []) or []
     indicators = rules.get("part_number_indicators", []) or []
     exclusion_terms = rules.get("exclude_if_near", []) or []
 

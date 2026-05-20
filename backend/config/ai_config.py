@@ -350,7 +350,6 @@ class HardwareDetector:
 
         # GPU-optimized configurations
         gpu_available = self.specs.gpu_available
-        gpu_memory_gb = self.specs.gpu_memory_gb or 0
 
         # Read embedding model from env
         embedding_model = os.getenv("OLLAMA_MODEL_EMBEDDING", "nomic-embed-text:latest")

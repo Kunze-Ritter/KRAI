@@ -623,7 +623,7 @@ class TestSlackNotifications:
                 rule_config = {"rule_name": "Test", "description": ""}
                 webhook_urls = ["https://hooks.slack.com/services/TEST"]
 
-                result = await alert_service.send_slack_alert(alert_data, webhook_urls, rule_config)
+                await alert_service.send_slack_alert(alert_data, webhook_urls, rule_config)
 
                 # Should eventually succeed after retry
                 assert mock_client_instance.post.call_count >= 1

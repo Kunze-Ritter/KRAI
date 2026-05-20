@@ -341,7 +341,7 @@ async def test_correlation_id_tracking(mock_context):
         MockErrorLogger.return_value = mock_error_logger
 
         # Execute
-        result = await processor.safe_process(mock_context)
+        await processor.safe_process(mock_context)
 
         # Verify correlation_id format
         assert captured_correlation_id is not None
@@ -388,7 +388,7 @@ async def test_request_id_generation(mock_context):
     assert not hasattr(mock_context, "request_id") or mock_context.request_id is None
 
     # Execute
-    result = await processor.safe_process(mock_context)
+    await processor.safe_process(mock_context)
 
     # Verify request_id was generated
     assert hasattr(mock_context, "request_id")
@@ -419,7 +419,7 @@ async def test_retry_attempt_tracking(mock_context):
     processor.db_adapter.execute = AsyncMock()
 
     # Execute
-    result = await processor.safe_process(mock_context)
+    await processor.safe_process(mock_context)
 
     # Verify retry_attempt was set
     assert hasattr(mock_context, "retry_attempt")

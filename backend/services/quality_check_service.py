@@ -201,7 +201,7 @@ class QualityCheckService:
             # Check 1: Database connectivity
             try:
                 # Simple query to test connection
-                result = self.database_service.client.table("vw_documents").select("id").limit(1).execute()
+                self.database_service.client.table("vw_documents").select("id").limit(1).execute()
                 health["checks"]["database"] = "healthy"
             except Exception as e:
                 health["checks"]["database"] = "failed"

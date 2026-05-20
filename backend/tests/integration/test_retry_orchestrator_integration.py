@@ -195,7 +195,6 @@ async def test_exponential_backoff_timing(test_database, mock_error_logger, samp
     # Test delay calculations
     delays = []
     for attempt in range(4):
-        start_time = asyncio.get_event_loop().time()
         delay = orchestrator.calculate_backoff_delay(attempt, policy)
         delays.append(delay)
 

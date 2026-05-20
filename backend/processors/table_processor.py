@@ -614,7 +614,7 @@ class TableProcessor(BaseProcessor):
                         # Store structured table
                         if self._structured_table_storage_enabled:
                             try:
-                                table_id = await self.database_service.create_structured_table(table_record)
+                                await self.database_service.create_structured_table(table_record)
                             except Exception as e:
                                 msg = str(e)
                                 if "structured_tables" in msg and "does not exist" in msg:

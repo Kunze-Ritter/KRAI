@@ -97,7 +97,7 @@ def test_logging():
 
     # Test exception logging
     try:
-        result = 1 / 0
+        1 / 0
     except Exception:
         logger.error("Exception occurred during division", exc_info=True)
 

@@ -13,7 +13,7 @@ from slowapi.util import get_remote_address
 from backend.api.dependencies.database import get_database_adapter
 from backend.api.middleware.auth_middleware import require_permission
 from backend.api.routes.response_models import ErrorResponse, SuccessResponse
-from backend.core.retry_engine import RetryOrchestrator, RetryPolicyManager
+from backend.core.retry_engine import RetryOrchestrator
 from backend.core.types import ProcessingContext
 from backend.models.pipeline_error import (
     MarkErrorResolvedRequest,
@@ -281,9 +281,7 @@ async def retry_stage(
                 ).dict(),
             )
 
-        policy = RetryPolicyManager.get_policy(service_name="pipeline", stage_name=request.stage_name)
-
-        context = ProcessingContext(
+        ProcessingContext(
             document_id=request.document_id,
             file_path=document["file_path"],
             filename=document["filename"],

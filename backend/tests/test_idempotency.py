@@ -813,7 +813,7 @@ class TestAsyncOperations:
     async def test_multiple_async_operations(self, idempotency_checker, mock_db_adapter):
         """Test multiple async operations in sequence."""
         # Check
-        marker = await idempotency_checker.check_completion_marker("doc-123", "stage")
+        await idempotency_checker.check_completion_marker("doc-123", "stage")
 
         # Set
         result1 = await idempotency_checker.set_completion_marker("doc-123", "stage", "hash" + "0" * 60, {})

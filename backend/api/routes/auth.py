@@ -719,9 +719,7 @@ async def change_password(
             new_password=password_data.new_password,
         )
 
-        updated_user = await service.update_user(
-            user_id=user_id, update_data=update_data, current_user_id=current_user["id"]
-        )
+        await service.update_user(user_id=user_id, update_data=update_data, current_user_id=current_user["id"])
 
         return {"success": True, "message": "Password changed successfully"}
 

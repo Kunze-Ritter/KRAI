@@ -268,7 +268,6 @@ async def test_process_batch_hardware_waker_semaphore_limit():
         async with sem:
             concurrent.append(1)
             await asyncio.sleep(0.05)
-            n = len(concurrent)
             concurrent.clear()
             return {"success": True, "filename": path}
 

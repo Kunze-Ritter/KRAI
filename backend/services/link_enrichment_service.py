@@ -133,7 +133,6 @@ class LinkEnrichmentService:
             return {"success": False, "link_id": link_id, "error": error_message}
 
         content: str | None = result.get("content")
-        html: str | None = result.get("html")
         backend = result.get("backend")
         scrape_metadata = result.get("metadata") or {}
 

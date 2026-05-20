@@ -615,7 +615,6 @@ async def upload_image(
             content=content, filename=file.filename or "upload.bin", bucket_type="document_images", metadata={}
         )
 
-        is_duplicate = storage_result.get("is_duplicate", False)
         file_hash = storage_result.get("file_hash")
         resolved_url = (
             storage_result.get("storage_url") or storage_result.get("public_url") or storage_result.get("url")

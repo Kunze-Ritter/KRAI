@@ -214,7 +214,6 @@ def log_section(title, logger_name=None, char="=", width=80):
         STAGE 5: Metadata Extraction
         ========================================
     """
-    logger = logging.getLogger(logger_name)
     separator = char * width
 
     # Print without timestamp for cleaner look

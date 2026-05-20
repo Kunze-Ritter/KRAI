@@ -734,7 +734,7 @@ class TestErrorLoggingIntegration:
         error_logger.structured_logger = structured_logger
 
         # Log error with correlation_id
-        error_id = await error_logger.log_error(
+        await error_logger.log_error(
             context=sample_processing_context,
             error=sample_error,
             classification=sample_error_classification,

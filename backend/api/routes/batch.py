@@ -546,8 +546,6 @@ async def _schedule_async_operation(
     )
 
     async def _background_executor(task_id: str) -> None:
-        total_items = len(request.items)
-
         async def _progress_callback(
             result: BatchOperationResult,
             processed: int,

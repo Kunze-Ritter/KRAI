@@ -805,19 +805,6 @@ class ManufacturerVerificationService:
             domains = self.manufacturer_domains.get(manufacturer, [])
 
             # Prefer DE-DE sites with EN fallback
-            preferred_sites = {
-                "HP Inc.": "support.hp.com/de-de",
-                "Canon": "canon.de",
-                "Brother": "brother.de",
-                "Epson": "epson.de",
-                "Lexmark": "lexmark.de",
-                "Ricoh": "ricoh.de",
-                "Konica Minolta": "konicaminolta.de",
-                "Xerox": "xerox.de",
-                "Kyocera": "kyoceradocumentsolutions.de",
-            }
-
-            site_filter = f" site:{preferred_sites.get(manufacturer, domains[0] if domains else '')}"
 
             query = f"Was ist die EXAKTE offizielle {manufacturer} Support-Seite URL für das Drucker-Modell {model_number}? Suche nach der vollständigen Produktserie (z.B. 'E877z' nicht nur 'E877'). Die URL sollte die Modellnummer oder Serie-ID enthalten. Akzeptiere deutsche (.de, de-de) UND englische (us-en, en-us) Seiten. Gib NUR die direkte URL zur Treiber- oder Spezifikationsseite an."
 

@@ -45,9 +45,8 @@ ignore = [
     "ASYNC109", # async fn with timeout param: deliberate API design in this codebase
     "SIM117", # nested with-statements: readability preference, deferred
     "SIM102", # nested if-statements: readability preference, deferred
-    # --- Deferred quality debt (tracked separately): real but heavy to fix ---
-    "F841",     # unused local variable: dead code, harmless; bulk cleanup deferred
-    "RUF006",   # asyncio.create_task without stored ref: needs task-registry refactor
+    # --- Deferred quality debt (tracked separately): need real refactoring ---
+    "RUF006",   # asyncio.create_task without stored ref: needs a task-registry pattern
     "ASYNC230", # blocking open() in async: needs aiofiles migration
     "ASYNC221", # blocking subprocess in async: needs async subprocess migration
     "ASYNC210", # blocking HTTP in async: needs httpx/async client migration

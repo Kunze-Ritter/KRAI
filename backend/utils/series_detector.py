@@ -1760,13 +1760,11 @@ def _detect_xerox_series(model_number: str) -> dict | None:
         # B400, C400, C500, C600, B600 = Printer
         # C405, C505, C605, B405, B605, B615, B625 = MFP
         if series_num in ["400", "500", "600"]:
-            device_type = "printer"
             return {
                 "series_name": "VersaLink",
                 "model_pattern": f"VersaLink {color_type}{series_digit}xx",
                 "series_description": f"Xerox VersaLink {color_type}{series_digit}xx series {color_desc} printers",
             }
-        device_type = "MFP"
         return {
             "series_name": "VersaLink",
             "model_pattern": f"VersaLink {color_type}{series_digit}xx",
@@ -2065,7 +2063,6 @@ def _detect_sharp_series(model_number: str) -> dict | None:
     match = re.match(r"^BP-(\d{2,4})([CM])(\d{2,3})([A-Z]?)$", model_clean)
     if match:
         series_num = match.group(1)
-        color_type = match.group(2)  # C or M
         if int(series_num) >= 90 or int(series_num) >= 1300:
             return {
                 "series_name": "BP Pro",
