@@ -6,7 +6,11 @@ import asyncio
 import os
 
 import asyncpg
+import pytest
 from dotenv import load_dotenv
+
+# Hits a real PostgreSQL instance — excluded from the default unit run via -m "not integration".
+pytestmark = pytest.mark.integration
 
 
 async def test_connection():
