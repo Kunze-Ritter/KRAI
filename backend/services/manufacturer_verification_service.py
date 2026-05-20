@@ -779,7 +779,7 @@ class ManufacturerVerificationService:
                             content_lower = content.lower()
                             if any(variant in content_lower for variant in model_variants):
                                 return {"url": url_lower, "source": "pattern", "confidence": 0.9, "verified": True}
-                    except:
+                    except Exception:
                         pass
                 # URL doesn't exist or error accessing it
                 continue
@@ -2008,8 +2008,7 @@ class ManufacturerVerificationService:
 
             json_match = re.search(r"\{.*\}", answer, re.DOTALL)
             if json_match:
-                specs = json.loads(json_match.group(0))
-                return specs
+                return json.loads(json_match.group(0))
 
             # Fallback: Parse from text
             return self._extract_specs_basic(answer)
@@ -2220,12 +2219,14 @@ class ManufacturerVerificationService:
             for domain in domains:
                 if domain in url:
                     # Avoid search/shop pages, prefer support/product pages
-                    if any(
-                        keyword in url.lower()
-                        for keyword in ["support", "product", "printer", "driver", "specification"]
+                    if (
+                        any(
+                            keyword in url.lower()
+                            for keyword in ["support", "product", "printer", "driver", "specification"]
+                        )
+                        and url not in urls
                     ):
-                        if url not in urls:
-                            urls.append(url)
+                        urls.append(url)
 
         return urls
 

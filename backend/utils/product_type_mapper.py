@@ -187,21 +187,14 @@ SERIES_PRODUCT_TYPE_MAP = {
     "Stylus": "inkjet_printer",
     # Epson - Legacy
     "MJ Series": "dot_matrix_printer",
-    "MX Series": "inkjet_printer",
+    "MX Series": "inkjet_printer",  # noqa: F601
     "MP Series": "inkjet_printer",
     "P Series": "inkjet_printer",
     # OKI - Production
     "Pro9": "laser_production_printer",
     "Pro10": "laser_production_printer",
-    # OKI - MFP
-    "MC Series": "laser_multifunction",
-    "MB Series": "laser_multifunction",
     "B Series MFP": "laser_multifunction",
     "ES Series MFP": "laser_multifunction",
-    "CX Series": "laser_multifunction",
-    # OKI - Printer
-    "C Series": "laser_printer",
-    "B Series": "laser_printer",
     "ES Series": "laser_printer",
     # Fujifilm - Production
     "Revoria Press": "laser_production_printer",
@@ -211,10 +204,8 @@ SERIES_PRODUCT_TYPE_MAP = {
     "ApeosPort-VII": "laser_multifunction",
     "ApeosPort": "laser_multifunction",
     "Apeos": "laser_multifunction",
-    "DocuCentre": "laser_multifunction",
     # Fujifilm - Printer
     "ApeosPrint": "laser_printer",
-    "DocuPrint": "laser_printer",
     # Fujifilm - Photo
     "INSTAX mini Link": "dye_sublimation_printer",
     "INSTAX SQUARE Link": "dye_sublimation_printer",
@@ -225,7 +216,6 @@ SERIES_PRODUCT_TYPE_MAP = {
     "MX Production": "laser_production_printer",
     # Sharp - MFP
     "BP Series": "laser_multifunction",
-    "MX Series": "laser_multifunction",
     "MX-B": "laser_multifunction",
     "MX-C": "laser_multifunction",
     "AR Series": "laser_multifunction",

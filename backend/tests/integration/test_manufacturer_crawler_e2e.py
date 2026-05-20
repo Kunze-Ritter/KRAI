@@ -9,8 +9,9 @@ skipped when the backend is unavailable.
 from __future__ import annotations
 
 import asyncio
-from datetime import UTC
+from datetime import UTC, datetime
 from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -451,7 +452,7 @@ class TestManufacturerCrawlerFirecrawlSmoke:
         for cron_expr in cron_expressions:
             next_run = manufacturer_crawler._calculate_next_run_time(cron_expr)
             assert next_run is not None
-            assert next_run > datetime.now(timezone.utc)
+            assert next_run > datetime.now(UTC)
 
         # Test invalid cron expression
         invalid_cron = "invalid-cron-expression"

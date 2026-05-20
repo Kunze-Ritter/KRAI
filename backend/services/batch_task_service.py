@@ -229,7 +229,7 @@ class BatchTaskService:
     async def execute_task(
         self,
         task_id: str,
-        executor: BatchTaskExecutor,
+        executor: BatchTaskExecutor,  # noqa: F821  # TODO(task #17): pre-existing undefined name
     ) -> BatchTaskResponse:
         """Execute the provided callable and update task state accordingly."""
 

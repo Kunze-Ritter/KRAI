@@ -5,6 +5,7 @@ Handles all authentication logic, user validation, and token management
 
 import logging
 from datetime import UTC, datetime, timedelta
+from functools import wraps
 from typing import Any
 from uuid import UUID
 
@@ -434,7 +435,7 @@ class AuthService:
             logger.error(f"Ensure default admin error: {e}")
             raise AuthenticationError("Failed to ensure default admin user")
 
-    async def authenticate_user(self, login_data: UserLogin, client_ip: str = None) -> AuthResponse:
+    async def authenticate_user(self, login_data: UserLogin, client_ip: str | None = None) -> AuthResponse:
         """Authenticate user with rate limiting and security checks"""
         try:
             print(f"DEBUG: Attempting authentication for user: {login_data.username}")
@@ -608,14 +609,14 @@ class AuthService:
         except Exception as e:
             logger.error(f"Error checking token blacklist: {e}")
             message = str(e)
-            if (
+            if (  # noqa: SIM103
                 "krai_users.token_blacklist" in message
                 or 'relation "krai_users.token_blacklist" does not exist' in message
             ):
                 return False
             return True  # Fail safe - block token if we can't verify
 
-    async def revoke_token(self, jti: str, user_id: str = None) -> bool:
+    async def revoke_token(self, jti: str, user_id: str | None = None) -> bool:
         """Revoke a specific token by jti"""
         try:
             query = """
@@ -653,7 +654,9 @@ class AuthService:
 
     # ====== User Management ======
 
-    async def update_user(self, user_id: str, update_data: UserUpdate, current_user_id: str = None) -> UserResponse:
+    async def update_user(
+        self, user_id: str, update_data: UserUpdate, current_user_id: str | None = None
+    ) -> UserResponse:
         """Update user information"""
         try:
             # Check if user exists

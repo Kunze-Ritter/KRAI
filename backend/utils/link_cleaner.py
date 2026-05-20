@@ -53,7 +53,7 @@ def clean_url(url: str) -> str | None:
             return None
 
         return url
-    except:
+    except Exception:
         return None
 
 
@@ -86,7 +86,7 @@ def is_valid_video_url(url: str) -> bool:
 
         # Check if domain matches any video platform
         return any(vd in domain for vd in video_domains)
-    except:
+    except Exception:
         return False
 
 

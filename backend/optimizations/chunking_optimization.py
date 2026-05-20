@@ -196,9 +196,7 @@ class ParallelChunkingProcessor:
         chunk_ids = await asyncio.gather(*tasks, return_exceptions=True)
 
         # Filter out exceptions
-        valid_ids = [chunk_id for chunk_id in chunk_ids if isinstance(chunk_id, str)]
-
-        return valid_ids
+        return [chunk_id for chunk_id in chunk_ids if isinstance(chunk_id, str)]
 
 
 class MemoryMonitoring:
@@ -232,5 +230,5 @@ class MemoryMonitoring:
 
             libc = ctypes.CDLL("libc.so.6")
             libc.malloc_trim(0)
-        except:
+        except Exception:
             pass  # Not available on Windows

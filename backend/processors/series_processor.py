@@ -160,8 +160,7 @@ class SeriesProcessor(BaseProcessor):
                     "series_created": False,
                     "product_linked": False,
                 }
-                processing_result = self.create_success_result(error, metadata=metadata)
-                return processing_result
+                return self.create_success_result(error, metadata=metadata)
 
             metadata = {
                 "product_id": str(product_id),
@@ -261,8 +260,7 @@ class SeriesProcessor(BaseProcessor):
             List of products
         """
         try:
-            products = await self.adapter.get_products_by_series(series_id)
-            return products
+            return await self.adapter.get_products_by_series(series_id)
 
         except Exception as e:
             self.logger.error(f"Error getting products for series {series_id}: {e}")

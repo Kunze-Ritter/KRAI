@@ -176,8 +176,7 @@ class JWTValidator:
         Returns payload if valid, None if invalid
         """
         try:
-            payload = jwt.decode(token, self.config.public_key, algorithms=[self.config.algorithm])
-            return payload
+            return jwt.decode(token, self.config.public_key, algorithms=[self.config.algorithm])
 
         except jwt.ExpiredSignatureError:
             logger.warning("JWT token expired")
@@ -211,9 +210,7 @@ class JWTValidator:
             payload["iat"] = now  # issued at
             payload["jti"] = payload.get("jti")  # token ID for blacklisting
 
-            token = jwt.encode(payload, self.config.private_key, algorithm=self.config.algorithm)
-
-            return token
+            return jwt.encode(payload, self.config.private_key, algorithm=self.config.algorithm)
 
         except Exception as e:
             logger.error(f"JWT encode error: {e}")

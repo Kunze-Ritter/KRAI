@@ -44,7 +44,7 @@ class AuthMiddleware:
         self.jwt_validator = get_jwt_validator()
 
     async def __call__(
-        self, request: Request, required_permissions: list[str] = None, allow_expired: bool = False
+        self, request: Request, required_permissions: list[str] | None = None, allow_expired: bool = False
     ) -> dict[str, Any]:
         """
         Main middleware method for request authentication and authorization.
@@ -151,7 +151,7 @@ class AuthMiddleware:
 
 
 # Dependency for protected endpoints
-def get_current_user(required_permissions: list[str] = None, allow_expired: bool = False):
+def get_current_user(required_permissions: list[str] | None = None, allow_expired: bool = False):
     """
     Dependency for endpoints that require authentication.
 

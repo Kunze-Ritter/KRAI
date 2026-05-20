@@ -44,28 +44,28 @@ __description__ = "Modular AI-powered document processing system"
 
 # Module metadata
 __all__ = [
-    # Main orchestrator
-    "ModularDocumentProcessor",
-    "DocumentProcessingPipeline",
-    "ProcessingSession",
-    "process_document",
-    "batch_process_documents",
     # Base interfaces
     "BaseProcessor",
-    "ProcessingContext",
-    "ProcessingResult",
-    "ProcessorChain",
-    "ProcessingStatus",
-    "ProcessingException",
-    "ValidationException",
-    "ResourceException",
-    # Specialized processors
-    "TextProcessor",
-    "ImageProcessor",
-    "EmbeddingProcessor",
-    "ClassificationProcessor",
-    "StorageProcessor",
     # Utilities
     "ChunkingUtils",
+    "ClassificationProcessor",
+    "DocumentProcessingPipeline",
+    "EmbeddingProcessor",
+    "ImageProcessor",
+    # Main orchestrator
+    "ModularDocumentProcessor",
     "OllamaClient",
+    "ProcessingContext",
+    "ProcessingException",
+    "ProcessingResult",
+    "ProcessingSession",
+    "ProcessingStatus",
+    "ProcessorChain",
+    "ResourceException",
+    "StorageProcessor",
+    # Specialized processors
+    "TextProcessor",
+    "ValidationException",
+    "batch_process_documents",
+    "process_document",
 ]

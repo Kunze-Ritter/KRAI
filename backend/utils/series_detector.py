@@ -59,7 +59,7 @@ def _calculate_confidence(series_data: dict, context: str) -> float:
     return min(confidence, 1.0)
 
 
-def detect_series(model_number: str, manufacturer_name: str, context: str = None) -> dict | None:
+def detect_series(model_number: str, manufacturer_name: str, context: str | None = None) -> dict | None:
     """
     Detect product series from model number with optional context validation
 

@@ -171,7 +171,7 @@ async def batch_update_products_oem_info(limit: int = 1000, adapter: DatabaseAda
         stats["total_products"] = len(products)
 
         # Get manufacturer names
-        manufacturer_ids = list(set(p["manufacturer_id"] for p in products if p.get("manufacturer_id")))
+        manufacturer_ids = list({p["manufacturer_id"] for p in products if p.get("manufacturer_id")})
         manufacturers = {}
 
         for mfr_id in manufacturer_ids:

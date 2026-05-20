@@ -31,7 +31,9 @@ class ManufacturerPatternNotFoundError(ProcessingError):
         box_top = "╔" + "═" * 63 + "╗"
         box_mid = "╠" + "═" * 63 + "╣"
         box_bot = "╚" + "═" * 63 + "╝"
-        box_line = lambda text: f"║ {text:<61} ║"
+
+        def box_line(text):
+            return f"║ {text:<61} ║"
 
         lines = [
             "",

@@ -292,9 +292,7 @@ class HardwareAccelerator:
         tasks = [processor_func(doc) for doc in documents]
 
         # Process in parallel
-        results = await self.gpu_optimizer.process_batch_parallel(tasks, task_type, max_workers)
-
-        return results
+        return await self.gpu_optimizer.process_batch_parallel(tasks, task_type, max_workers)
 
 
 # Global instance

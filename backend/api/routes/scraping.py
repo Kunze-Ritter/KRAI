@@ -102,8 +102,7 @@ async def map_urls(request: MapRequest):
 async def health_check():
     service = _create_service()
     try:
-        status = await service.health_check()
-        return status
+        return await service.health_check()
     except Exception as exc:
         raise HTTPException(status_code=503, detail=str(exc))
 
@@ -111,8 +110,7 @@ async def health_check():
 @router.get("/info")
 async def get_backend_info():
     service = _create_service()
-    info = service.get_backend_info()
-    return info
+    return service.get_backend_info()
 
 
 @router.get("/logs")

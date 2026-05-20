@@ -507,7 +507,7 @@ def detect_konica_minolta_accessory(model_number: str) -> AccessoryMatch | None:
     return None
 
 
-def detect_accessory(model_number: str, manufacturer: str = None) -> AccessoryMatch | None:
+def detect_accessory(model_number: str, manufacturer: str | None = None) -> AccessoryMatch | None:
     """
     Main accessory detection function
 

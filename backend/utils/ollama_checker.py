@@ -23,7 +23,7 @@ def check_ollama_running(timeout: int = 2) -> bool:
     try:
         response = requests.get("http://localhost:11434/api/tags", timeout=timeout)
         return response.status_code == 200
-    except:
+    except Exception:
         return False
 
 
@@ -108,7 +108,7 @@ def get_ollama_models() -> list:
             data = response.json()
             return [model["name"] for model in data.get("models", [])]
         return []
-    except:
+    except Exception:
         return []
 
 

@@ -31,7 +31,7 @@ def configure_tesseract():
             pytesseract.get_tesseract_version()
             # Already works, no configuration needed
             return
-        except:
+        except Exception:
             pass
 
         # Find Tesseract executable

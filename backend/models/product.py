@@ -409,7 +409,7 @@ class ProductSeriesResponse(BaseModel):
 class ProductWithRelationsResponse(ProductResponse):
     """Product response enriched with related entities."""
 
-    manufacturer: ManufacturerResponse | None = None
+    manufacturer: ManufacturerResponse | None = None  # noqa: F821  # TODO(task #17): pre-existing undefined name
     series: ProductSeriesResponse | None = None
     parent_product: ProductResponse | None = None
 

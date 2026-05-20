@@ -179,8 +179,7 @@ class PartsProcessor(BaseProcessor):
             "stage": self.stage.value,
             "parts_found": stats.get("parts_found", 0),
         }
-        result = self.create_success_result(stats, metadata=metadata)
-        return result
+        return self.create_success_result(stats, metadata=metadata)
 
     def _extract_parts_from_chunk(
         self,
@@ -251,9 +250,7 @@ class PartsProcessor(BaseProcessor):
             return False
         if token.isalpha():
             return False
-        if token.isdigit() and len(set(token)) == 1:
-            return False
-        return True
+        return not (token.isdigit() and len(set(token)) == 1)
 
     def _is_high_quality_part_context(self, part_name: str | None, description: str | None) -> bool:
         """Reject weak/noisy matches that are unlikely to be real spare parts."""
@@ -274,9 +271,7 @@ class PartsProcessor(BaseProcessor):
             "firmware version",
             "embedded web server",
         ]
-        if any(marker in lower_desc for marker in noise_markers):
-            return False
-        return True
+        return not any(marker in lower_desc for marker in noise_markers)
 
     @staticmethod
     def _text_quality_score(value: str | None) -> int:
@@ -387,16 +382,14 @@ class PartsProcessor(BaseProcessor):
             return desc
 
         def _is_noise_line(line: str) -> bool:
-            l = line.lower().strip()
+            l = line.lower().strip()  # noqa: E741
             if not l:
                 return True
             if "bizhub" in l:
                 return True
             if re.fullmatch(r"[\d,.\- ]+(sheets|counts|m)?", l):
                 return True
-            if re.fullmatch(r"[A-Z0-9]{2,}[-]?[A-Z0-9]{2,}", l):
-                return True
-            return False
+            return bool(re.fullmatch("[A-Z0-9]{2,}[-]?[A-Z0-9]{2,}", l))
 
         # Line-aware extraction is more stable for OCR table text.
         lines = [ln.strip() for ln in context.splitlines() if ln and ln.strip()]

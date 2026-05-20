@@ -97,7 +97,7 @@ for category, vars_list in checks.items():
 
 print("\n🚫 Deprecated R2 Variables")
 print("-" * 60)
-found_deprecated = [name for name in os.environ.keys() if name.startswith("R2_")]
+found_deprecated = [name for name in os.environ if name.startswith("R2_")]
 found_deprecated.extend([name for name in deprecated_upload_vars if os.getenv(name)])
 found_deprecated = sorted(set(found_deprecated))
 if found_deprecated:

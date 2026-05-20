@@ -751,12 +751,11 @@ class WebScrapingService:
                 }
                 status = "degraded"
 
-        aggregated_status = {
+        return {
             "status": status,
             "timestamp": datetime.now(UTC).isoformat(),
             "backends": backends,
         }
-        return aggregated_status
 
     def get_backend_info(self) -> dict[str, Any]:
         active_backend = self._primary_backend.backend_name

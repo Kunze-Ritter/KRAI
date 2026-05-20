@@ -3,6 +3,7 @@ Document API for KR-AI-Engine
 FastAPI endpoints for document processing
 """
 
+import contextlib
 import logging
 from datetime import datetime
 from pathlib import Path
@@ -90,9 +91,8 @@ class DocumentAPI:
             from backend.main import performance_service
 
             performance_collector = performance_service
-            if performance_service:
-                if hasattr(self.upload_processor, "set_performance_collector"):
-                    self.upload_processor.set_performance_collector(performance_service)
+            if performance_service and hasattr(self.upload_processor, "set_performance_collector"):
+                self.upload_processor.set_performance_collector(performance_service)
         except ImportError:
             # performance_service not available (e.g., in tests)
             pass
@@ -848,7 +848,5 @@ class DocumentAPI:
 
             self.logger.error(traceback.format_exc())
             # Update document status to failed
-            try:
+            with contextlib.suppress(Exception):
                 await self.database_service.update_document(document_id, {"processing_status": "failed"})
-            except:
-                pass

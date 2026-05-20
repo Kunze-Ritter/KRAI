@@ -123,7 +123,7 @@ class MultiSourceErrorCodeSearch:
                 }
                 videos.append(video_info)
 
-            response = ErrorCodeSearchResponse(
+            return ErrorCodeSearchResponse(
                 found=True,
                 error_code=error_code,
                 description=description,
@@ -131,7 +131,6 @@ class MultiSourceErrorCodeSearch:
                 videos=videos,
                 parts=parts_results,
             )
-            return response
 
         except Exception as e:
             self.logger.error(f"Error in multi-source search: {e}", exc_info=True)
@@ -156,8 +155,8 @@ class MultiSourceErrorCodeSearch:
                 return []
 
             # Get manufacturer and document names using array params
-            manufacturer_ids = list(set([row["manufacturer_id"] for row in error_codes if row.get("manufacturer_id")]))
-            document_ids = list(set([row["document_id"] for row in error_codes if row.get("document_id")]))
+            manufacturer_ids = list({row["manufacturer_id"] for row in error_codes if row.get("manufacturer_id")})
+            document_ids = list({row["document_id"] for row in error_codes if row.get("document_id")})
 
             manufacturers = {}
             if manufacturer_ids:
@@ -304,11 +303,9 @@ async def search_error_code_multi_source(request: ErrorCodeSearchRequest):
     try:
         search_service = get_search_service()
 
-        result = await search_service.search_error_code(
+        return await search_service.search_error_code(
             error_code=request.error_code, manufacturer=request.manufacturer, product=request.product
         )
-
-        return result
 
     except Exception as e:
         logger.error(f"Error in search_error_code_multi_source: {e}")

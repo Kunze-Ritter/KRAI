@@ -53,8 +53,8 @@ class MultimodalSearchService:
         self,
         query: str,
         modalities: list[str] = ["text", "image", "video", "table", "link"],
-        threshold: float = None,
-        limit: int = None,
+        threshold: float | None = None,
+        limit: int | None = None,
     ) -> dict[str, Any]:
         """
         Unified search across all content types
@@ -149,7 +149,9 @@ class MultimodalSearchService:
                 "error": str(e),
             }
 
-    async def search_images_by_context(self, query: str, threshold: float = None, limit: int = 5) -> dict[str, Any]:
+    async def search_images_by_context(
+        self, query: str, threshold: float | None = None, limit: int = 5
+    ) -> dict[str, Any]:
         """
         Context-aware image search
 

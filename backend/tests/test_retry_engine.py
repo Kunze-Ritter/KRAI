@@ -1082,7 +1082,7 @@ class TestRetryOrchestratorBaseProcessorIntegration:
         async def mock_processor(context):
             nonlocal call_count
             call_count += 1
-            result = ProcessingResult(
+            return ProcessingResult(
                 success=True,
                 processor="test",
                 status=ProcessingStatus.COMPLETED,
@@ -1090,7 +1090,6 @@ class TestRetryOrchestratorBaseProcessorIntegration:
                 metadata={},
                 processing_time=0.1,
             )
-            return result
 
         # Mock advisory lock
         retry_orchestrator.db_adapter.fetch_one = AsyncMock(

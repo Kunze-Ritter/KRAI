@@ -68,7 +68,7 @@ def firecrawl_available() -> bool:
 
     # Check if Firecrawl SDK is available
     try:
-        from firecrawl import AsyncFirecrawl
+        from firecrawl import AsyncFirecrawl  # noqa: F401
     except ImportError:
         return False
 
@@ -496,7 +496,7 @@ async def real_link_enrichment_service(
 @pytest.fixture
 async def real_product_researcher(
     test_database: DatabaseAdapter, firecrawl_available: bool
-) -> AsyncGenerator["ProductResearcher", None]:
+) -> AsyncGenerator["ProductResearcher", None]:  # noqa: F821  # TODO(task #17): pre-existing undefined name
     """
     Real ProductResearcher with live scraping and LLM backend.
 

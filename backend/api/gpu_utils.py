@@ -162,7 +162,7 @@ class GPUManager:
                 info["cuda_memory_total_gb"] = round(props.total_memory / (1024**3), 2)
                 info["cuda_compute_capability"] = f"{props.major}.{props.minor}"
                 info["cuda_version"] = torch.version.cuda
-            except:
+            except Exception:
                 pass
 
         return info

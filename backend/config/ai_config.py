@@ -302,10 +302,9 @@ class HardwareDetector:
                 return False
 
             # Check GPU VRAM >= 4GB (if GPU available)
-            if self.specs.gpu_available and self.specs.gpu_memory_gb:
-                if self.specs.gpu_memory_gb < 4.0:
-                    print(f"   [REQ] GPU VRAM insufficient: {self.specs.gpu_memory_gb:.1f} GB (need >= 4GB)")
-                    return False
+            if self.specs.gpu_available and self.specs.gpu_memory_gb and self.specs.gpu_memory_gb < 4.0:
+                print(f"   [REQ] GPU VRAM insufficient: {self.specs.gpu_memory_gb:.1f} GB (need >= 4GB)")
+                return False
 
             print("   [REQ] ColQwen2.5 requirements met")
             return True

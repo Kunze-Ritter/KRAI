@@ -15,7 +15,7 @@ class VideoEnrichmentProcessor(BaseProcessor):
     def __init__(
         self,
         database_service=None,
-        config: dict[str, Any] = None,
+        config: dict[str, Any] | None = None,
         brightcove_client: Any = None,
         enricher: Any = None,
     ):

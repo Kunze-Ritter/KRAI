@@ -26,7 +26,11 @@ class MockProcessor(BaseProcessor):
     """Mock processor for testing"""
 
     def __init__(
-        self, name: str = "test_processor", config: dict = None, fail_count: int = 0, error_type: str = "transient"
+        self,
+        name: str = "test_processor",
+        config: dict | None = None,
+        fail_count: int = 0,
+        error_type: str = "transient",
     ):
         super().__init__(name, config)
         self.fail_count = fail_count

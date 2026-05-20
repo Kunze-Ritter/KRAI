@@ -214,10 +214,7 @@ class VersionExtractor:
             "development",
         ]
         version_lower = version_string.lower()
-        for forbidden_term in forbidden:
-            if forbidden_term in version_lower:
-                return True
-        return False
+        return any(forbidden_term in version_lower for forbidden_term in forbidden)
 
     def _determine_version_type(self, category: str) -> str:
         """Determine version type from category"""
@@ -261,11 +258,7 @@ class VersionExtractor:
 
         # Check forbidden patterns
         forbidden = validation.get("forbidden_patterns", [])
-        for forbidden_pattern in forbidden:
-            if re.search(forbidden_pattern, version_string, re.IGNORECASE):
-                return False
-
-        return True
+        return all(not re.search(forbidden_pattern, version_string, re.IGNORECASE) for forbidden_pattern in forbidden)
 
     def _get_context(self, text: str, start: int, end: int, window: int = 50) -> str:
         """Get surrounding context of match"""

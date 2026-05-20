@@ -20,8 +20,8 @@ class VisionProductExtractor:
 
     def __init__(
         self,
-        vision_model: str = None,
-        text_model: str = None,
+        vision_model: str | None = None,
+        text_model: str | None = None,
         ollama_url: str = "http://localhost:11434",
         debug: bool = False,
     ):
@@ -68,9 +68,7 @@ class VisionProductExtractor:
             vision_analysis = self._analyze_with_vision(image_base64, manufacturer, target_section)
 
             # Refine with text model
-            products = self._refine_with_text_model(vision_analysis, manufacturer, page_number)
-
-            return products
+            return self._refine_with_text_model(vision_analysis, manufacturer, page_number)
 
         except Exception as e:
             self.logger.error(f"Vision extraction failed for page {page_number}: {e}")

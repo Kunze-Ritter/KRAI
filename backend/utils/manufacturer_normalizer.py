@@ -259,9 +259,8 @@ def add_manufacturer_alias(canonical_name: str, alias: str):
         canonical_name: Canonical manufacturer name
         alias: New alias to add
     """
-    if canonical_name in MANUFACTURER_MAP:
-        if alias not in MANUFACTURER_MAP[canonical_name]:
-            MANUFACTURER_MAP[canonical_name].append(alias)
+    if canonical_name in MANUFACTURER_MAP and alias not in MANUFACTURER_MAP[canonical_name]:
+        MANUFACTURER_MAP[canonical_name].append(alias)
 
 
 if __name__ == "__main__":

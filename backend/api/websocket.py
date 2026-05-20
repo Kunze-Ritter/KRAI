@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 from datetime import datetime
 from typing import Any
@@ -289,10 +290,8 @@ async def websocket_endpoint(
         pass
     except Exception as e:
         LOGGER.error(f"WebSocket error: {e}", exc_info=True)
-        try:
+        with contextlib.suppress(Exception):
             await websocket.close(code=1011, reason="Internal server error")
-        except Exception:
-            pass
     finally:
         manager.disconnect(websocket)
 

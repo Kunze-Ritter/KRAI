@@ -86,7 +86,7 @@ NUMBERED_STEPS_PATTERN = re.compile(
 )
 
 BULLET_PATTERN = re.compile(
-    r"((?:(?:•|-|\*|–)\s+.{15,500}?[\n\r]?){2,})",  # noqa: RUF001  # en-dash is a legitimate bullet char in PDFs
+    r"((?:(?:•|-|\*|–)\s+.{15,500}?[\n\r]?){2,})",  # en-dash is a legitimate bullet char in PDFs
     re.MULTILINE,
 )
 

@@ -263,7 +263,7 @@ class ResearchIntegration:
                 logger.info(f"Found {len(products)} products that need research")
 
                 # Get manufacturer names
-                manufacturer_ids = list(set(p["manufacturer_id"] for p in products if p.get("manufacturer_id")))
+                manufacturer_ids = list({p["manufacturer_id"] for p in products if p.get("manufacturer_id")})
                 manufacturers = {}
 
                 for mfr_id in manufacturer_ids:

@@ -131,7 +131,9 @@ class AIService:
             self.logger.error(f"Ollama connection test failed: {e}")
             raise
 
-    async def _call_ollama(self, model: str, prompt: str, images: list[bytes] = None, **kwargs) -> dict[str, Any]:
+    async def _call_ollama(
+        self, model: str, prompt: str, images: list[bytes] | None = None, **kwargs
+    ) -> dict[str, Any]:
         """Call Ollama API with model"""
         try:
             if self.client is None:
@@ -220,7 +222,7 @@ class AIService:
         }
         return fallbacks.get(model, [])
 
-    async def classify_document(self, text: str, filename: str = None) -> dict[str, Any]:
+    async def classify_document(self, text: str, filename: str | None = None) -> dict[str, Any]:
         """
         Classify document type using text classification model
 
@@ -446,7 +448,7 @@ class AIService:
             raise
 
     async def generate_text(
-        self, prompt: str, context: list[str] = None, max_tokens: int = 500, temperature: float = 0.7
+        self, prompt: str, context: list[str] | None = None, max_tokens: int = 500, temperature: float = 0.7
     ) -> str:
         """
         Generate text response using LLM (for RAG, two-stage retrieval)
@@ -492,7 +494,7 @@ Answer:"""
             self.logger.error(f"Failed to generate text: {e}")
             return ""  # Return empty string on error
 
-    async def analyze_image(self, image: bytes, description: str = None) -> dict[str, Any]:
+    async def analyze_image(self, image: bytes, description: str | None = None) -> dict[str, Any]:
         """
         Analyze image using vision model
 
@@ -566,7 +568,7 @@ Answer:"""
             self.logger.error(f"Failed to analyze image: {e}")
             raise
 
-    async def detect_defects(self, image: bytes, description: str = None) -> dict[str, Any]:
+    async def detect_defects(self, image: bytes, description: str | None = None) -> dict[str, Any]:
         """
         Detect defects in image for defect detection system
 
@@ -617,7 +619,11 @@ Answer:"""
             raise
 
     async def extract_error_codes_from_image(
-        self, image_url: str = None, image_bytes: bytes = None, image_id: str = None, manufacturer: str = "Unknown"
+        self,
+        image_url: str | None = None,
+        image_bytes: bytes | None = None,
+        image_id: str | None = None,
+        manufacturer: str = "Unknown",
     ) -> dict[str, Any]:
         """
         Extract error codes from screenshot/image using Vision Model (LLaVA via Ollama)

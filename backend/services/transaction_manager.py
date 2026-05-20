@@ -281,7 +281,7 @@ class TransactionManager:
                     # Update with old values
                     set_clauses = [f"{key} = ${i+2}" for i, key in enumerate(old_values.keys())]
                     query = f"UPDATE {table_name} SET {', '.join(set_clauses)} WHERE id = $1"
-                    await self._adapter.execute_query(query, [record_id] + list(old_values.values()))
+                    await self._adapter.execute_query(query, [record_id, *list(old_values.values())])
                     compensated += 1
                 elif operation == "create" and record_id:
                     # Delete the created record
@@ -292,7 +292,7 @@ class TransactionManager:
                     # Default to restoring old_values when operation type is ambiguous.
                     set_clauses = [f"{key} = ${i+2}" for i, key in enumerate(old_values.keys())]
                     query = f"UPDATE {table_name} SET {', '.join(set_clauses)} WHERE id = $1"
-                    await self._adapter.execute_query(query, [record_id] + list(old_values.values()))
+                    await self._adapter.execute_query(query, [record_id, *list(old_values.values())])
                     compensated += 1
                 else:
                     self._logger.debug("Insufficient rollback information: %s", data)

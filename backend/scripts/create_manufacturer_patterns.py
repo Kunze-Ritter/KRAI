@@ -170,7 +170,7 @@ def test_patterns(config: dict, test_codes: list[str]):
                 if pattern.search(test_code):
                     matched = True
                     break
-            except:
+            except Exception:
                 pass
 
         # Validate

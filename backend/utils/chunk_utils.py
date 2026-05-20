@@ -137,7 +137,7 @@ class ChunkingStrategy:
                     # Start new chunk with overlap
                     overlap_sentences = current_sentences[-2:] if len(current_sentences) >= 2 else current_sentences
                     current_chunk = " ".join(overlap_sentences) + " " + sentence + ". "
-                    current_sentences = overlap_sentences + [sentence]
+                    current_sentences = [*overlap_sentences, sentence]
 
             # Add final chunk
             if current_chunk:
@@ -185,7 +185,7 @@ class ChunkingStrategy:
                     # Start new chunk with overlap
                     overlap_paragraphs = current_paragraphs[-1:] if current_paragraphs else []
                     current_chunk = "\n\n".join(overlap_paragraphs) + "\n\n" + paragraph + "\n\n"
-                    current_paragraphs = overlap_paragraphs + [paragraph]
+                    current_paragraphs = [*overlap_paragraphs, paragraph]
 
             # Add final chunk
             if current_chunk:
@@ -329,10 +329,7 @@ class ChunkingStrategy:
             r"^\d+\.\d+\s+",  # 1.1 Header
         ]
 
-        for pattern in header_patterns:
-            if re.match(pattern, line):
-                return True
-        return False
+        return any(re.match(pattern, line) for pattern in header_patterns)
 
     def _split_section_into_chunks(
         self, content: str, title: str, chunk_size: int, chunk_overlap: int
@@ -407,10 +404,7 @@ class ChunkingStrategy:
             r"^\d+\)\s+",  # 1) Step
         ]
 
-        for pattern in procedure_patterns:
-            if re.match(pattern, line):
-                return True
-        return False
+        return any(re.match(pattern, line) for pattern in procedure_patterns)
 
     def _chunk_procedure(self, procedure_text: str, chunk_size: int) -> list[ChunkData]:
         """Chunk procedure text by steps"""

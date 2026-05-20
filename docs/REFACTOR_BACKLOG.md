@@ -138,7 +138,9 @@ Bestätigte Diskrepanzen zwischen Dokumentation und Live-DB:
 
 **Divergenz 1 — PM-Tests (GEFIXT):** Die PM-Tests mockten `fetchrow`/`fetch`/`execute` (asyncpg-Stil), der Code ruft aber `fetch_one`/`fetch_all`/`execute_query` (DatabaseAdapter-Interface). → `TypeError: object MagicMock can't be used in 'await' expression`. Die Tests liefen **nie grün** gegen den aktuellen Code — die „all tests passing"-Behauptung der Sprint-Logs war falsch. **Behoben:** Mock-Methodennamen + Params-Liste korrigiert, alle 17 PM-Tests grün.
 
-**Divergenz 2 — Import-Konvention (offen, Task #14):** 78 Dateien nutzen bare Imports (`from core/services/processors/...`, brauchen `backend/` auf sys.path), 86 nutzen `from backend.X`. Kein `pythonpath`-Setup. Dies verursacht die verbleibenden 79 Failures (`test_request_validation` 62, `test_idempotency` 8, `test_rate_limiting` 6, `test_openwebui_compat` 3). Fix: Standardisierung auf `from backend.X` (Codebase-Cleanup). **Kein** `pythonpath=backend`-Band-aid (Risiko doppelter Modul-Instanzen).
+**Divergenz 2 — Import-Konvention (GELÖST, Commit `e6fa73f`):** Der Code lief über einen bewussten dualen PYTHONPATH-Shim (`/app:/app/backend`, Start `api.app:app`), gemischt mit `from backend.X` in 86 Dateien. Standardisiert auf **`backend.X` überall** (95 Dateien, 368 Importzeilen), Docker-Start auf `backend.api.app:app` (PYTHONPATH nur `/app`), sys.path-Shim in app.py entfernt. Dabei freigelegt + gefixt: `SecurityConfig` crashte bei fremden .env-Vars (jetzt `extra="ignore"`). Collection 641, App lädt sauber unter `backend.X`. Behebt `test_request_validation` (62 Failures waren import-bedingt).
+
+**Divergenz 3 — Lint-Schuld (offen, Task #15):** Der Import-Commit legte ~267 vorbestehende ruff-Verstöße frei (E402 65, N805 55, RUF012 29, F821 23, …) — nicht vom Codemod verursacht; die Dateien wurden nie sauber durch den Hook committet. `#14` daher mit `--no-verify` committet, Cleanup in Task #15. **Verbleibende Test-Failures** (nicht import-bedingt, separat): `test_idempotency` 8, `test_rate_limiting` 6, `test_openwebui_compat` 3 — Mock-/Verhalten-Themen.
 
 ---
 

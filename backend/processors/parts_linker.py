@@ -157,7 +157,7 @@ def link_parts_to_error_codes(
 
 
 def find_parts_for_product(
-    product, parts: list, parts_catalog_data: list[dict] = None, verbose: bool = False
+    product, parts: list, parts_catalog_data: list[dict] | None = None, verbose: bool = False
 ) -> list[str]:
     """
     Findet Parts die zu einem Product gehören
@@ -211,7 +211,7 @@ def find_parts_for_product(
     return linked_parts
 
 
-def extract_parts_from_context(context_text: str, known_parts: list = None) -> list[str]:
+def extract_parts_from_context(context_text: str, known_parts: list | None = None) -> list[str]:
     """
     Extrahiert Part Numbers aus Text-Kontext
 

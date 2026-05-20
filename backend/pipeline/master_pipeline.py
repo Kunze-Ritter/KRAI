@@ -1481,7 +1481,7 @@ class KRMasterPipeline:
         # Set PowerShell console properties if available
         if os.name == "nt":  # Windows
             with contextlib.suppress(Exception):
-                os.system("chcp 65001 >nul 2>&1")  # noqa: ASYNC221
+                os.system("chcp 65001 >nul 2>&1")
 
         while True:
             if max_iterations is not None and iterations >= max_iterations:

@@ -31,7 +31,7 @@ class ErrorCodeExtractionTester:
         self.extractor = ErrorCodeExtractor()
         self.results = []
 
-    def test_pdf(self, pdf_path: str, manufacturer: str = None, test_name: str = None) -> dict[str, Any]:
+    def test_pdf(self, pdf_path: str, manufacturer: str | None = None, test_name: str | None = None) -> dict[str, Any]:
         """
         Test error code extraction on a PDF
 
@@ -98,7 +98,7 @@ class ErrorCodeExtractionTester:
                 "manufacturer": manufacturer,
                 "total_pages": total_pages,
                 "error_codes_found": len(all_error_codes),
-                "unique_codes": len(set(ec.error_code for ec in all_error_codes)),
+                "unique_codes": len({ec.error_code for ec in all_error_codes}),
                 "with_solution": len([ec for ec in all_error_codes if ec.solution_text]),
                 "with_description": len([ec for ec in all_error_codes if ec.error_description]),
                 "avg_confidence": (
@@ -224,7 +224,7 @@ class ErrorCodeExtractionTester:
         logger.warning("  Manufacturer not detected, using 'generic'")
         return "generic"
 
-    def generate_report(self, results: list[dict[str, Any]], output_file: str = None):
+    def generate_report(self, results: list[dict[str, Any]], output_file: str | None = None):
         """
         Generate test report
 

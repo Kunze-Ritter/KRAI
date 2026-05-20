@@ -14,6 +14,7 @@ import fitz  # PyMuPDF
 from PIL import Image
 
 from backend.core.base_processor import BaseProcessor, ProcessingContext, ProcessingResult
+from backend.processors.exceptions import ProcessingError
 from backend.services.object_storage_service import ObjectStorageService
 
 

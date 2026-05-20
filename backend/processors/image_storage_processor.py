@@ -26,7 +26,10 @@ from pathlib import Path as FilePath
 try:
     from dotenv import load_dotenv
 except ImportError:
-    load_dotenv = lambda *args, **kwargs: None  # Fallback accepts any args
+
+    def load_dotenv(*args, **kwargs):
+        return None  # Fallback accepts any args
+
 
 # Load .env
 env_path = FilePath(__file__).parent.parent.parent / ".env"
@@ -132,8 +135,7 @@ class ImageStorageProcessor:
 
         try:
             # Use DatabaseAdapter interface method
-            result = await self.db_client.get_image_by_hash(file_hash)
-            return result
+            return await self.db_client.get_image_by_hash(file_hash)
 
         except Exception as e:
             self.logger.debug(f"Error checking image existence: {e}")

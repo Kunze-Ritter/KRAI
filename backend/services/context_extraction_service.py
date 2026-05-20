@@ -405,7 +405,7 @@ class ContextExtractionService:
 
         return list(set(products))  # Remove duplicates
 
-    def _extract_surrounding_paragraphs(self, page_text: str, target_position: int = None) -> list[str]:
+    def _extract_surrounding_paragraphs(self, page_text: str, target_position: int | None = None) -> list[str]:
         """
         Extract surrounding paragraphs from page text.
 

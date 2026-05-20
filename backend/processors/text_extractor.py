@@ -554,9 +554,7 @@ class TextExtractor:
 
         # Remove spaces at line start/end
         lines = [line.strip() for line in text.split("\n")]
-        text = "\n".join(lines)
-
-        return text
+        return "\n".join(lines)
 
     def extract_first_page_text(self, pdf_path: Path) -> str:
         """

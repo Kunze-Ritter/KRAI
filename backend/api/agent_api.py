@@ -69,8 +69,8 @@ class ChatResponse(BaseModel):
 
 def _coalesce_product_label(row: asyncpg.Record) -> str | None:
     product_bits = [
-        row["model_name"] if "model_name" in row else None,
-        row["model_number"] if "model_number" in row else None,
+        row.get("model_name", None),
+        row.get("model_number", None),
     ]
     product_label = " ".join(bit for bit in product_bits if bit).strip()
     return product_label or None

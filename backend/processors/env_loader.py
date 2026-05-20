@@ -12,7 +12,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 
-def load_all_env_files(project_root: Path = None, extra_files: list[str] | None = None):
+def load_all_env_files(project_root: Path | None = None, extra_files: list[str] | None = None):
     """
     Load all .env.* files in order
 

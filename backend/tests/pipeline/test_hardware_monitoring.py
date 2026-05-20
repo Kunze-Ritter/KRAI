@@ -195,28 +195,27 @@ async def test_monitor_hardware_collects_cpu_ram_gpu():
     """Test monitor_hardware() uses psutil and _get_gpu_status."""
     db = MockDatabaseService()
     pipeline = KRMasterPipeline(database_adapter=db)
-    with patch("psutil.cpu_percent", return_value=50.0):
-        with patch("psutil.virtual_memory") as vm:
-            vm.return_value = MagicMock(
-                percent=65.0,
-                total=16 * 1024**3,
-                available=4 * 1024**3,
+    with patch("psutil.cpu_percent", return_value=50.0), patch("psutil.virtual_memory") as vm:
+        vm.return_value = MagicMock(
+            percent=65.0,
+            total=16 * 1024**3,
+            available=4 * 1024**3,
+        )
+        with patch.object(
+            pipeline,
+            "_get_gpu_status",
+            return_value={
+                "name": "Test GPU",
+                "memory_used": 2.0,
+                "memory_total": 8.0,
+                "utilization": 25.0,
+            },
+        ):
+            await pipeline.monitor_hardware(
+                sleep_interval=0.05,
+                max_iterations=1,
+                sleep_func=asyncio.sleep,
             )
-            with patch.object(
-                pipeline,
-                "_get_gpu_status",
-                return_value={
-                    "name": "Test GPU",
-                    "memory_used": 2.0,
-                    "memory_total": 8.0,
-                    "utilization": 25.0,
-                },
-            ):
-                await pipeline.monitor_hardware(
-                    sleep_interval=0.05,
-                    max_iterations=1,
-                    sleep_func=asyncio.sleep,
-                )
 
 
 # --- 4.1 Hardware waker concurrent processing ---
@@ -232,18 +231,20 @@ async def test_process_batch_hardware_waker_structure():
     async def mock_process(path, index, total):
         return {"success": True, "filename": path, "document_id": "doc-1"}
 
-    with patch.object(
-        pipeline,
-        "process_single_document_full_pipeline",
-        side_effect=mock_process,
+    with (
+        patch.object(
+            pipeline,
+            "process_single_document_full_pipeline",
+            side_effect=mock_process,
+        ),
+        patch.object(pipeline, "monitor_hardware", new_callable=AsyncMock),
     ):
-        with patch.object(pipeline, "monitor_hardware", new_callable=AsyncMock):
-            results = await pipeline.process_batch_hardware_waker(
-                [
-                    "/fake/a.pdf",
-                    "/fake/b.pdf",
-                ]
-            )
+        results = await pipeline.process_batch_hardware_waker(
+            [
+                "/fake/a.pdf",
+                "/fake/b.pdf",
+            ]
+        )
     assert "successful" in results
     assert "failed" in results
     assert "total_files" in results
@@ -271,19 +272,21 @@ async def test_process_batch_hardware_waker_semaphore_limit():
             concurrent.clear()
             return {"success": True, "filename": path}
 
-    with patch.object(
-        pipeline,
-        "process_single_document_full_pipeline",
-        side_effect=mock_process,
+    with (
+        patch.object(
+            pipeline,
+            "process_single_document_full_pipeline",
+            side_effect=mock_process,
+        ),
+        patch.object(pipeline, "monitor_hardware", new_callable=AsyncMock),
     ):
-        with patch.object(pipeline, "monitor_hardware", new_callable=AsyncMock):
-            await pipeline.process_batch_hardware_waker(
-                [
-                    "/fake/1.pdf",
-                    "/fake/2.pdf",
-                    "/fake/3.pdf",
-                ]
-            )
+        await pipeline.process_batch_hardware_waker(
+            [
+                "/fake/1.pdf",
+                "/fake/2.pdf",
+                "/fake/3.pdf",
+            ]
+        )
     # All 3 should complete (structure test; semaphore limits in-flight)
     assert True
 
@@ -311,13 +314,15 @@ async def test_process_batch_starts_monitor_task():
     async def mock_process(path, index, total):
         return {"success": True, "filename": path}
 
-    with patch.object(pipeline, "monitor_hardware", side_effect=mock_monitor):
-        with patch.object(
+    with (
+        patch.object(pipeline, "monitor_hardware", side_effect=mock_monitor),
+        patch.object(
             pipeline,
             "process_single_document_full_pipeline",
             side_effect=mock_process,
-        ):
-            results = await pipeline.process_batch_hardware_waker(["/fake/1.pdf"])
+        ),
+    ):
+        results = await pipeline.process_batch_hardware_waker(["/fake/1.pdf"])
 
     assert monitor_started is True
     assert results["total_files"] == 1

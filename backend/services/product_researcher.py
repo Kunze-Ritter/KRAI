@@ -338,37 +338,39 @@ Return ONLY the JSON object, no other text."""
             # Call Ollama API
             import aiohttp
 
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
+            async with (
+                aiohttp.ClientSession() as session,
+                session.post(
                     f"{self.ollama_url}/api/generate",
                     json={"model": os.getenv("MODEL_NAME", "llama3.2:latest"), "prompt": prompt, "stream": False},
                     timeout=aiohttp.ClientTimeout(total=timeout),
-                ) as response:
-                    if response.status != 200:
-                        return {"success": False, "error": f"Ollama API error: {response.status}"}
+                ) as response,
+            ):
+                if response.status != 200:
+                    return {"success": False, "error": f"Ollama API error: {response.status}"}
 
-                    data = await response.json()
-                    llm_response = data.get("response", "")
+                data = await response.json()
+                llm_response = data.get("response", "")
 
-                    # Parse JSON from response
-                    try:
-                        # Extract JSON from response (might have extra text)
-                        json_start = llm_response.find("{")
-                        json_end = llm_response.rfind("}") + 1
-                        if json_start >= 0 and json_end > json_start:
-                            json_str = llm_response[json_start:json_end]
-                            analysis = json.loads(json_str)
+                # Parse JSON from response
+                try:
+                    # Extract JSON from response (might have extra text)
+                    json_start = llm_response.find("{")
+                    json_end = llm_response.rfind("}") + 1
+                    if json_start >= 0 and json_end > json_start:
+                        json_str = llm_response[json_start:json_end]
+                        analysis = json.loads(json_str)
 
-                            return {
-                                "success": True,
-                                "series_name": analysis.get("series_name", ""),
-                                "specifications": analysis.get("specifications", {}),
-                                "confidence": float(analysis.get("confidence", 0.5)),
-                            }
-                        return {"success": False, "error": "No JSON found in LLM response"}
-                    except json.JSONDecodeError as e:
-                        logger.error(f"Failed to parse LLM response: {e}")
-                        return {"success": False, "error": f"JSON parse error: {e}"}
+                        return {
+                            "success": True,
+                            "series_name": analysis.get("series_name", ""),
+                            "specifications": analysis.get("specifications", {}),
+                            "confidence": float(analysis.get("confidence", 0.5)),
+                        }
+                    return {"success": False, "error": "No JSON found in LLM response"}
+                except json.JSONDecodeError as e:
+                    logger.error(f"Failed to parse LLM response: {e}")
+                    return {"success": False, "error": f"JSON parse error: {e}"}
 
         except TimeoutError:
             return {"success": False, "error": "LLM analysis timeout"}
@@ -439,8 +441,7 @@ Return ONLY the JSON object, no other text."""
             Dictionary with scraping results
         """
         try:
-            result = await self.scraper.scrape_url(url, options={"timeout": timeout})
-            return result
+            return await self.scraper.scrape_url(url, options={"timeout": timeout})
         except Exception as e:
             logger.error(f"Error scraping {url}: {e}")
             return {"success": False, "error": str(e)}
@@ -463,8 +464,7 @@ Return ONLY the JSON object, no other text."""
         try:
             # Use Firecrawl map_urls if available
             if hasattr(self.scraper, "map_urls"):
-                result = await self.scraper.map_urls(base_url, search_term=search_term, max_urls=max_urls)
-                return result
+                return await self.scraper.map_urls(base_url, search_term=search_term, max_urls=max_urls)
             return {"success": False, "error": "URL discovery not supported by current scraping backend"}
         except Exception as e:
             logger.error(f"Error discovering URLs: {e}")

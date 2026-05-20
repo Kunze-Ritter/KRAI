@@ -26,8 +26,7 @@ _security_config = get_security_config()
 
 def sanitize_string(value: str) -> str:
     """Normalize whitespace and strip control characters."""
-    normalized = re.sub(r"\s+", " ", value.strip())
-    return normalized
+    return re.sub(r"\s+", " ", value.strip())
 
 
 def truncate_string(value: str, max_length: int) -> str:

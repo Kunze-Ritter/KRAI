@@ -165,9 +165,7 @@ class ManufacturerNormalizationService:
 
         # Remove extra whitespace and special characters
         cleaned = re.sub(r"\s+", " ", cleaned)
-        cleaned = re.sub(r"[^\w\s-]", "", cleaned)
-
-        return cleaned
+        return re.sub(r"[^\w\s-]", "", cleaned)
 
     def _fuzzy_match_manufacturer(self, name: str) -> str | None:
         """Fuzzy match manufacturer name"""

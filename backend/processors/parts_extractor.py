@@ -42,8 +42,7 @@ class PartsExtractor:
         """Load parts patterns configuration"""
         try:
             with open(self.config_path, encoding="utf-8") as f:
-                config = json.load(f)
-            return config
+                return json.load(f)
         except FileNotFoundError:
             logger.warning(f"Parts patterns config not found: {self.config_path}")
             return {"extraction_rules": {}}
@@ -84,7 +83,7 @@ class PartsExtractor:
             if manufacturer_name:
                 logger.error(f"❌ No parts patterns configured for manufacturer: '{manufacturer_name}'")
                 logger.error(
-                    f"   Available manufacturers: {', '.join([k for k in self.patterns_config.keys() if k != 'generic'])}"
+                    f"   Available manufacturers: {', '.join([k for k in self.patterns_config if k != 'generic'])}"
                 )
                 logger.error("   Please add patterns to: backend/config/parts_patterns.json")
             else:
@@ -178,7 +177,7 @@ class PartsExtractor:
         logger.info(f"Enriching {len(parts_needing_vision)} parts with Vision AI...")
 
         # Group by page number for efficient processing
-        pages_to_process = list(set(p.page_number for p in parts_needing_vision))
+        pages_to_process = list({p.page_number for p in parts_needing_vision})
 
         enriched_parts = []
         for part in parts:
@@ -331,7 +330,7 @@ If you cannot find the part number, return {{"found": false}}"""
             # Use vision processor to analyze page
             result = self.vision_processor.analyze_page(pdf_path=pdf_path, page_number=page_number, prompt=prompt)
 
-            if result and result.get("found") != False:
+            if result and result.get("found") is not False:
                 return result
 
         except Exception as e:

@@ -17,7 +17,7 @@ from .models import ExtractedProduct
 class LLMProductExtractor:
     """Extract products and specifications using local LLM"""
 
-    def __init__(self, model_name: str = None, ollama_url: str = "http://localhost:11434", debug: bool = False):
+    def __init__(self, model_name: str | None = None, ollama_url: str = "http://localhost:11434", debug: bool = False):
         """
         Initialize LLM extractor
 
@@ -75,7 +75,7 @@ class LLMProductExtractor:
         max_chars = 100000
         text_sample = text[:max_chars] if len(text) > max_chars else text
 
-        prompt = f"""Extract ALL products (printers, accessories, options) from this {manufacturer} technical document.
+        return f"""Extract ALL products (printers, accessories, options) from this {manufacturer} technical document.
 
 IMPORTANT: ALL products in this document are {manufacturer} products! Do NOT extract products from other manufacturers.
 
@@ -117,8 +117,6 @@ RULES:
 - Be flexible with spec names
 
 JSON:"""
-
-        return prompt
 
     def _call_ollama(self, prompt: str) -> str:
         """Call Ollama API (supports both old and new API)"""
@@ -216,7 +214,7 @@ JSON:"""
             # Handle different response formats
             if isinstance(data, dict):
                 # Check if LLM wrapped it in a "products" key
-                if "products" in data:
+                if "products" in data:  # noqa: SIM401
                     data = data["products"]
                 else:
                     # Single product object

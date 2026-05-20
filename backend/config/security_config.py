@@ -72,7 +72,7 @@ class SecurityConfig(BaseSettings):
         extra = "ignore"  # shared .env carries many unrelated vars; only parse our own
 
     @field_validator("RATE_LIMIT_STORAGE")
-    def validate_rate_limit_storage(cls, value: str) -> str:  # noqa: N805
+    def validate_rate_limit_storage(cls, value: str) -> str:
         if value not in {"redis", "memory"}:
             raise ValueError("RATE_LIMIT_STORAGE must be either 'redis' or 'memory'")
         return value
@@ -85,7 +85,7 @@ class SecurityConfig(BaseSettings):
         "RATE_LIMIT_HEALTH",
         "RATE_LIMIT_API_KEY",
     )
-    def validate_rate_limit_format(cls, value: str) -> str:  # noqa: N805
+    def validate_rate_limit_format(cls, value: str) -> str:
         if "/" not in value:
             raise ValueError("Rate limit format must be '<count>/<period>'")
         count, period = value.split("/", maxsplit=1)
@@ -98,7 +98,7 @@ class SecurityConfig(BaseSettings):
         return value
 
     @field_validator("ALLOWED_FILE_TYPES")
-    def normalize_file_types(cls, values: list[str]) -> list[str]:  # noqa: N805
+    def normalize_file_types(cls, values: list[str]) -> list[str]:
         normalized = []
         for ext in values:
             if not ext.startswith("."):
@@ -107,7 +107,7 @@ class SecurityConfig(BaseSettings):
         return normalized
 
     @field_validator("CORS_ALLOWED_ORIGINS", mode="before")
-    def parse_cors_origins(cls, value: list[str] | str | None) -> list[str]:  # noqa: N805
+    def parse_cors_origins(cls, value: list[str] | str | None) -> list[str]:
         if value is None:
             return []
         if isinstance(value, str):
@@ -115,7 +115,7 @@ class SecurityConfig(BaseSettings):
         return value
 
     @field_validator("CORS_ALLOWED_ORIGINS")
-    def ensure_cors_origins(cls, values: list[str]) -> list[str]:  # noqa: N805
+    def ensure_cors_origins(cls, values: list[str]) -> list[str]:
         if not values:
             raise ValueError("At least one CORS origin must be configured")
         return values

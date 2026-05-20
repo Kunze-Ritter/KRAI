@@ -836,7 +836,7 @@ def _format_solution_text(text: str) -> str:
     text = re.sub(r"\n?Chapter\s+\d+[^\n]*\n?", "\n", text)
     text = re.sub(r"\nENWW\n", "\n", text)
     # Remove PDF table header artefacts (pre-boot menu tables etc.)
-    text = re.sub(r"\nTable\s+\d+[-–]\d+[^\n]*\n", "\n", text)  # noqa: RUF001  # en-dash present in PDF text
+    text = re.sub(r"\nTable\s+\d+[-–]\d+[^\n]*\n", "\n", text)  # en-dash present in PDF text
     text = re.sub(r"\n(?:Menu option|First level|Second level|Third level|Description)\n", "\n", text)
     # Remove lonely "Administrator" / "Administrator (continued)" lines from HP pre-boot tables
     text = re.sub(r"\nAdministrator(?:\s*\(continued\))?\n", "\n", text)
@@ -877,13 +877,13 @@ def _extract_solution_from_chunk(chunk_text: str, error_code: str, allow_desc_fa
     # Measures: loop through ALL occurrences, skipping authentication/login procedures
     # that appear before the real hardware fix steps on Kyocera FAX multi-code pages
     # (IC Card login failure procedure comes first, actual FAX PWB / SSD fix comes later).
-    _AUTH_PROC_RE = re.compile(  # noqa: N806  # function-scoped regex constant
+    _AUTH_PROC_RE = re.compile(  # function-scoped regex constant
         r"IC\s*Card|KeyPWB|Department\s+Management.*?Authentication|"
         r"Log\s+in\s+by\s+key\s+board|Set.*?IC\s+Card\s+authentication|"
         r"Changing\s+the\s+setting.*?IC\s+Card",
         re.IGNORECASE | re.DOTALL,
     )
-    _HW_ACTION_RE = re.compile(  # noqa: N806  # function-scoped regex constant
+    _HW_ACTION_RE = re.compile(  # function-scoped regex constant
         r"\b(replac|reinstall|check\b|firmware|execut|reset\b|install\b|"
         r"turn\s+off|reattach|remov|upgrade|initializ|U\d{3,}\b)",
         re.IGNORECASE,
@@ -1436,8 +1436,8 @@ async def _fast_path_lookup(
         sources = group["sources"]
 
         # Strip leading punctuation/spaces from description (PDF extraction artifact)
-        desc = re.sub(r"^[\s,;:\-–—]+", "", desc).strip() or "—"  # noqa: RUF001
-        header = f"### Fehler `{code}` – {desc}"  # noqa: RUF001
+        desc = re.sub(r"^[\s,;:\-–—]+", "", desc).strip() or "—"
+        header = f"### Fehler `{code}` – {desc}"
         if mfr:
             header += f"  *({mfr})*"
         if raw_model:
@@ -1496,7 +1496,7 @@ async def _fast_path_lookup(
             if _has_steps:
                 parts.append("\n**Lösung** *(aus Service-Manual)*:\n")
             else:
-                parts.append("\n**ℹ️ Fehlerbeschreibung** *(aus Service-Manual)*:\n")  # noqa: RUF001
+                parts.append("\n**ℹ️ Fehlerbeschreibung** *(aus Service-Manual)*:\n")
             parts.append(_format_solution_text(solution_from_chunk))
         else:
             parts.append("\n⚠️ *Keine Schritt-für-Schritt-Lösung verfügbar. Bitte Service-Manual konsultieren.*")
@@ -1813,7 +1813,7 @@ async def _parts_lookup(pool, text: str, scope: dict[str, str] | None = None) ->
     for r in rows:
         price = f" — ${r['price_usd']:.2f}" if r["price_usd"] else ""
         mfr = f" *({r['manufacturer_name']})*" if r["manufacturer_name"] else ""
-        lines.append(f"**{r['part_number']}** – {r['part_name']}{mfr}{price}")  # noqa: RUF001
+        lines.append(f"**{r['part_number']}** – {r['part_name']}{mfr}{price}")
         if _product_label(r) or r["series_name"]:
             lines.append(f"  Gerät: {_product_label(r) or r['series_name']}")
         if r["description"]:
@@ -2207,7 +2207,7 @@ async def chat_completions(
             body.model,
         )
 
-    _AGENT_TIMEOUT = int(os.getenv("KRAI_AGENT_TIMEOUT", "30"))  # noqa: N806  # function-scoped constant
+    _AGENT_TIMEOUT = int(os.getenv("KRAI_AGENT_TIMEOUT", "30"))  # function-scoped constant
 
     if body.stream:
 

@@ -29,6 +29,7 @@ from backend.models.image import (
     ImageUploadResponse,
     ImageWithRelationsResponse,
 )
+from backend.services.database_adapter import DatabaseAdapter
 from backend.services.storage_factory import create_storage_service
 
 LOGGER = logging.getLogger("krai.api.images")

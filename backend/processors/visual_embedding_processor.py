@@ -39,7 +39,7 @@ class VisualEmbeddingProcessor(BaseProcessor):
     def __init__(
         self,
         database_service,
-        model_name: str = None,
+        model_name: str | None = None,
         device: str = "auto",
         batch_size: int = 4,
         embedding_dimension: int = 768,

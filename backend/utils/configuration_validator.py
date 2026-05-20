@@ -110,7 +110,7 @@ class ConfigurationValidator:
     ) -> list[str]:
         """Check if all required dependencies are satisfied"""
         errors = []
-        accessory_id_set = set(str(aid) for aid in accessory_ids)
+        accessory_id_set = {str(aid) for aid in accessory_ids}
 
         # Get product details for better error messages
         product_names = await self._get_product_names(accessory_ids, adapter)
@@ -138,7 +138,7 @@ class ConfigurationValidator:
     ) -> list[str]:
         """Check for conflicting options (excludes)"""
         errors = []
-        accessory_id_set = set(str(aid) for aid in accessory_ids)
+        accessory_id_set = {str(aid) for aid in accessory_ids}
 
         # Get product details for better error messages
         product_names = await self._get_product_names(accessory_ids, adapter)
@@ -166,7 +166,7 @@ class ConfigurationValidator:
     ) -> list[str]:
         """Check for alternative options (warnings)"""
         warnings = []
-        accessory_id_set = set(str(aid) for aid in accessory_ids)
+        accessory_id_set = {str(aid) for aid in accessory_ids}
 
         # Get product details for better messages
         product_names = await self._get_product_names(accessory_ids, adapter)
@@ -203,7 +203,7 @@ class ConfigurationValidator:
             )
 
             if results:
-                accessory_id_set = set(str(aid) for aid in accessory_ids)
+                accessory_id_set = {str(aid) for aid in accessory_ids}
 
                 for row in results:
                     accessory_id = row["accessory_id"]

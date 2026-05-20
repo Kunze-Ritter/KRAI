@@ -59,7 +59,7 @@ def clean_model_number(model_number: str) -> str:
 
             logger = get_logger()
             logger.debug(f"Cleaned model number: '{original}' -> '{model_number}'")
-        except:
+        except Exception:
             pass  # Logger not available, skip logging
 
     return model_number
@@ -142,10 +142,7 @@ def is_valid_model_number(model_number: str) -> bool:
         return False
 
     # Filter out RM/RK part numbers (HP/Konica internal parts)
-    if re.match(r"^R[MK]\d-\d{4}-\d{3}[A-Z]{2}$", model_number.upper()):
-        return False
-
-    return True
+    return not re.match("^R[MK]\\d-\\d{4}-\\d{3}[A-Z]{2}$", model_number.upper())
 
 
 if __name__ == "__main__":

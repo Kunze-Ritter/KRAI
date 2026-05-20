@@ -34,12 +34,12 @@ class DeduplicationVerifier:
 
         # R2 credentials
 
-        if all([r2_access_key, r2_secret_key, r2_endpoint_url]):
+        if all([r2_access_key, r2_secret_key, r2_endpoint_url]):  # noqa: F821  (TODO task #17: undefined name)
             self.s3_client = boto3.client(
                 "s3",
-                endpoint_url=r2_endpoint_url,
-                aws_access_key_id=r2_access_key,
-                aws_secret_access_key=r2_secret_key,
+                endpoint_url=r2_endpoint_url,  # noqa: F821  # TODO(task #17): pre-existing undefined name
+                aws_access_key_id=r2_access_key,  # noqa: F821  # TODO(task #17): pre-existing undefined name
+                aws_secret_access_key=r2_secret_key,  # noqa: F821  # TODO(task #17): pre-existing undefined name
                 region_name="auto",
             )
         else:

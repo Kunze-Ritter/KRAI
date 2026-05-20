@@ -158,16 +158,18 @@ class TestProductResearcherUnitMocks:
 
         mock_post.side_effect = post_side_effect
 
-        with patch.object(
-            product_researcher, "_scrape_multiple_urls", new_callable=AsyncMock, return_value=sample_scraped_content
-        ):
-            with patch.object(
+        with (
+            patch.object(
+                product_researcher, "_scrape_multiple_urls", new_callable=AsyncMock, return_value=sample_scraped_content
+            ),
+            patch.object(
                 product_researcher,
                 "_analyze_with_llm",
                 new_callable=AsyncMock,
                 return_value={"success": True, **sample_llm_analysis},
-            ):
-                result = await product_researcher.research_product(manufacturer="Konica Minolta", model="C750i")
+            ),
+        ):
+            result = await product_researcher.research_product(manufacturer="Konica Minolta", model="C750i")
 
         assert result["success"] is True
         assert result["manufacturer"] == "Konica Minolta"
@@ -213,36 +215,40 @@ class TestProductResearcherUnitMocks:
     @pytest.mark.asyncio
     async def test_research_product_scraping_failure(self, product_researcher):
         """Test product research when scraping fails."""
-        with patch.object(
-            product_researcher,
-            "_search_product",
-            new_callable=AsyncMock,
-            return_value={"success": True, "urls": ["http://example.com"]},
+        with (
+            patch.object(
+                product_researcher,
+                "_search_product",
+                new_callable=AsyncMock,
+                return_value={"success": True, "urls": ["http://example.com"]},
+            ),
+            patch.object(product_researcher, "_scrape_multiple_urls", new_callable=AsyncMock, return_value=""),
         ):
-            with patch.object(product_researcher, "_scrape_multiple_urls", new_callable=AsyncMock, return_value=""):
-                result = await product_researcher.research_product(manufacturer="Konica Minolta", model="C750i")
+            result = await product_researcher.research_product(manufacturer="Konica Minolta", model="C750i")
         assert result["success"] is False
         assert "error" in result
 
     @pytest.mark.asyncio
     async def test_research_product_llm_failure(self, product_researcher, sample_scraped_content):
         """Test product research when LLM analysis fails."""
-        with patch.object(
-            product_researcher,
-            "_search_product",
-            new_callable=AsyncMock,
-            return_value={"success": True, "urls": ["http://example.com"]},
-        ):
-            with patch.object(
+        with (
+            patch.object(
+                product_researcher,
+                "_search_product",
+                new_callable=AsyncMock,
+                return_value={"success": True, "urls": ["http://example.com"]},
+            ),
+            patch.object(
                 product_researcher, "_scrape_multiple_urls", new_callable=AsyncMock, return_value=sample_scraped_content
-            ):
-                with patch.object(
-                    product_researcher,
-                    "_analyze_with_llm",
-                    new_callable=AsyncMock,
-                    return_value={"success": False, "error": "LLM analysis failed"},
-                ):
-                    result = await product_researcher.research_product(manufacturer="Konica Minolta", model="C750i")
+            ),
+            patch.object(
+                product_researcher,
+                "_analyze_with_llm",
+                new_callable=AsyncMock,
+                return_value={"success": False, "error": "LLM analysis failed"},
+            ),
+        ):
+            result = await product_researcher.research_product(manufacturer="Konica Minolta", model="C750i")
         assert result["success"] is False
         assert "error" in result
 
@@ -256,23 +262,25 @@ class TestProductResearcherUnitMocks:
         researcher = ProductResearcher(
             database_service=mock_database, web_scraping_service=mock_scraper, ollama_url="http://localhost:11434"
         )
-        with patch.object(
-            researcher,
-            "_search_product",
-            new_callable=AsyncMock,
-            return_value={"success": True, "urls": ["http://example.com"]},
-        ):
-            with patch.object(
+        with (
+            patch.object(
+                researcher,
+                "_search_product",
+                new_callable=AsyncMock,
+                return_value={"success": True, "urls": ["http://example.com"]},
+            ),
+            patch.object(
                 researcher, "_scrape_multiple_urls", new_callable=AsyncMock, return_value=sample_scraped_content
-            ):
-                with patch.object(
-                    researcher,
-                    "_analyze_with_llm",
-                    new_callable=AsyncMock,
-                    return_value={"success": True, **sample_llm_analysis},
-                ):
-                    with patch.object(researcher, "_cache_research", new_callable=AsyncMock):
-                        result = await researcher.research_product(manufacturer="Konica Minolta", model="C750i")
+            ),
+            patch.object(
+                researcher,
+                "_analyze_with_llm",
+                new_callable=AsyncMock,
+                return_value={"success": True, **sample_llm_analysis},
+            ),
+            patch.object(researcher, "_cache_research", new_callable=AsyncMock),
+        ):
+            result = await researcher.research_product(manufacturer="Konica Minolta", model="C750i")
         assert result["success"] is True
 
     @pytest.mark.asyncio
@@ -285,23 +293,25 @@ class TestProductResearcherUnitMocks:
         researcher = ProductResearcher(
             database_service=mock_database, web_scraping_service=mock_scraper, ollama_url="http://localhost:11434"
         )
-        with patch.object(
-            researcher,
-            "_search_product",
-            new_callable=AsyncMock,
-            return_value={"success": True, "urls": ["http://example.com"]},
-        ):
-            with patch.object(
+        with (
+            patch.object(
+                researcher,
+                "_search_product",
+                new_callable=AsyncMock,
+                return_value={"success": True, "urls": ["http://example.com"]},
+            ),
+            patch.object(
                 researcher, "_scrape_multiple_urls", new_callable=AsyncMock, return_value=sample_scraped_content
-            ):
-                with patch.object(
-                    researcher,
-                    "_analyze_with_llm",
-                    new_callable=AsyncMock,
-                    return_value={"success": True, **sample_llm_analysis},
-                ):
-                    with patch.object(researcher, "_cache_research", new_callable=AsyncMock):
-                        result = await researcher.research_product(manufacturer="Konica Minolta", model="C750i")
+            ),
+            patch.object(
+                researcher,
+                "_analyze_with_llm",
+                new_callable=AsyncMock,
+                return_value={"success": True, **sample_llm_analysis},
+            ),
+            patch.object(researcher, "_cache_research", new_callable=AsyncMock),
+        ):
+            result = await researcher.research_product(manufacturer="Konica Minolta", model="C750i")
         assert result["success"] is True
 
     @pytest.mark.asyncio
@@ -429,34 +439,34 @@ class TestProductResearcherUnitMocks:
     async def test_research_with_different_manufacturers(self, product_researcher, sample_scraped_content):
         """Test research with different manufacturers."""
         manufacturers = ["Konica Minolta", "Canon", "HP", "Brother"]
-        with patch.object(
-            product_researcher,
-            "_search_product",
-            new_callable=AsyncMock,
-            return_value={"success": True, "urls": ["http://example.com"]},
-        ):
-            with patch.object(
+        with (
+            patch.object(
+                product_researcher,
+                "_search_product",
+                new_callable=AsyncMock,
+                return_value={"success": True, "urls": ["http://example.com"]},
+            ),
+            patch.object(
                 product_researcher, "_scrape_multiple_urls", new_callable=AsyncMock, return_value=sample_scraped_content
-            ):
-                with patch.object(
-                    product_researcher,
-                    "_analyze_with_llm",
-                    new_callable=AsyncMock,
-                    return_value={
-                        "success": True,
-                        "manufacturer": "Test",
-                        "model": "Test-Model",
-                        "specifications": {},
-                        "confidence": 0.8,
-                    },
-                ):
-                    with patch.object(product_researcher, "_cache_research", new_callable=AsyncMock):
-                        for manufacturer in manufacturers:
-                            result = await product_researcher.research_product(
-                                manufacturer=manufacturer, model="Test-Model"
-                            )
-                            assert result["success"] is True
-                            assert "manufacturer" in result
+            ),
+            patch.object(
+                product_researcher,
+                "_analyze_with_llm",
+                new_callable=AsyncMock,
+                return_value={
+                    "success": True,
+                    "manufacturer": "Test",
+                    "model": "Test-Model",
+                    "specifications": {},
+                    "confidence": 0.8,
+                },
+            ),
+            patch.object(product_researcher, "_cache_research", new_callable=AsyncMock),
+        ):
+            for manufacturer in manufacturers:
+                result = await product_researcher.research_product(manufacturer=manufacturer, model="Test-Model")
+                assert result["success"] is True
+                assert "manufacturer" in result
 
     @pytest.mark.asyncio
     async def test_performance_monitoring(self, product_researcher):
@@ -476,23 +486,25 @@ class TestProductResearcherUnitMocks:
     async def test_data_quality_validation(self, product_researcher, sample_scraped_content):
         """Test data quality validation in research results."""
         low_quality_analysis = {"manufacturer": "", "model": "unknown", "specifications": {}, "confidence": 0.1}
-        with patch.object(
-            product_researcher,
-            "_search_product",
-            new_callable=AsyncMock,
-            return_value={"success": True, "urls": ["http://example.com"]},
-        ):
-            with patch.object(
+        with (
+            patch.object(
+                product_researcher,
+                "_search_product",
+                new_callable=AsyncMock,
+                return_value={"success": True, "urls": ["http://example.com"]},
+            ),
+            patch.object(
                 product_researcher, "_scrape_multiple_urls", new_callable=AsyncMock, return_value=sample_scraped_content
-            ):
-                with patch.object(
-                    product_researcher,
-                    "_analyze_with_llm",
-                    new_callable=AsyncMock,
-                    return_value={"success": True, **low_quality_analysis},
-                ):
-                    with patch.object(product_researcher, "_cache_research", new_callable=AsyncMock):
-                        result = await product_researcher.research_product(manufacturer="Konica Minolta", model="C750i")
+            ),
+            patch.object(
+                product_researcher,
+                "_analyze_with_llm",
+                new_callable=AsyncMock,
+                return_value={"success": True, **low_quality_analysis},
+            ),
+            patch.object(product_researcher, "_cache_research", new_callable=AsyncMock),
+        ):
+            result = await product_researcher.research_product(manufacturer="Konica Minolta", model="C750i")
         assert result["success"] is True
         assert result.get("confidence", 1) <= 0.5 or "confidence" in result
 
@@ -509,33 +521,34 @@ class TestProductResearcherUnitMocks:
     @pytest.mark.asyncio
     async def test_concurrent_research_requests(self, product_researcher, sample_scraped_content):
         """Test handling concurrent research requests."""
-        with patch.object(
-            product_researcher,
-            "_search_product",
-            new_callable=AsyncMock,
-            return_value={"success": True, "urls": ["http://example.com"]},
-        ):
-            with patch.object(
+        with (
+            patch.object(
+                product_researcher,
+                "_search_product",
+                new_callable=AsyncMock,
+                return_value={"success": True, "urls": ["http://example.com"]},
+            ),
+            patch.object(
                 product_researcher, "_scrape_multiple_urls", new_callable=AsyncMock, return_value=sample_scraped_content
-            ):
-                with patch.object(
-                    product_researcher,
-                    "_analyze_with_llm",
-                    new_callable=AsyncMock,
-                    return_value={
-                        "success": True,
-                        "manufacturer": "Konica Minolta",
-                        "model": "C750i",
-                        "specifications": {},
-                        "confidence": 0.9,
-                    },
-                ):
-                    with patch.object(product_researcher, "_cache_research", new_callable=AsyncMock):
-                        tasks = [
-                            product_researcher.research_product(manufacturer="Konica Minolta", model=f"C750i-{i}")
-                            for i in range(3)
-                        ]
-                        results = await asyncio.gather(*tasks)
+            ),
+            patch.object(
+                product_researcher,
+                "_analyze_with_llm",
+                new_callable=AsyncMock,
+                return_value={
+                    "success": True,
+                    "manufacturer": "Konica Minolta",
+                    "model": "C750i",
+                    "specifications": {},
+                    "confidence": 0.9,
+                },
+            ),
+            patch.object(product_researcher, "_cache_research", new_callable=AsyncMock),
+        ):
+            tasks = [
+                product_researcher.research_product(manufacturer="Konica Minolta", model=f"C750i-{i}") for i in range(3)
+            ]
+            results = await asyncio.gather(*tasks)
         assert len(results) == 3
         assert all(r["success"] for r in results)
 
@@ -605,7 +618,7 @@ class TestProductResearcherRealIntegration:
             assert "source_urls" in result
             assert isinstance(result["source_urls"], list)
             assert len(result["source_urls"]) > 0
-            assert result.get("cached") == False  # First run should not be cached
+            assert result.get("cached") is False  # First run should not be cached
 
             # Verify cache was created
             cache_result = await real_product_researcher._get_cached_research(manufacturer, model)
@@ -645,7 +658,7 @@ class TestProductResearcherRealIntegration:
 
         # Verify cache hit
         if result1.get("success"):
-            assert result2.get("cached") == True
+            assert result2.get("cached") is True
             assert result2["manufacturer"] == manufacturer
             assert result2["model"] == model
 
@@ -758,7 +771,7 @@ class TestProductResearcherRealIntegration:
 
         # If Firecrawl is primary, verify fallback is available
         if backend_info["backend"] == "firecrawl":
-            assert backend_info["fallback_available"] == True
+            assert backend_info["fallback_available"] is True
 
     @pytest.mark.asyncio
     async def test_real_concurrent_research(self, real_product_researcher: ProductResearcher):
@@ -818,7 +831,7 @@ class TestProductResearcherRealIntegration:
         # Cache the data
         cache_success = await real_product_researcher._cache_research(manufacturer, model, test_data)
 
-        assert cache_success == True
+        assert cache_success is True
 
         # Retrieve from cache
         cached = await real_product_researcher._get_cached_research(manufacturer, model)

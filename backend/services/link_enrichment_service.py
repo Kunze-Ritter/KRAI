@@ -10,6 +10,7 @@ Refactored to use DatabaseService for database operations.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import hashlib
 import json
 import logging
@@ -327,10 +328,8 @@ class LinkEnrichmentService:
             last_error_at = None
 
             if last_error_iso:
-                try:
+                with contextlib.suppress(ValueError):
                     last_error_at = datetime.fromisoformat(last_error_iso)
-                except ValueError:
-                    pass
 
             if last_error_at is None or last_error_at <= threshold:
                 eligible_ids.append(row["id"])

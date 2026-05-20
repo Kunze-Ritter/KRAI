@@ -108,15 +108,13 @@ class AlertService:
         try:
             # Check error_type match (None or empty array = match all)
             error_types = rule_config.get("error_types")
-            if error_types and len(error_types) > 0:
-                if error_data.get("error_type") not in error_types:
-                    return False
+            if error_types and len(error_types) > 0 and error_data.get("error_type") not in error_types:
+                return False
 
             # Check stage match (None or empty array = match all)
             stages = rule_config.get("stages")
-            if stages and len(stages) > 0:
-                if error_data.get("stage_name") not in stages:
-                    return False
+            if stages and len(stages) > 0 and error_data.get("stage_name") not in stages:
+                return False
 
             # Check severity threshold
             severity_threshold = rule_config.get("severity_threshold")
@@ -149,7 +147,7 @@ class AlertService:
 
     def _build_alert_details(self, error_data: dict[str, Any]) -> dict[str, Any]:
         """Build alert details dictionary from error data."""
-        details = {
+        return {
             "document_id": error_data.get("document_id"),
             "error_message": error_data.get("error_message"),
             "stack_trace": error_data.get("stack_trace"),
@@ -157,7 +155,6 @@ class AlertService:
             "correlation_id": error_data.get("correlation_id"),
             "occurred_at": error_data.get("timestamp", datetime.utcnow().isoformat()),
         }
-        return details
 
     async def queue_alert(self, error_data: dict[str, Any]) -> str | None:
         """Queue alert for matching error data.
@@ -685,7 +682,7 @@ Generated at {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}
                 WHERE id = $1
             """
 
-            result = await self.adapter.execute_query(query, [config_id] + list(updates.values()))
+            result = await self.adapter.execute_query(query, [config_id, *list(updates.values())])
 
             if result and hasattr(result, "rowcount") and result.rowcount > 0:
                 # Clear cache

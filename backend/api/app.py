@@ -670,9 +670,7 @@ async def health_check(request: Request, response: Response):
     try:
         import requests
 
-        response = requests.get(  # noqa: ASYNC210
-            f"{os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')}/api/tags", timeout=5
-        )
+        response = requests.get(f"{os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')}/api/tags", timeout=5)
         if response.status_code == 200:
             models = response.json().get("models", [])
             services["ollama"] = {"status": "healthy", "message": f"{len(models)} models available"}
@@ -786,7 +784,7 @@ async def upload_document(
     temp_path = temp_dir / file.filename
 
     try:
-        with open(temp_path, "wb") as f:  # noqa: ASYNC230
+        with open(temp_path, "wb") as f:
             content = await file.read()
             f.write(content)
 

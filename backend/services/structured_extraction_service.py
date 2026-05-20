@@ -57,7 +57,7 @@ class StructuredExtractionService:
         source_id: str | None = None,
     ) -> dict[str, Any]:
         schema_info = self._get_schema("product_specs")
-        result = await self._perform_extraction(
+        return await self._perform_extraction(
             url=url,
             extraction_type="product_specs",
             schema_info=schema_info,
@@ -67,7 +67,6 @@ class StructuredExtractionService:
             source_type=source_type,
             source_id=source_id,
         )
-        return result
 
     async def extract_error_codes(
         self,
@@ -79,7 +78,7 @@ class StructuredExtractionService:
         source_id: str | None = None,
     ) -> dict[str, Any]:
         schema_info = self._get_schema("error_codes")
-        result = await self._perform_extraction(
+        return await self._perform_extraction(
             url=url,
             extraction_type="error_code",
             schema_info=schema_info,
@@ -88,7 +87,6 @@ class StructuredExtractionService:
             source_type=source_type,
             source_id=source_id,
         )
-        return result
 
     async def extract_service_manual_metadata(
         self,
@@ -100,7 +98,7 @@ class StructuredExtractionService:
         source_id: str | None = None,
     ) -> dict[str, Any]:
         schema_info = self._get_schema("service_manual")
-        result = await self._perform_extraction(
+        return await self._perform_extraction(
             url=url,
             extraction_type="service_manual",
             schema_info=schema_info,
@@ -109,7 +107,6 @@ class StructuredExtractionService:
             source_type=source_type,
             source_id=source_id,
         )
-        return result
 
     async def extract_parts_list(
         self,
@@ -565,7 +562,7 @@ class StructuredExtractionService:
         link_category: str | None,
     ) -> str | None:
         url_lower = url.lower()
-        candidates: list[Tuple[str, bool]] = [
+        candidates: list[tuple[str, bool]] = [
             ("product_specs", any(keyword in url_lower for keyword in ["spec", "datasheet", "product"])),
             ("error_code", any(keyword in url_lower for keyword in ["error", "code", "troubleshoot"])),
             ("service_manual", any(keyword in url_lower for keyword in ["manual", "download", "pdf"])),

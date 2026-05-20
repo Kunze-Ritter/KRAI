@@ -36,7 +36,7 @@ class UploadProcessor(BaseProcessor):
         self,
         database_adapter: DatabaseAdapter,
         max_file_size_mb: int = 500,
-        allowed_extensions: list = None,
+        allowed_extensions: list | None = None,
         storage_service: ObjectStorageService | None = None,
         upload_documents_to_storage: bool | None = None,
     ):

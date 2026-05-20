@@ -124,9 +124,7 @@ def _filter_false_positives(parts: list[str], config: dict) -> list[str]:
 
     # Filter common false positives
     false_positives = {"ERROR", "CODE", "PAGE", "STEP", "NOTE", "FIG", "TABLE", "SECTION"}
-    parts = [p for p in parts if p.upper() not in false_positives]
-
-    return parts
+    return [p for p in parts if p.upper() not in false_positives]
 
 
 def _has_any_keyword(text: str, keywords: list[str]) -> bool:
@@ -148,9 +146,7 @@ def _is_plausible_part_token(part: str) -> bool:
     if token.isalpha():
         return False
     # Reject repeated digit artifacts like 1111111111.
-    if token.isdigit() and len(set(token)) == 1:
-        return False
-    return True
+    return not (token.isdigit() and len(set(token)) == 1)
 
 
 def _looks_like_table_row_context(context: str, part: str) -> bool:
@@ -304,7 +300,7 @@ def extract_parts(text: str) -> str | None:
     return ", ".join(parts)
 
 
-def extract_parts_with_context(text: str, manufacturer_key: str = None, max_parts: int = 20) -> list[dict]:
+def extract_parts_with_context(text: str, manufacturer_key: str | None = None, max_parts: int = 20) -> list[dict]:
     """
     Extract parts with surrounding context using config patterns
 

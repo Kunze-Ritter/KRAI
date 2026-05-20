@@ -273,7 +273,7 @@ class FakeAgent:
         self.scope_calls.append((session_id, scope, reset_scope))
         if scope is None:
             return {}
-        return {key: value for key, value in scope.model_dump(exclude_none=True).items()}
+        return dict(scope.model_dump(exclude_none=True).items())
 
     async def chat(self, *args, **kwargs):
         self.chat_called = True

@@ -199,11 +199,9 @@ class TableProcessor(BaseProcessor):
         if all(re.match(r"^\d+([.,]\d+)?$", cell) for cell in first_row if cell):
             return False
         # If any cell is longer than 60 chars it's likely a data cell
-        if any(len(cell) > 60 for cell in first_row):
-            return False
-        return True
+        return not any(len(cell) > 60 for cell in first_row)
 
-    def _extract_page_tables(self, page, page_number: int, pdf_path: str = None) -> list[dict[str, Any]]:
+    def _extract_page_tables(self, page, page_number: int, pdf_path: str | None = None) -> list[dict[str, Any]]:
         """Extract tables from a single page"""
         tables = []
         pymupdf_detected = False
@@ -361,7 +359,7 @@ class TableProcessor(BaseProcessor):
                 bbox_list = [float(v) for v in bbox_tuple]
 
                 # Create table record
-                table_record = {
+                return {
                     "id": str(uuid4()),
                     "page_number": page_number,
                     "table_index": table_index,
@@ -381,8 +379,6 @@ class TableProcessor(BaseProcessor):
                         "extraction_timestamp": pd.Timestamp.now().isoformat(),
                     },
                 }
-
-                return table_record
 
             except Exception as e:
                 try:
@@ -424,7 +420,7 @@ class TableProcessor(BaseProcessor):
         header_line = "| " + " | ".join(esc(h) for h in headers) + " |"
         sep_line = "| " + " | ".join(["---"] * len(headers)) + " |"
         row_lines = ["| " + " | ".join(esc(c) for c in row) + " |" for row in rows]
-        return "\n".join([header_line, sep_line] + row_lines)
+        return "\n".join([header_line, sep_line, *row_lines])
 
     def _extract_table_context(self, page, bbox: tuple) -> str:
         """Extract text context around table"""
@@ -540,8 +536,7 @@ class TableProcessor(BaseProcessor):
             try:
                 # Extract text from top of page (first 50 points)
                 header_rect = pymupdf.Rect(0, 0, page.rect.width, 50)
-                header_text = page.get_text(clip=header_rect).strip()
-                return header_text
+                return page.get_text(clip=header_rect).strip()
             except Exception as e:
                 adapter.warning(f"Page header extraction failed: {e}")
                 return ""
@@ -583,8 +578,7 @@ class TableProcessor(BaseProcessor):
             try:
                 # Use the embedding service to generate embedding
                 # This assumes the embedding service has a _generate_embedding method
-                embedding = self.embedding_service._generate_embedding(table_markdown)
-                return embedding
+                return self.embedding_service._generate_embedding(table_markdown)
             except Exception as e:
                 adapter.error(f"Table embedding generation failed: {e}")
                 return []

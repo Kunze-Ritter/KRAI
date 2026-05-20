@@ -520,10 +520,7 @@ class ProductExtractor:
             return False
 
         # Not all caps filename pattern (e.g., "COLORLJM480M")
-        if len(model) > 12 and model.isupper() and " " not in model:
-            return False
-
-        return True
+        return not (len(model) > 12 and model.isupper() and " " not in model)
 
     def _calculate_confidence(self, model: str, full_text: str, position: int, pattern_name: str) -> float:
         """
@@ -861,8 +858,7 @@ class ProductExtractor:
         for prefix in prefixes:
             if model_lower.startswith(prefix):
                 # Remove prefix and any following spaces
-                bare = model_number[len(prefix) :].strip()
-                return bare
+                return model_number[len(prefix) :].strip()
 
         return model_number
 

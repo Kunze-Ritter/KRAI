@@ -27,7 +27,7 @@ class MockDatabaseAdapter(DatabaseAdapter):
         self.queries_executed = []
         self.query_results = {}
 
-    async def execute_query(self, query: str, params: list[Any] = None) -> list[dict[str, Any]]:
+    async def execute_query(self, query: str, params: list[Any] | None = None) -> list[dict[str, Any]]:
         """Mock execute_query method."""
         self.queries_executed.append((query, params))
 
@@ -49,12 +49,12 @@ class MockDatabaseAdapter(DatabaseAdapter):
 
         return []
 
-    async def fetch_one(self, query: str, params: list[Any] = None) -> dict[str, Any]:
+    async def fetch_one(self, query: str, params: list[Any] | None = None) -> dict[str, Any]:
         """Mock fetch_one method."""
         results = await self.execute_query(query, params)
         return results[0] if results else None
 
-    async def fetch_all(self, query: str, params: list[Any] = None) -> list[dict[str, Any]]:
+    async def fetch_all(self, query: str, params: list[Any] | None = None) -> list[dict[str, Any]]:
         """Mock fetch_all method."""
         return await self.execute_query(query, params)
 
@@ -185,8 +185,7 @@ def mock_metrics_service():
 @pytest.fixture
 async def alert_service(mock_adapter, mock_metrics_service):
     """Create AlertService with mocked dependencies."""
-    service = AlertService(mock_adapter, mock_metrics_service)
-    return service
+    return AlertService(mock_adapter, mock_metrics_service)
 
 
 class TestAlertServiceQueueing:
@@ -696,7 +695,7 @@ class TestBackgroundWorker:
         await asyncio.sleep(0.1)  # Let it run briefly
         worker_task.cancel()
 
-        try:
+        try:  # noqa: SIM105
             await worker_task
         except asyncio.CancelledError:
             pass  # Expected
