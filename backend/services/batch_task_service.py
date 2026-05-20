@@ -6,12 +6,16 @@ import json
 import logging
 import time
 import uuid
+from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import asyncpg
 
 from backend.models.batch import BatchOperationResult, BatchTaskRequest, BatchTaskResponse, BatchTaskStatus
+
+# An async callable that performs a batch task and returns an awaitable result.
+BatchTaskExecutor = Callable[[], Awaitable[Any]]
 
 
 class BatchTaskService:
@@ -229,7 +233,7 @@ class BatchTaskService:
     async def execute_task(
         self,
         task_id: str,
-        executor: BatchTaskExecutor,  # noqa: F821  # TODO(task #17): pre-existing undefined name
+        executor: BatchTaskExecutor,
     ) -> BatchTaskResponse:
         """Execute the provided callable and update task state accordingly."""
 

@@ -32,14 +32,17 @@ class DeduplicationVerifier:
     def __init__(self):
         self.pool = None
 
-        # R2 credentials
+        # R2 credentials (legacy object storage; superseded by MinIO — usually unset)
+        r2_access_key = os.getenv("R2_ACCESS_KEY")
+        r2_secret_key = os.getenv("R2_SECRET_KEY")
+        r2_endpoint_url = os.getenv("R2_ENDPOINT_URL")
 
-        if all([r2_access_key, r2_secret_key, r2_endpoint_url]):  # noqa: F821  (TODO task #17: undefined name)
+        if all([r2_access_key, r2_secret_key, r2_endpoint_url]):
             self.s3_client = boto3.client(
                 "s3",
-                endpoint_url=r2_endpoint_url,  # noqa: F821  # TODO(task #17): pre-existing undefined name
-                aws_access_key_id=r2_access_key,  # noqa: F821  # TODO(task #17): pre-existing undefined name
-                aws_secret_access_key=r2_secret_key,  # noqa: F821  # TODO(task #17): pre-existing undefined name
+                endpoint_url=r2_endpoint_url,
+                aws_access_key_id=r2_access_key,
+                aws_secret_access_key=r2_secret_key,
                 region_name="auto",
             )
         else:

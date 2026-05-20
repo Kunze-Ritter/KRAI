@@ -696,7 +696,7 @@ async def get_error_codes_by_document(
                     {"id": row["manufacturer_id"], "name": row["manufacturer_name"]} if row["manufacturer_id"] else None
                 ),
             }
-            error_codes.append(ErrorCode(**error_code_data))  # noqa: F821  (TODO task #17: undefined name)
+            error_codes.append(ErrorCodeResponse(**error_code_data))
 
         response_data = ErrorCodeListResponse(
             items=error_codes,
@@ -785,7 +785,7 @@ async def get_error_codes_by_manufacturer(
                     {"id": row["manufacturer_id"], "name": row["manufacturer_name"]} if row["manufacturer_id"] else None
                 ),
             }
-            error_codes.append(ErrorCode(**error_code_data))  # noqa: F821  (TODO task #17: undefined name)
+            error_codes.append(ErrorCodeResponse(**error_code_data))
 
         response_data = ErrorCodeListResponse(
             items=error_codes,

@@ -136,6 +136,22 @@ documents_module = importlib.util.module_from_spec(spec)
 assert spec.loader is not None
 spec.loader.exec_module(documents_module)
 
+# documents_module now holds its references; drop the global sys.modules stubs so
+# other test files import the real backend modules (test isolation).
+for _stubbed in [
+    "backend.api",
+    "backend.api.routes",
+    "backend.api.dependencies",
+    "backend.api.dependencies.database",
+    "backend.api.middleware",
+    "backend.api.middleware.auth_middleware",
+    "backend.api.middleware.rate_limit_middleware",
+    "backend.models",
+    "backend.models.document",
+    "asyncpg",
+]:
+    sys.modules.pop(_stubbed, None)
+
 
 def test_parse_stage_status_accepts_legacy_string_values() -> None:
     result = documents_module._parse_stage_status(
