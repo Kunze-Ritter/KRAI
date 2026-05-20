@@ -14,11 +14,16 @@ import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel
 
-from api.dependencies.database import get_database_pool
-from api.middleware.auth_middleware import require_permission
-from api.middleware.rate_limit_middleware import limiter, rate_limit_search, rate_limit_standard, rate_limit_upload
-from api.routes.response_models import ErrorResponse, SuccessResponse
-from models.document import (
+from backend.api.dependencies.database import get_database_pool
+from backend.api.middleware.auth_middleware import require_permission
+from backend.api.middleware.rate_limit_middleware import (
+    limiter,
+    rate_limit_search,
+    rate_limit_standard,
+    rate_limit_upload,
+)
+from backend.api.routes.response_models import ErrorResponse, SuccessResponse
+from backend.models.document import (
     CANONICAL_STAGES,
     DocumentCreateRequest,
     DocumentFilterParams,

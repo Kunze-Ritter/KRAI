@@ -262,7 +262,7 @@ def test_jwt_functionality():
     try:
         import json
 
-        from models.user import generate_jti
+        from backend.models.user import generate_jti
 
         # Test payload
         test_payload = {

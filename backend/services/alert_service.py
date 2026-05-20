@@ -857,7 +857,7 @@ Generated at {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}
 
         # Broadcast over WebSocket
         try:
-            from api.websocket import broadcast_alert
+            from backend.api.websocket import broadcast_alert
 
             await broadcast_alert(alert)
         except Exception as e:

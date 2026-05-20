@@ -36,7 +36,7 @@ services:
       krai-ollama:
         condition: service_started
     command: >
-      uvicorn api.app:app --host 0.0.0.0 --port 8000
+      uvicorn backend.api.app:app --host 0.0.0.0 --port 8000
 
   # PostgreSQL Database - credentials from .env
   krai-postgres:

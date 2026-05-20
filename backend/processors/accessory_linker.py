@@ -11,7 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 from uuid import UUID
 
-from utils.accessory_detector import detect_konica_minolta_accessory
+from backend.utils.accessory_detector import detect_konica_minolta_accessory
 
 logger = logging.getLogger(__name__)
 

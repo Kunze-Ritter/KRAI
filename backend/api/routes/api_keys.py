@@ -7,12 +7,12 @@ from typing import Any
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
-from api.dependencies.database import get_database_pool
-from api.middleware.auth_middleware import require_permission
-from api.middleware.rate_limit_middleware import limiter, rate_limit_search, rate_limit_standard
-from api.routes.response_models import SuccessResponse
-from models.api_key import APIKeyCreateRequest, APIKeyListResponse, APIKeyResponse, APIKeyWithSecretResponse
-from services.api_key_service import APIKeyService
+from backend.api.dependencies.database import get_database_pool
+from backend.api.middleware.auth_middleware import require_permission
+from backend.api.middleware.rate_limit_middleware import limiter, rate_limit_search, rate_limit_standard
+from backend.api.routes.response_models import SuccessResponse
+from backend.models.api_key import APIKeyCreateRequest, APIKeyListResponse, APIKeyResponse, APIKeyWithSecretResponse
+from backend.services.api_key_service import APIKeyService
 
 router = APIRouter(prefix="/api-keys", tags=["api_keys"])
 

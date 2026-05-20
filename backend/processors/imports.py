@@ -30,28 +30,28 @@ def get_database_adapter():
 
 def get_logger():
     """Lazy import of get_logger"""
-    from processors.logger import get_logger as _get_logger
+    from backend.processors.logger import get_logger as _get_logger
 
     return _get_logger()
 
 
 def extract_parts(text):
     """Lazy import of extract_parts"""
-    from utils.parts_extractor import extract_parts as _extract
+    from backend.utils.parts_extractor import extract_parts as _extract
 
     return _extract(text)
 
 
 def extract_parts_with_context(text, manufacturer_key=None, max_parts=20):
     """Lazy import of extract_parts_with_context"""
-    from utils.parts_extractor import extract_parts_with_context as _extract
+    from backend.utils.parts_extractor import extract_parts_with_context as _extract
 
     return _extract(text, manufacturer_key, max_parts)
 
 
 def detect_series(model_number, manufacturer_name):
     """Lazy import of detect_series"""
-    from utils.series_detector import detect_series as _detect
+    from backend.utils.series_detector import detect_series as _detect
 
     return _detect(model_number, manufacturer_name)
 

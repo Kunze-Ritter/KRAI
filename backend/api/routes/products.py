@@ -10,15 +10,19 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel
 
-from api.dependencies.database import get_database_adapter
-from api.middleware.auth_middleware import require_permission
-from api.middleware.rate_limit_middleware import limiter, rate_limit_search, rate_limit_standard, rate_limit_upload
-from api.routes.response_models import ErrorResponse, SuccessResponse
+from backend.api.dependencies.database import get_database_adapter
+from backend.api.middleware.auth_middleware import require_permission
+from backend.api.middleware.rate_limit_middleware import (
+    limiter,
+    rate_limit_search,
+    rate_limit_standard,
+    rate_limit_upload,
+)
+from backend.api.routes.response_models import ErrorResponse, SuccessResponse
 from backend.constants.product_types import ALLOWED_PRODUCT_TYPES
-from backend.services.database_adapter import DatabaseAdapter
-from models.document import PaginationParams
-from models.manufacturer import ManufacturerResponse
-from models.product import (
+from backend.models.document import PaginationParams
+from backend.models.manufacturer import ManufacturerResponse
+from backend.models.product import (
     ProductBatchCreateRequest,
     ProductBatchDeleteRequest,
     ProductBatchResponse,
@@ -35,6 +39,7 @@ from models.product import (
     ProductWithRelationsResponse,
     SortOrder,
 )
+from backend.services.database_adapter import DatabaseAdapter
 
 LOGGER = logging.getLogger("krai.api.products")
 

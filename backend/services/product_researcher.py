@@ -18,8 +18,8 @@ import logging
 import os
 from typing import Any
 
-from services.database_adapter import DatabaseAdapter
-from services.web_scraping_service import WebScrapingService
+from backend.services.database_adapter import DatabaseAdapter
+from backend.services.web_scraping_service import WebScrapingService
 
 logger = logging.getLogger(__name__)
 

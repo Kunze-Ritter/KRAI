@@ -11,7 +11,7 @@ This causes issues with error code and parts detection because:
 This module maps product series to their OEM engine manufacturer.
 
 Usage:
-    from config.oem_mappings import get_oem_manufacturer
+    from backend.config.oem_mappings import get_oem_manufacturer
 
     # Product is branded as "Konica Minolta 5000i"
     oem = get_oem_manufacturer("Konica Minolta", "5000i")

@@ -1,9 +1,9 @@
 """Database dependency injection for FastAPI routes"""
 
-from services.batch_task_service import BatchTaskService
-from services.database_factory import create_database_adapter
-from services.db_pool import get_pool
-from services.transaction_manager import TransactionManager
+from backend.services.batch_task_service import BatchTaskService
+from backend.services.database_factory import create_database_adapter
+from backend.services.db_pool import get_pool
+from backend.services.transaction_manager import TransactionManager
 
 # Global instances
 _database_adapter = None

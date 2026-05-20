@@ -19,16 +19,16 @@ from typing import Any
 # Add backend to path
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-from core.base_processor import ProcessingContext
-from pipeline.master_pipeline import KRMasterPipeline
-from services.ai_service import AIService
-from services.config_service import ConfigService
-from services.context_extraction_service import ContextExtractionService
-from services.database_service_production import DatabaseService
-from services.features_service import FeaturesService
-from services.multimodal_search_service import MultimodalSearchService
-from services.quality_check_service import QualityCheckService
-from services.storage_factory import create_storage_service
+from backend.core.base_processor import ProcessingContext
+from backend.pipeline.master_pipeline import KRMasterPipeline
+from backend.services.ai_service import AIService
+from backend.services.config_service import ConfigService
+from backend.services.context_extraction_service import ContextExtractionService
+from backend.services.database_service_production import DatabaseService
+from backend.services.features_service import FeaturesService
+from backend.services.multimodal_search_service import MultimodalSearchService
+from backend.services.quality_check_service import QualityCheckService
+from backend.services.storage_factory import create_storage_service
 
 # Configure logging
 logger = logging.getLogger(__name__)

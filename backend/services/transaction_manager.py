@@ -15,7 +15,7 @@ try:
 except ImportError:  # pragma: no cover - asyncpg optional
     asyncpg = None  # type: ignore
 
-from models.batch import BatchOperationResponse, BatchOperationResult, BatchOperationResultStatus
+from backend.models.batch import BatchOperationResponse, BatchOperationResult, BatchOperationResultStatus
 
 
 class TransactionManager:

@@ -26,16 +26,16 @@ if backend_root_str not in sys.path:
     sys.path.insert(0, backend_root_str)
 
 # Note: ProductResearcher service does not exist yet - tests are prepared for future implementation
-from pipeline.master_pipeline import KRMasterPipeline
-from services.ai_service import AIService
-from services.database_adapter import DatabaseAdapter
-from services.database_factory import create_database_adapter
-from services.link_enrichment_service import LinkEnrichmentService
-from services.manufacturer_crawler import ManufacturerCrawler
-from services.multimodal_search_service import MultimodalSearchService
-from services.object_storage_service import ObjectStorageService
-from services.storage_factory import create_storage_service
-from services.web_scraping_service import FirecrawlUnavailableError, WebScrapingService
+from backend.pipeline.master_pipeline import KRMasterPipeline
+from backend.services.ai_service import AIService
+from backend.services.database_adapter import DatabaseAdapter
+from backend.services.database_factory import create_database_adapter
+from backend.services.link_enrichment_service import LinkEnrichmentService
+from backend.services.manufacturer_crawler import ManufacturerCrawler
+from backend.services.multimodal_search_service import MultimodalSearchService
+from backend.services.object_storage_service import ObjectStorageService
+from backend.services.storage_factory import create_storage_service
+from backend.services.web_scraping_service import FirecrawlUnavailableError, WebScrapingService
 
 # Test configuration
 TEST_CONFIG = {
@@ -90,7 +90,7 @@ async def real_manufacturer_crawler(
     NOTE: ManufacturerCrawler currently expects Supabase client, so we add a compatibility wrapper.
     """
 
-    from services.web_scraping_service import BeautifulSoupBackend, FirecrawlBackend
+    from backend.services.web_scraping_service import BeautifulSoupBackend, FirecrawlBackend
 
     # Create backends
     if firecrawl_available:
@@ -455,7 +455,7 @@ async def real_link_enrichment_service(
     Uses Firecrawl if available, otherwise falls back to BeautifulSoup.
     Provides full integration testing with actual scraping operations.
     """
-    from services.web_scraping_service import BeautifulSoupBackend, FirecrawlBackend
+    from backend.services.web_scraping_service import BeautifulSoupBackend, FirecrawlBackend
 
     # Create backends
     if firecrawl_available:
@@ -503,8 +503,8 @@ async def real_product_researcher(
     Uses real WebScrapingService and Ollama for LLM analysis.
     Provides full integration testing of product research workflows.
     """
-    from services.product_researcher import ProductResearcher
-    from services.web_scraping_service import BeautifulSoupBackend, FirecrawlBackend
+    from backend.services.product_researcher import ProductResearcher
+    from backend.services.web_scraping_service import BeautifulSoupBackend, FirecrawlBackend
 
     # Create backends
     if firecrawl_available:

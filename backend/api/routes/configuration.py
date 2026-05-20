@@ -9,9 +9,9 @@ import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
-from api.dependencies.database import get_database_pool
-from api.middleware.rate_limit_middleware import rate_limit_standard
-from utils.configuration_validator import ConfigurationValidator
+from backend.api.dependencies.database import get_database_pool
+from backend.api.middleware.rate_limit_middleware import rate_limit_standard
+from backend.utils.configuration_validator import ConfigurationValidator
 
 LOGGER = logging.getLogger("krai.api.configuration")
 
@@ -126,7 +126,7 @@ async def validate_configuration(
         accessory_uuids = [UUID(acc_id) for acc_id in request.accessory_ids]
 
         # Create database adapter and validator
-        from services.database_adapter import PostgreSQLAdapter
+        from backend.services.database_adapter import PostgreSQLAdapter
 
         adapter = PostgreSQLAdapter(pool)
 

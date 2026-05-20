@@ -14,11 +14,11 @@ import asyncpg
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile, status
 from pydantic import BaseModel
 
-from api.dependencies.database import get_database_adapter, get_database_pool
-from api.middleware.auth_middleware import require_permission
-from api.routes.response_models import ErrorResponse, SuccessResponse
-from models.document import DocumentResponse, PaginationParams, SortOrder
-from models.image import (
+from backend.api.dependencies.database import get_database_adapter, get_database_pool
+from backend.api.middleware.auth_middleware import require_permission
+from backend.api.routes.response_models import ErrorResponse, SuccessResponse
+from backend.models.document import DocumentResponse, PaginationParams, SortOrder
+from backend.models.image import (
     BucketType,
     ImageFilterParams,
     ImageListResponse,
@@ -29,7 +29,7 @@ from models.image import (
     ImageUploadResponse,
     ImageWithRelationsResponse,
 )
-from services.storage_factory import create_storage_service
+from backend.services.storage_factory import create_storage_service
 
 LOGGER = logging.getLogger("krai.api.images")
 

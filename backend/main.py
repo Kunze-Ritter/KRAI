@@ -24,7 +24,7 @@ if str(PROJECT_ROOT) not in sys.path:
 try:
     from pathlib import Path
 
-    from processors.env_loader import load_all_env_files
+    from backend.processors.env_loader import load_all_env_files
 
     # Determine project root (parent of backend/)
     backend_dir = Path(__file__).parent
@@ -47,25 +47,25 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from api.content_management_api import ContentManagementAPI
-from api.defect_detection_api import DefectDetectionAPI
+from backend.api.content_management_api import ContentManagementAPI
+from backend.api.defect_detection_api import DefectDetectionAPI
 
 # Import APIs
-from api.document_api import DocumentAPI
-from api.features_api import FeaturesAPI
-from api.openai_compatible_api import OpenAICompatibleAPI
-from api.search_api import SearchAPI
-from config.security_config import get_security_config, is_production
-from services.ai_service import AIService
-from services.config_service import ConfigService
-from services.database_factory import create_database_adapter
-from services.features_service import FeaturesService
-from services.link_checker_service import LinkCheckerService
+from backend.api.document_api import DocumentAPI
+from backend.api.features_api import FeaturesAPI
+from backend.api.openai_compatible_api import OpenAICompatibleAPI
+from backend.api.search_api import SearchAPI
+from backend.config.security_config import get_security_config, is_production
+from backend.services.ai_service import AIService
+from backend.services.config_service import ConfigService
+from backend.services.database_factory import create_database_adapter
+from backend.services.features_service import FeaturesService
+from backend.services.link_checker_service import LinkCheckerService
 
 # Import services
-from services.performance_service import PerformanceCollector
-from services.storage_factory import create_storage_service
-from services.video_enrichment_service import VideoEnrichmentService
+from backend.services.performance_service import PerformanceCollector
+from backend.services.storage_factory import create_storage_service
+from backend.services.video_enrichment_service import VideoEnrichmentService
 
 # Global services
 database_service = None

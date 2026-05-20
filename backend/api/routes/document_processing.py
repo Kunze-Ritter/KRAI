@@ -12,9 +12,9 @@ import logging
 import asyncpg
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 
-from api.dependencies.database import get_database_pool
-from api.middleware.auth_middleware import require_permission
-from api.routes.response_models import (
+from backend.api.dependencies.database import get_database_pool
+from backend.api.middleware.auth_middleware import require_permission
+from backend.api.routes.response_models import (
     DocumentProcessingStatusResponse,
     StageListResponse,
     StageProcessingRequest,
@@ -23,10 +23,10 @@ from api.routes.response_models import (
     ThumbnailGenerationRequest,
     VideoProcessingRequest,
 )
-from core.types import ProcessingContext
-from models.document import CANONICAL_STAGES
-from processors.thumbnail_processor import ThumbnailProcessor
-from services.video_enrichment_service import VideoEnrichmentService
+from backend.core.types import ProcessingContext
+from backend.models.document import CANONICAL_STAGES
+from backend.processors.thumbnail_processor import ThumbnailProcessor
+from backend.services.video_enrichment_service import VideoEnrichmentService
 
 logger = logging.getLogger("krai.api.document_processing")
 

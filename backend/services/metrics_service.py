@@ -8,7 +8,7 @@ from typing import Any
 
 import asyncpg
 
-from models.monitoring import (
+from backend.models.monitoring import (
     DataQualityResponse,
     DuplicateMetrics,
     HardwareStatus,
@@ -23,7 +23,7 @@ from models.monitoring import (
     StageQueueResponse,
     ValidationMetrics,
 )
-from processors.stage_tracker import StageTracker
+from backend.processors.stage_tracker import StageTracker
 
 LOGGER = logging.getLogger(__name__)
 
@@ -827,7 +827,7 @@ class MetricsService:
 
                 # Broadcast processor state change via WebSocket
                 try:
-                    from api.websocket import broadcast_processor_state_change
+                    from backend.api.websocket import broadcast_processor_state_change
 
                     # Map stage_name to processor_name
                     stage_to_processor = {

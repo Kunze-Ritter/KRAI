@@ -8,8 +8,8 @@ context-aware embeddings and two-stage retrieval strategies.
 import logging
 from typing import Any
 
-from services.ai_service import AIService
-from services.database_adapter import DatabaseAdapter
+from backend.services.ai_service import AIService
+from backend.services.database_adapter import DatabaseAdapter
 
 
 class MultimodalSearchService:

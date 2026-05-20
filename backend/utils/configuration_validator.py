@@ -7,8 +7,8 @@ import logging
 from dataclasses import dataclass
 from uuid import UUID
 
-from services.database_adapter import DatabaseAdapter
-from services.database_factory import create_database_adapter
+from backend.services.database_adapter import DatabaseAdapter
+from backend.services.database_factory import create_database_adapter
 
 
 @dataclass

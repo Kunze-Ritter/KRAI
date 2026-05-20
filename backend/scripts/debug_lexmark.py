@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import re
 from uuid import uuid4
 
-from processors.text_extractor import extract_text_from_pdf
+from backend.processors.text_extractor import extract_text_from_pdf
 
 print("Loading Lexmark PDF...")
 pdf_text, meta = extract_text_from_pdf(Path(r"C:\Manuals\Lexmark\7566-69x_sm.pdf"), uuid4())

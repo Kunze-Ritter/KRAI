@@ -12,7 +12,13 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import logging
 
-from utils.colored_logging import apply_colored_logging_globally, log_duration, log_metric, log_progress, log_section
+from backend.utils.colored_logging import (
+    apply_colored_logging_globally,
+    log_duration,
+    log_metric,
+    log_progress,
+    log_section,
+)
 
 
 def test_logging():

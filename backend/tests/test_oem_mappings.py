@@ -1,6 +1,6 @@
 import pytest
 
-from config.oem_mappings import get_effective_manufacturer, get_oem_info, get_oem_manufacturer
+from backend.config.oem_mappings import get_effective_manufacturer, get_oem_info, get_oem_manufacturer
 
 
 @pytest.mark.parametrize(

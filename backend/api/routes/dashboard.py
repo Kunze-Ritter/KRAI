@@ -9,8 +9,8 @@ from typing import Any
 import asyncpg
 from fastapi import APIRouter, Depends
 
-from api.dependencies.database import get_database_pool
-from api.middleware.auth_middleware import require_permission
+from backend.api.dependencies.database import get_database_pool
+from backend.api.middleware.auth_middleware import require_permission
 
 logger = logging.getLogger(__name__)
 

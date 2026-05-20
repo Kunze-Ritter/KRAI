@@ -24,8 +24,8 @@ from typing import Any
 
 import pytest
 
-from core.base_processor import ProcessingContext
-from pipeline.master_pipeline import KRMasterPipeline
+from backend.core.base_processor import ProcessingContext
+from backend.pipeline.master_pipeline import KRMasterPipeline
 
 logger = logging.getLogger(__name__)
 

@@ -13,8 +13,8 @@ from uuid import UUID
 
 from research.product_researcher import ProductResearcher
 
-from services.config_service import ConfigService
-from services.db_pool import get_pool
+from backend.services.config_service import ConfigService
+from backend.services.db_pool import get_pool
 
 logger = logging.getLogger(__name__)
 

@@ -150,7 +150,7 @@ def test_router_imports_cleanly():
 
 def _make_test_app():
     """Create a minimal FastAPI app with the document_processing router and a mock pool."""
-    from api.routes.document_processing import router
+    from backend.api.routes.document_processing import router
 
     app = FastAPI()
     app.include_router(router, prefix="/api/v1")
@@ -167,7 +167,7 @@ def _make_test_app():
     async def override_pool():
         return mock_pool
 
-    from api.dependencies.database import get_database_pool
+    from backend.api.dependencies.database import get_database_pool
 
     app.dependency_overrides[get_database_pool] = override_pool
     app.state.pipeline = MagicMock()

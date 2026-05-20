@@ -11,8 +11,8 @@ from typing import Any
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from api.dependencies.auth import get_auth_service
-from config.auth_config import (
+from backend.api.dependencies.auth import get_auth_service
+from backend.config.auth_config import (
     ACCESS_TOKEN,
     CLAIM_EMAIL,
     CLAIM_EXP,
@@ -24,8 +24,8 @@ from config.auth_config import (
     get_jwt_config,
     get_jwt_validator,
 )
-from models.user import UserRole, UserStatus
-from services.auth_service import AuthService
+from backend.models.user import UserRole, UserStatus
+from backend.services.auth_service import AuthService
 
 # Create security scheme for JWT tokens
 security = HTTPBearer()

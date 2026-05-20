@@ -20,8 +20,8 @@ from pydantic import BaseModel, Field
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from services.ai_service import AIService
-from services.database_adapter import DatabaseAdapter
+from backend.services.ai_service import AIService
+from backend.services.database_adapter import DatabaseAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -195,7 +195,7 @@ class OpenAICompatibleAPI:
 
     async def _process_query_progressive(self, query: str) -> AsyncGenerator[str, None]:
         """Process query progressively, yielding results as they're found"""
-        from api.progressive_search import process_query_progressive
+        from backend.api.progressive_search import process_query_progressive
 
         async for chunk in process_query_progressive(query, self.database_service, self.ai_service):
             yield chunk

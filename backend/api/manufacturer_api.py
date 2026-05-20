@@ -8,17 +8,17 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from api.middleware.auth_middleware import require_permission
-from api.routes.response_models import SuccessResponse
-from models.document import PaginationParams
-from models.manufacturer import (
+from backend.api.middleware.auth_middleware import require_permission
+from backend.api.routes.response_models import SuccessResponse
+from backend.models.document import PaginationParams
+from backend.models.manufacturer import (
     ManufacturerFilterParams,
     ManufacturerListResponse,
     ManufacturerResponse,
     ManufacturerSortParams,
     SortOrder,
 )
-from services.database_adapter import DatabaseAdapter
+from backend.services.database_adapter import DatabaseAdapter
 
 
 class ManufacturerAPI:

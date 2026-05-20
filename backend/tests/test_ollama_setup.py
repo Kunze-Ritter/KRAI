@@ -13,8 +13,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import httpx
 
-from utils.colored_logging import apply_colored_logging_globally, error, info, success, warning
-from utils.gpu_detector import print_gpu_info
+from backend.utils.colored_logging import apply_colored_logging_globally, error, info, success, warning
+from backend.utils.gpu_detector import print_gpu_info
 
 # Setup colored logging
 apply_colored_logging_globally(level=logging.INFO)

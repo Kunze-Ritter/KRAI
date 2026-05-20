@@ -1,6 +1,6 @@
 """Auth-related dependency helpers."""
 
-from services.auth_service import AuthService
+from backend.services.auth_service import AuthService
 
 _auth_service: AuthService | None = None
 

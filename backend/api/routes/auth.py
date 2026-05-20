@@ -13,15 +13,15 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, sta
 from fastapi.security import HTTPBearer
 from pydantic import BaseModel, Field
 
-from api.dependencies.auth import get_auth_service, set_auth_service
-from api.middleware.auth_middleware import get_current_user, require_permission
-from api.middleware.rate_limit_middleware import limiter, rate_limit_auth
-from config.auth_config import ACCESS_TOKEN
-from models.user import UserCreate, UserListResponse, UserLogin, UserRole, UserStatus, UserUpdate
+from backend.api.dependencies.auth import get_auth_service, set_auth_service
+from backend.api.middleware.auth_middleware import get_current_user, require_permission
+from backend.api.middleware.rate_limit_middleware import limiter, rate_limit_auth
+from backend.config.auth_config import ACCESS_TOKEN
+from backend.models.user import UserCreate, UserListResponse, UserLogin, UserRole, UserStatus, UserUpdate
 
 # Import services and models
-from services.auth_service import AuthenticationError, AuthorizationError, AuthService, RateLimitError
-from services.database_adapter import DatabaseAdapter
+from backend.services.auth_service import AuthenticationError, AuthorizationError, AuthService, RateLimitError
+from backend.services.database_adapter import DatabaseAdapter
 
 logger = logging.getLogger("krai.api.auth")
 

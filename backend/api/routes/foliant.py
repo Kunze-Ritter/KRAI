@@ -15,9 +15,9 @@ from typing import Any
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 from pydantic import BaseModel, Field
 
-from api.middleware.auth_middleware import require_permission
-from api.middleware.rate_limit_middleware import limiter, rate_limit_upload
-from api.routes.response_models import SuccessResponse
+from backend.api.middleware.auth_middleware import require_permission
+from backend.api.middleware.rate_limit_middleware import limiter, rate_limit_upload
+from backend.api.routes.response_models import SuccessResponse
 
 LOGGER = logging.getLogger("krai.api.foliant")
 

@@ -9,7 +9,7 @@ from pathlib import Path
 
 import requests
 
-from processors.env_loader import load_all_env_files
+from backend.processors.env_loader import load_all_env_files
 
 # Load environment files via centralized loader
 project_root = Path(__file__).parent.parent.parent

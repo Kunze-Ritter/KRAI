@@ -6,7 +6,7 @@ from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
-from models.document import DocumentResponse, SortOrder
+from backend.models.document import DocumentResponse, SortOrder
 
 
 class ImageType(str, Enum):

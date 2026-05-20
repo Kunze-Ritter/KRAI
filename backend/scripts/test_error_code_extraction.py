@@ -17,9 +17,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from uuid import uuid4
 
-from processors.error_code_extractor import ErrorCodeExtractor
-from processors.text_extractor import extract_text_from_pdf
-from utils.colored_logging import setup_colored_logging
+from backend.processors.error_code_extractor import ErrorCodeExtractor
+from backend.processors.text_extractor import extract_text_from_pdf
+from backend.utils.colored_logging import setup_colored_logging
 
 logger = setup_colored_logging(__name__)
 
@@ -71,7 +71,7 @@ class ErrorCodeExtractionTester:
             total_pages = len(pdf_text)
 
             # Import exception for proper handling
-            from processors.exceptions import ManufacturerPatternNotFoundError
+            from backend.processors.exceptions import ManufacturerPatternNotFoundError
 
             for page_num, page_text in pdf_text.items():
                 try:

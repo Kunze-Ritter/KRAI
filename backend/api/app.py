@@ -4,12 +4,11 @@ KRAI Processing Pipeline API
 FastAPI app for monitoring, managing, and controlling the document processing pipeline.
 """
 
-# ruff: noqa: E402  # imports follow sys.path.insert below
+# ruff: noqa: E402  # imports follow logging setup below
 
 import asyncio
 import logging
 import os
-import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -26,19 +25,16 @@ from pydantic import BaseModel, ValidationError
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
 from slowapi.errors import RateLimitExceeded
 
-from api import websocket as websocket_api
+from backend.api import websocket as websocket_api
 
 # Import API routers
-from api.agent_api import KRAIAgent, create_agent_api
-from api.dependencies.auth import set_auth_service
-from api.dependencies.auth_factory import create_and_initialize_auth_service
-from api.middleware.auth_middleware import AuthMiddleware, require_permission
-from api.middleware.rate_limit_middleware import (
+from backend.api.agent_api import KRAIAgent, create_agent_api
+from backend.api.dependencies.auth import set_auth_service
+from backend.api.dependencies.auth_factory import create_and_initialize_auth_service
+from backend.api.middleware.auth_middleware import AuthMiddleware, require_permission
+from backend.api.middleware.rate_limit_middleware import (
     APIKeyValidationMiddleware,
     IPFilterMiddleware,
     limiter,
@@ -47,35 +43,35 @@ from api.middleware.rate_limit_middleware import (
     rate_limit_standard_dynamic,
     rate_limit_upload_dynamic,
 )
-from api.middleware.request_validation_middleware import RequestValidationMiddleware
-from api.routes import documents, products
-from api.routes.api_keys import router as api_keys_router
-from api.routes.batch import router as batch_router
-from api.routes.configuration import router as configuration_router
-from api.routes.dashboard import router as dashboard_router
-from api.routes.document_processing import router as document_processing_router
-from api.routes.error_codes import router as error_codes_router
-from api.routes.foliant import router as foliant_router
-from api.routes.images import router as images_router
-from api.routes.openai_compat import router as openai_compat_router
-from api.routes.search import router as search_router
-from api.routes.videos import router as videos_router
-from config.security_config import get_cors_config, get_security_config
-from core.base_processor import ProcessingContext
-from processors.env_loader import load_all_env_files
-from processors.stage_tracker import StageTracker
-from processors.upload_processor import BatchUploadProcessor, UploadProcessor
-from services.ai_service import AIService
-from services.alert_service import AlertService
-from services.auth_service import AuthenticationError, AuthService
-from services.batch_task_service import BatchTaskService
-from services.database_adapter import DatabaseAdapter
-from services.database_factory import create_database_adapter
-from services.db_pool import get_pool
-from services.metrics_service import MetricsService
-from services.performance_service import PerformanceCollector
-from services.reranking_service import RerankingService
-from services.transaction_manager import TransactionManager
+from backend.api.middleware.request_validation_middleware import RequestValidationMiddleware
+from backend.api.routes import documents, products
+from backend.api.routes.api_keys import router as api_keys_router
+from backend.api.routes.batch import router as batch_router
+from backend.api.routes.configuration import router as configuration_router
+from backend.api.routes.dashboard import router as dashboard_router
+from backend.api.routes.document_processing import router as document_processing_router
+from backend.api.routes.error_codes import router as error_codes_router
+from backend.api.routes.foliant import router as foliant_router
+from backend.api.routes.images import router as images_router
+from backend.api.routes.openai_compat import router as openai_compat_router
+from backend.api.routes.search import router as search_router
+from backend.api.routes.videos import router as videos_router
+from backend.config.security_config import get_cors_config, get_security_config
+from backend.core.base_processor import ProcessingContext
+from backend.processors.env_loader import load_all_env_files
+from backend.processors.stage_tracker import StageTracker
+from backend.processors.upload_processor import BatchUploadProcessor, UploadProcessor
+from backend.services.ai_service import AIService
+from backend.services.alert_service import AlertService
+from backend.services.auth_service import AuthenticationError, AuthService
+from backend.services.batch_task_service import BatchTaskService
+from backend.services.database_adapter import DatabaseAdapter
+from backend.services.database_factory import create_database_adapter
+from backend.services.db_pool import get_pool
+from backend.services.metrics_service import MetricsService
+from backend.services.performance_service import PerformanceCollector
+from backend.services.reranking_service import RerankingService
+from backend.services.transaction_manager import TransactionManager
 
 # Load consolidated environment configuration
 project_root = Path(__file__).parent.parent.parent
@@ -137,7 +133,7 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, rate_limit_exception_handler)
 
 # Import validation error handling
-from api.validation_error_codes import ValidationErrorCode, create_validation_error_response
+from backend.api.validation_error_codes import ValidationErrorCode, create_validation_error_response
 
 
 # Custom Pydantic validation exception handlers
@@ -864,8 +860,8 @@ async def startup_events():
     app.state.db_adapter = db_adapter
 
     # Services for document_processing router
-    from pipeline.master_pipeline import KRMasterPipeline
-    from services.storage_factory import create_storage_service
+    from backend.pipeline.master_pipeline import KRMasterPipeline
+    from backend.services.storage_factory import create_storage_service
 
     try:
         app.state.storage_service = create_storage_service()
@@ -918,7 +914,7 @@ async def startup_events():
 @app.on_event("shutdown")
 async def shutdown_events():
     """Clean up resources on shutdown."""
-    from services.db_pool import close_pool
+    from backend.services.db_pool import close_pool
 
     if hasattr(app.state, "db_adapter"):
         try:
@@ -1174,7 +1170,7 @@ async def get_system_metrics(current_user: dict = Depends(require_permission("mo
 
 
 # Include API routes
-from api.routes import pipeline_errors, scraping
+from backend.api.routes import pipeline_errors, scraping
 
 # Note: Auth routes and dashboard will need pool-based initialization
 # Temporarily commented out until refactored
@@ -1195,7 +1191,7 @@ app.include_router(scraping.router, prefix="/api/v1")
 app.include_router(pipeline_errors.router, prefix="/api/v1")
 
 # Mount Monitoring API
-from api import monitoring_api
+from backend.api import monitoring_api
 
 app.include_router(monitoring_api.router, prefix="/api/v1/monitoring", tags=["Monitoring"])
 

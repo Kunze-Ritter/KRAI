@@ -9,8 +9,8 @@ import psutil
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from api.middleware.auth_middleware import require_permission
-from models.monitoring import (
+from backend.api.middleware.auth_middleware import require_permission
+from backend.models.monitoring import (
     ActiveDocument,
     ActivityEntry,
     AlertListResponse,
@@ -27,9 +27,9 @@ from models.monitoring import (
     StageErrorLogsResponse,
     StageQueueResponse,
 )
-from services.alert_service import AlertService
-from services.metrics_service import MetricsService
-from services.performance_service import PerformanceCollector
+from backend.services.alert_service import AlertService
+from backend.services.metrics_service import MetricsService
+from backend.services.performance_service import PerformanceCollector
 
 router = APIRouter()
 
@@ -38,21 +38,21 @@ router = APIRouter()
 # These functions are used as dependencies
 async def get_metrics_service() -> MetricsService:
     """Get metrics service instance from app.py."""
-    from api.app import get_metrics_service as app_get_metrics
+    from backend.api.app import get_metrics_service as app_get_metrics
 
     return await app_get_metrics()
 
 
 async def get_alert_service() -> AlertService:
     """Get alert service instance from app.py."""
-    from api.app import get_alert_service as app_get_alert
+    from backend.api.app import get_alert_service as app_get_alert
 
     return await app_get_alert()
 
 
 async def get_performance_collector() -> PerformanceCollector:
     """Get performance collector instance from app.py."""
-    from api.app import get_performance_collector as app_get_performance
+    from backend.api.app import get_performance_collector as app_get_performance
 
     return await app_get_performance()
 
@@ -509,7 +509,7 @@ async def get_performance_metrics(
     performance_collector: PerformanceCollector = Depends(get_performance_collector),
 ):
     """Get performance metrics with baseline comparison."""
-    from models.monitoring import PerformanceMetrics
+    from backend.models.monitoring import PerformanceMetrics
 
     # Get all baselines from the performance collector
     baselines = await performance_collector.get_all_baselines()

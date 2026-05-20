@@ -12,7 +12,7 @@ from pathlib import Path
 backend_path = Path(__file__).parent.parent
 sys.path.insert(0, str(backend_path))
 
-from services.database_adapter import create_database_adapter
+from backend.services.database_adapter import create_database_adapter
 
 
 class PipelineMonitor:

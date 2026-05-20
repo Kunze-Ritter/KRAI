@@ -27,7 +27,7 @@ from langgraph.prebuilt import create_react_agent
 from pydantic import BaseModel, Field
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from api.agent_scope import (
+from backend.api.agent_scope import (
     CURRENT_AGENT_SCOPE,
     AgentScope,
     build_error_code_variants,
@@ -37,9 +37,9 @@ from api.agent_scope import (
     merge_scope,
     normalize_scope,
 )
-from api.middleware.auth_middleware import require_permission
-from processors.env_loader import load_all_env_files
-from services.db_pool import get_pool
+from backend.api.middleware.auth_middleware import require_permission
+from backend.processors.env_loader import load_all_env_files
+from backend.services.db_pool import get_pool
 
 project_root = Path(__file__).parent.parent.parent
 load_all_env_files(project_root)

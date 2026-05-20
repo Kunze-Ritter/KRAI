@@ -13,8 +13,8 @@ from fastapi import Request, status
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import Response
 
-from api.validation_error_codes import ValidationErrorCode, create_validation_error_response
-from config.security_config import get_security_config
+from backend.api.validation_error_codes import ValidationErrorCode, create_validation_error_response
+from backend.config.security_config import get_security_config
 
 logger = logging.getLogger("krai.request_validation")
 # Keep SQLi-focused signatures and avoid wildcard MIME false-positives

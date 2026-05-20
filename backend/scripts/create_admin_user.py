@@ -19,7 +19,7 @@ backend_dir = project_root / "backend"
 sys.path.insert(0, str(project_root))
 sys.path.insert(0, str(backend_dir))
 
-from processors.env_loader import load_all_env_files
+from backend.processors.env_loader import load_all_env_files
 
 
 def _load_env_files() -> None:
@@ -30,8 +30,8 @@ def _load_env_files() -> None:
 _load_env_files()
 
 # Import after environment loading and path setup
-from api.dependencies.auth_factory import create_auth_service
-from services.auth_service import AuthenticationError, AuthService
+from backend.api.dependencies.auth_factory import create_auth_service
+from backend.services.auth_service import AuthenticationError, AuthService
 
 # Default admin user details
 DEFAULT_ADMIN_EMAIL = os.getenv("DEFAULT_ADMIN_EMAIL", "admin@example.com")

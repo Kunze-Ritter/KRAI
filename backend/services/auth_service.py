@@ -10,7 +10,7 @@ from uuid import UUID
 
 from passlib.context import CryptContext
 
-from config.auth_config import (
+from backend.config.auth_config import (
     ACCESS_TOKEN,
     CLAIM_EMAIL,
     CLAIM_JTI,
@@ -23,7 +23,7 @@ from config.auth_config import (
 )
 
 # Import models and config
-from models.user import (
+from backend.models.user import (
     AuthResponse,
     UserCreate,
     UserListResponse,
@@ -37,7 +37,7 @@ from models.user import (
 )
 
 # Import database service
-from services.database_adapter import DatabaseAdapter
+from backend.services.database_adapter import DatabaseAdapter
 
 # Setup logging
 logger = logging.getLogger("krai.auth.service")

@@ -8,11 +8,17 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from api.middleware.auth_middleware import require_permission
-from api.routes.response_models import SuccessResponse
-from models.document import PaginationParams
-from models.product import ProductFilterParams, ProductListResponse, ProductResponse, ProductSortParams, SortOrder
-from services.database_adapter import DatabaseAdapter
+from backend.api.middleware.auth_middleware import require_permission
+from backend.api.routes.response_models import SuccessResponse
+from backend.models.document import PaginationParams
+from backend.models.product import (
+    ProductFilterParams,
+    ProductListResponse,
+    ProductResponse,
+    ProductSortParams,
+    SortOrder,
+)
+from backend.services.database_adapter import DatabaseAdapter
 
 
 class ProductAPI:

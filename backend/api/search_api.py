@@ -9,7 +9,7 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
-from core.data_models import (
+from backend.core.data_models import (
     MultimodalSearchRequest,
     MultimodalSearchResponse,
     SearchRequest,
@@ -17,9 +17,9 @@ from core.data_models import (
     TwoStageSearchRequest,
     TwoStageSearchResponse,
 )
-from services.ai_service import AIService
-from services.database_adapter import DatabaseAdapter
-from services.multimodal_search_service import MultimodalSearchService
+from backend.services.ai_service import AIService
+from backend.services.database_adapter import DatabaseAdapter
+from backend.services.multimodal_search_service import MultimodalSearchService
 
 
 # Pydantic model for image context search request

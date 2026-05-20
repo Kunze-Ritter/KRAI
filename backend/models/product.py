@@ -10,7 +10,7 @@ from typing import ClassVar
 
 from pydantic import BaseModel, Field, HttpUrl, root_validator, validator
 
-from models.validators import sanitize_string, validate_no_sql_injection, validate_uuid
+from backend.models.validators import sanitize_string, validate_no_sql_injection, validate_uuid
 
 
 class SortOrder(str, Enum):

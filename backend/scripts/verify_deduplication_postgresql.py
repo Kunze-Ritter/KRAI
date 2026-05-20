@@ -16,8 +16,8 @@ import boto3
 # Add backend to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from processors.env_loader import load_all_env_files
-from services.db_pool import get_pool
+from backend.processors.env_loader import load_all_env_files
+from backend.services.db_pool import get_pool
 
 # Load environment variables
 project_root = Path(__file__).parent.parent.parent

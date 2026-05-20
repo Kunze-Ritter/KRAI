@@ -69,6 +69,7 @@ class SecurityConfig(BaseSettings):
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
+        extra = "ignore"  # shared .env carries many unrelated vars; only parse our own
 
     @field_validator("RATE_LIMIT_STORAGE")
     def validate_rate_limit_storage(cls, value: str) -> str:  # noqa: N805

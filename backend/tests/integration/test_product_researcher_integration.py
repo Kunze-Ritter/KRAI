@@ -14,7 +14,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from services.product_researcher import ProductResearcher
+from backend.services.product_researcher import ProductResearcher
 
 pytest.mark.integration = pytest.mark.integration
 

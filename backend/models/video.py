@@ -8,10 +8,10 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator, validator
 
-from models.document import DocumentResponse, SortOrder
-from models.manufacturer import ManufacturerResponse
-from models.product import ProductResponse, ProductSeriesResponse
-from models.validators import sanitize_string, validate_no_sql_injection, validate_uuid
+from backend.models.document import DocumentResponse, SortOrder
+from backend.models.manufacturer import ManufacturerResponse
+from backend.models.product import ProductResponse, ProductSeriesResponse
+from backend.models.validators import sanitize_string, validate_no_sql_injection, validate_uuid
 
 
 class VideoPlatform(str, Enum):

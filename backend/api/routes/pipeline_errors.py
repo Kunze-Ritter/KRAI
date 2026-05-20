@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from api.dependencies.database import get_database_adapter
+from backend.api.dependencies.database import get_database_adapter
 from backend.api.middleware.auth_middleware import require_permission
 from backend.api.routes.response_models import ErrorResponse, SuccessResponse
 from backend.core.retry_engine import RetryOrchestrator, RetryPolicyManager

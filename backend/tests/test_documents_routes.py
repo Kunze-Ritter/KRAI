@@ -16,11 +16,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def _stub_modules() -> None:
     for name, path_fragment in [
-        ("api", "api"),
-        ("api.routes", "api/routes"),
-        ("api.dependencies", "api/dependencies"),
-        ("api.middleware", "api/middleware"),
-        ("models", "models"),
+        ("backend.api", "api"),
+        ("backend.api.routes", "api/routes"),
+        ("backend.api.dependencies", "api/dependencies"),
+        ("backend.api.middleware", "api/middleware"),
+        ("backend.models", "models"),
     ]:
         pkg = types.ModuleType(name)
         pkg.__path__ = [str(ROOT / path_fragment)]
@@ -30,15 +30,15 @@ def _stub_modules() -> None:
     asyncpg_mod.Pool = type("Pool", (), {})
     sys.modules["asyncpg"] = asyncpg_mod
 
-    db_dep_mod = types.ModuleType("api.dependencies.database")
+    db_dep_mod = types.ModuleType("backend.api.dependencies.database")
     db_dep_mod.get_database_pool = lambda: None
-    sys.modules["api.dependencies.database"] = db_dep_mod
+    sys.modules["backend.api.dependencies.database"] = db_dep_mod
 
-    auth_mod = types.ModuleType("api.middleware.auth_middleware")
+    auth_mod = types.ModuleType("backend.api.middleware.auth_middleware")
     auth_mod.require_permission = lambda _perm: (lambda: {"id": "test-user"})
-    sys.modules["api.middleware.auth_middleware"] = auth_mod
+    sys.modules["backend.api.middleware.auth_middleware"] = auth_mod
 
-    rate_limit_mod = types.ModuleType("api.middleware.rate_limit_middleware")
+    rate_limit_mod = types.ModuleType("backend.api.middleware.rate_limit_middleware")
 
     class _Limiter:
         def limit(self, _value):
@@ -51,7 +51,7 @@ def _stub_modules() -> None:
     rate_limit_mod.rate_limit_search = "1/minute"
     rate_limit_mod.rate_limit_standard = "1/minute"
     rate_limit_mod.rate_limit_upload = "1/minute"
-    sys.modules["api.middleware.rate_limit_middleware"] = rate_limit_mod
+    sys.modules["backend.api.middleware.rate_limit_middleware"] = rate_limit_mod
 
     # NOTE: we intentionally do NOT stub api.routes.response_models.
     # The real module has no heavy dependencies (pure pydantic) and other
@@ -60,7 +60,7 @@ def _stub_modules() -> None:
     # incomplete stub leaks across files via sys.modules and breaks those
     # tests when this file is collected first.
 
-    document_mod = types.ModuleType("models.document")
+    document_mod = types.ModuleType("backend.models.document")
 
     class SortOrder(str, Enum):
         ASC = "asc"
@@ -123,13 +123,13 @@ def _stub_modules() -> None:
     document_mod.PaginationParams = DummyModel
     document_mod.SortOrder = SortOrder
     document_mod.StageStatus = StageStatus
-    sys.modules["models.document"] = document_mod
+    sys.modules["backend.models.document"] = document_mod
 
 
 _stub_modules()
 
 spec = importlib.util.spec_from_file_location(
-    "api.routes.documents",
+    "backend.api.routes.documents",
     ROOT / "api" / "routes" / "documents.py",
 )
 documents_module = importlib.util.module_from_spec(spec)

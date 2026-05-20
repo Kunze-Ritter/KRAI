@@ -9,8 +9,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import re
 from uuid import uuid4
 
-from processors.error_code_extractor import ErrorCodeExtractor
-from processors.text_extractor import extract_text_from_pdf
+from backend.processors.error_code_extractor import ErrorCodeExtractor
+from backend.processors.text_extractor import extract_text_from_pdf
 
 print("Loading HP PDF...")
 pdf_text, meta = extract_text_from_pdf(Path(r"C:\Manuals\HP\HP_E778_CPMD.pdf"), uuid4())

@@ -21,8 +21,8 @@ from slowapi.util import get_remote_address
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import Response
 
-from config.security_config import get_security_config
-from services.api_key_service import APIKeyService
+from backend.config.security_config import get_security_config
+from backend.services.api_key_service import APIKeyService
 
 logger = logging.getLogger("krai.rate_limit")
 _security_config = get_security_config()

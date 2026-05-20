@@ -12,10 +12,10 @@ from typing import Any
 import asyncpg
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 
-from api.dependencies.database import get_database_pool
-from api.middleware.auth_middleware import require_permission
-from api.routes.response_models import SuccessResponse
-from models.batch import (
+from backend.api.dependencies.database import get_database_pool
+from backend.api.middleware.auth_middleware import require_permission
+from backend.api.routes.response_models import SuccessResponse
+from backend.models.batch import (
     BatchDeleteRequest,
     BatchOperationRequest,
     BatchOperationResponse,
@@ -29,8 +29,8 @@ from models.batch import (
     RollbackRequest,
     RollbackResponse,
 )
-from services.batch_task_service import BatchTaskService
-from services.transaction_manager import TransactionManager
+from backend.services.batch_task_service import BatchTaskService
+from backend.services.transaction_manager import TransactionManager
 
 LOGGER = logging.getLogger("krai.api.batch")
 
@@ -97,7 +97,7 @@ def _get_resource_permission(resource_type: str, action: str) -> str:
 
 
 async def _get_services(pool: asyncpg.Pool) -> dict[str, Any]:
-    from api.dependencies.database import get_batch_task_service, get_transaction_manager
+    from backend.api.dependencies.database import get_batch_task_service, get_transaction_manager
 
     task_service = await get_batch_task_service()
     transaction_manager = await get_transaction_manager()

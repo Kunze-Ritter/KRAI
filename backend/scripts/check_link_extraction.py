@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from dotenv import load_dotenv
 
-from processors.link_extractor import LinkExtractor
+from backend.processors.link_extractor import LinkExtractor
 
 # Load environment
 load_dotenv()

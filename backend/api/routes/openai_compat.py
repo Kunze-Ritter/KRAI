@@ -43,8 +43,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from api.agent_scope import AgentScope, build_scope_filters, extract_scope_from_openai_payload, normalize_scope
-from api.middleware.auth_middleware import require_permission
+from backend.api.agent_scope import AgentScope, build_scope_filters, extract_scope_from_openai_payload, normalize_scope
+from backend.api.middleware.auth_middleware import require_permission
 
 logger = logging.getLogger(__name__)
 

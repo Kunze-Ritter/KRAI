@@ -12,8 +12,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from services.link_enrichment_service import LinkEnrichmentService
-from services.web_scraping_service import FirecrawlUnavailableError
+from backend.services.link_enrichment_service import LinkEnrichmentService
+from backend.services.web_scraping_service import FirecrawlUnavailableError
 
 pytest.mark.integration = pytest.mark.integration
 

@@ -11,14 +11,19 @@ from typing import Any
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
-from api.dependencies.database import get_database_pool
-from api.middleware.auth_middleware import require_permission
-from api.middleware.rate_limit_middleware import limiter, rate_limit_search, rate_limit_standard, rate_limit_upload
-from api.routes.response_models import ErrorResponse, SuccessResponse
-from models.document import DocumentResponse, PaginationParams, SortOrder
-from models.manufacturer import ManufacturerResponse
-from models.product import ProductResponse, ProductSeriesResponse
-from models.video import (
+from backend.api.dependencies.database import get_database_pool
+from backend.api.middleware.auth_middleware import require_permission
+from backend.api.middleware.rate_limit_middleware import (
+    limiter,
+    rate_limit_search,
+    rate_limit_standard,
+    rate_limit_upload,
+)
+from backend.api.routes.response_models import ErrorResponse, SuccessResponse
+from backend.models.document import DocumentResponse, PaginationParams, SortOrder
+from backend.models.manufacturer import ManufacturerResponse
+from backend.models.product import ProductResponse, ProductSeriesResponse
+from backend.models.video import (
     VideoCreateRequest,
     VideoEnrichmentRequest,
     VideoEnrichmentResponse,
@@ -29,7 +34,7 @@ from models.video import (
     VideoUpdateRequest,
     VideoWithRelationsResponse,
 )
-from services.video_enrichment_service import VideoEnrichmentService
+from backend.services.video_enrichment_service import VideoEnrichmentService
 
 LOGGER = logging.getLogger("krai.api.videos")
 

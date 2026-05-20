@@ -10,8 +10,8 @@ from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Request, UploadFile
 
-from api.middleware.auth_middleware import require_permission
-from api.routes.response_models import (
+from backend.api.middleware.auth_middleware import require_permission
+from backend.api.routes.response_models import (
     DocumentStatusResponse,
     StageListResponse,
     StageProcessingRequest,
@@ -23,9 +23,9 @@ from api.routes.response_models import (
     VideoProcessingRequest,
     VideoProcessingResponse,
 )
-from core.base_processor import ProcessingContext, Stage
-from core.data_models import DocumentType, DocumentUploadResponse
-from models.document import (
+from backend.core.base_processor import ProcessingContext, Stage
+from backend.core.data_models import DocumentType, DocumentUploadResponse
+from backend.models.document import (
     CANONICAL_STAGES,
     DocumentFilterParams,
     DocumentListResponse,
@@ -37,13 +37,13 @@ from models.document import (
     SortOrder,
     StageStatus,
 )
-from pipeline.master_pipeline import KRMasterPipeline
-from processors.thumbnail_processor import ThumbnailProcessor
-from processors.upload_processor import UploadProcessor
-from services.ai_service import AIService
-from services.database_adapter import DatabaseAdapter
-from services.object_storage_service import ObjectStorageService
-from services.video_enrichment_service import VideoEnrichmentService
+from backend.pipeline.master_pipeline import KRMasterPipeline
+from backend.processors.thumbnail_processor import ThumbnailProcessor
+from backend.processors.upload_processor import UploadProcessor
+from backend.services.ai_service import AIService
+from backend.services.database_adapter import DatabaseAdapter
+from backend.services.object_storage_service import ObjectStorageService
+from backend.services.video_enrichment_service import VideoEnrichmentService
 
 
 class DocumentAPI:
@@ -264,7 +264,7 @@ class DocumentAPI:
                 stored_path.write_bytes(file_content)
 
                 # Create processing context
-                from core.base_processor import ProcessingContext
+                from backend.core.base_processor import ProcessingContext
 
                 context = ProcessingContext(
                     document_id="",  # Will be set by upload processor
@@ -402,7 +402,7 @@ class DocumentAPI:
                 await self.database_service.update_document(document_id, {"processing_status": "pending"})
 
                 # Add to processing queue
-                from core.data_models import ProcessingQueueModel
+                from backend.core.data_models import ProcessingQueueModel
 
                 queue_item = ProcessingQueueModel(
                     document_id=document_id, processor_name="upload_processor", status="pending", priority=1
@@ -556,7 +556,7 @@ class DocumentAPI:
                     raise HTTPException(status_code=404, detail="Document not found")
 
                 # Get raw stage status from database
-                from processors.stage_tracker import StageTracker
+                from backend.processors.stage_tracker import StageTracker
 
                 tracker = StageTracker(self.database_service, websocket_callback=None)
                 raw_stage_status = await tracker.get_stage_status(document_id)

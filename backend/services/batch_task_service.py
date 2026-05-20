@@ -11,7 +11,7 @@ from typing import Any
 
 import asyncpg
 
-from models.batch import BatchOperationResult, BatchTaskRequest, BatchTaskResponse, BatchTaskStatus
+from backend.models.batch import BatchOperationResult, BatchTaskRequest, BatchTaskResponse, BatchTaskStatus
 
 
 class BatchTaskService:

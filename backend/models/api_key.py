@@ -6,7 +6,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field, validator
 
-from models.validators import ensure_min_length, sanitize_string, validate_uuid
+from backend.models.validators import ensure_min_length, sanitize_string, validate_uuid
 
 
 class APIKeyBase(BaseModel):

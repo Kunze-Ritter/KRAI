@@ -4,8 +4,8 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from services.config_service import ConfigService
-from services.web_scraping_service import create_web_scraping_service
+from backend.services.config_service import ConfigService
+from backend.services.web_scraping_service import create_web_scraping_service
 
 router = APIRouter(prefix="/scraping", tags=["Scraping"])
 config_service = ConfigService()

@@ -14,8 +14,8 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
-from api.middleware.auth_middleware import require_permission
-from core.data_models import (
+from backend.api.middleware.auth_middleware import require_permission
+from backend.core.data_models import (
     MultimodalSearchRequest,
     MultimodalSearchResponse,
     SearchRequest,
@@ -23,10 +23,10 @@ from core.data_models import (
     TwoStageSearchRequest,
     TwoStageSearchResponse,
 )
-from services.ai_service import AIService
-from services.database_adapter import DatabaseAdapter
-from services.database_factory import create_database_adapter
-from services.multimodal_search_service import MultimodalSearchService
+from backend.services.ai_service import AIService
+from backend.services.database_adapter import DatabaseAdapter
+from backend.services.database_factory import create_database_adapter
+from backend.services.multimodal_search_service import MultimodalSearchService
 
 # Create router
 router = APIRouter(prefix="/search", tags=["search"])

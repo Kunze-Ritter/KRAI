@@ -8,7 +8,7 @@ from collections.abc import Iterable
 
 import validators as url_validators
 
-from config.security_config import get_security_config
+from backend.config.security_config import get_security_config
 
 _reserved_windows_names = {
     "con",

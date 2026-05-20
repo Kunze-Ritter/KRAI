@@ -168,7 +168,7 @@ class VideoEnrichmentService:
             # Link video to products if models were detected
             if metadata.get("models") and final_manufacturer_id:
                 try:
-                    from utils.manufacturer_utils import link_video_to_products
+                    from backend.utils.manufacturer_utils import link_video_to_products
 
                     linked_products = await link_video_to_products(
                         video_id=video_db_id, model_names=metadata.get("models"), manufacturer_id=final_manufacturer_id

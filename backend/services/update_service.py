@@ -6,7 +6,7 @@ Handles document updates and version management
 import logging
 from typing import Any
 
-from services.database_adapter import DatabaseAdapter
+from backend.services.database_adapter import DatabaseAdapter
 
 
 class UpdateService:

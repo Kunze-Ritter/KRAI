@@ -6,9 +6,9 @@ from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field, PositiveInt, model_validator, validator
 
-from models.document import DocumentResponse, SortOrder
-from models.manufacturer import ManufacturerResponse
-from models.validators import (
+from backend.models.document import DocumentResponse, SortOrder
+from backend.models.manufacturer import ManufacturerResponse
+from backend.models.validators import (
     ensure_allowed_fields,
     sanitize_string,
     validate_error_code,

@@ -6,7 +6,7 @@ Syncs OEM mappings from oem_mappings.py to the PostgreSQL database.
 Also updates products table with OEM information.
 
 Usage:
-    from utils.oem_sync import sync_oem_relationships_to_db
+    from backend.utils.oem_sync import sync_oem_relationships_to_db
 
     await sync_oem_relationships_to_db()
 """
@@ -15,9 +15,9 @@ import json
 import logging
 from uuid import UUID
 
-from config.oem_mappings import OEM_MAPPINGS, get_oem_info, get_oem_manufacturer
-from services.database_adapter import DatabaseAdapter
-from services.database_factory import create_database_adapter
+from backend.config.oem_mappings import OEM_MAPPINGS, get_oem_info, get_oem_manufacturer
+from backend.services.database_adapter import DatabaseAdapter
+from backend.services.database_factory import create_database_adapter
 
 logger = logging.getLogger(__name__)
 

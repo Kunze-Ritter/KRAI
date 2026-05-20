@@ -5,8 +5,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from processors.search_processor import SearchProcessor
-from processors.storage_processor import StorageProcessor
+from backend.processors.search_processor import SearchProcessor
+from backend.processors.storage_processor import StorageProcessor
 
 
 class SupabaseResponse:

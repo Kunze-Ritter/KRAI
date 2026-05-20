@@ -55,7 +55,7 @@ def clean_model_number(model_number: str) -> str:
     # Log if changed (optional - only if logger available)
     if model_number != original:
         try:
-            from processors.logger import get_logger
+            from backend.processors.logger import get_logger
 
             logger = get_logger()
             logger.debug(f"Cleaned model number: '{original}' -> '{model_number}'")

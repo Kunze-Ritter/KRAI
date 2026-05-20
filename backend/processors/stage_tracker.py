@@ -111,7 +111,7 @@ class StageTracker:
             # Broadcast processor state change via WebSocket
             if self.websocket_callback:
                 try:
-                    from api.websocket import broadcast_processor_state_change
+                    from backend.api.websocket import broadcast_processor_state_change
 
                     # Map stage_name to processor_name
                     stage_to_processor = {
@@ -245,8 +245,8 @@ class StageTracker:
             # Broadcast WebSocket events
             if self.websocket_callback:
                 try:
-                    from api.websocket import broadcast_processor_state_change
-                    from models.monitoring import WebSocketEvent
+                    from backend.api.websocket import broadcast_processor_state_change
+                    from backend.models.monitoring import WebSocketEvent
 
                     # Broadcast stage completion event
                     asyncio.create_task(
@@ -316,8 +316,8 @@ class StageTracker:
             # Broadcast WebSocket events
             if self.websocket_callback:
                 try:
-                    from api.websocket import broadcast_processor_state_change
-                    from models.monitoring import WebSocketEvent
+                    from backend.api.websocket import broadcast_processor_state_change
+                    from backend.models.monitoring import WebSocketEvent
 
                     # Broadcast stage failure event
                     asyncio.create_task(

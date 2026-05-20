@@ -229,7 +229,7 @@ class TestLinkEnrichmentFirecrawlFallback:
         self, real_link_enrichment_service, test_link_data, test_database
     ):
         """Test fallback when Firecrawl rate limit is hit."""
-        from services.web_scraping_service import FirecrawlUnavailableError
+        from backend.services.web_scraping_service import FirecrawlUnavailableError
 
         # Create test link
         test_url = "https://httpbin.org/html"

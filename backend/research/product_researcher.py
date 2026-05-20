@@ -27,9 +27,9 @@ from typing import Any
 import requests
 from bs4 import BeautifulSoup
 
-from services.config_service import ConfigService
-from services.db_pool import get_pool
-from services.web_scraping_service import WebScrapingService, create_web_scraping_service
+from backend.services.config_service import ConfigService
+from backend.services.db_pool import get_pool
+from backend.services.web_scraping_service import WebScrapingService, create_web_scraping_service
 
 logger = logging.getLogger(__name__)
 

@@ -9,8 +9,8 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
 
-from services.database_adapter import DatabaseAdapter
-from services.features_service import FeaturesService
+from backend.services.database_adapter import DatabaseAdapter
+from backend.services.features_service import FeaturesService
 
 
 class FeaturesAPI:

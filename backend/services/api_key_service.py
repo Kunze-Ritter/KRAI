@@ -10,7 +10,7 @@ from datetime import UTC, datetime, timedelta
 
 import asyncpg
 
-from config.security_config import get_security_config
+from backend.config.security_config import get_security_config
 
 logger = logging.getLogger("krai.api_keys")
 

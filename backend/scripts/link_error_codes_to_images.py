@@ -17,7 +17,7 @@ import asyncio
 
 from dotenv import load_dotenv
 
-from services.db_pool import get_pool
+from backend.services.db_pool import get_pool
 
 load_dotenv()
 

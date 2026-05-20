@@ -10,8 +10,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field, validator
 
-from core.data_models import DocumentType, ProcessingStatus
-from models.validators import validate_file_hash, validate_filename, validate_no_sql_injection, validate_uuid
+from backend.core.data_models import DocumentType, ProcessingStatus
+from backend.models.validators import validate_file_hash, validate_filename, validate_no_sql_injection, validate_uuid
 
 
 class PaginationParams(BaseModel):
