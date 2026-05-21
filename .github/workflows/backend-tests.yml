@@ -1,0 +1,87 @@
+name: Backend Tests
+
+on:
+  push:
+    branches: [master, main, develop]
+  pull_request:
+    branches: [master, main, develop]
+
+# Avoid piling up redundant runs on rapid pushes to the same ref.
+concurrency:
+  group: backend-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    name: Unit tests (no DB)
+    runs-on: ubuntu-latest
+    # Non-blocking for now: a chunk of currently-unmarked tests open live services
+    # (Ollama, DB) or do I/O in constructors/fixtures and fail without them. Once those
+    # are marked `integration` (test-triage follow-up), flip this to a blocking gate.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      # Install CPU torch first so the heavy CUDA wheel is never pulled in CI.
+      - name: Install CPU PyTorch
+        run: pip install torch==2.11.0 torchvision==0.26.0 --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Install backend dependencies
+        run: pip install -r backend/requirements.txt
+
+      # --timeout guards against tests that block on an unavailable live service
+      # (so a hang fails fast on Linux instead of stalling the whole runner).
+      - name: Run unit tests
+        env:
+          PYTHONPATH: .
+        run: python -m pytest backend/tests -m "not integration and not e2e and not slow" --timeout=120 --tb=short -q
+
+  integration:
+    name: Integration tests (PostgreSQL + pgvector)
+    runs-on: ubuntu-latest
+    # First-run validation pending: keep non-blocking until the DB schema init is
+    # confirmed green on a real run, then flip continue-on-error to false (task #18).
+    continue-on-error: true
+    services:
+      postgres:
+        image: pgvector/pgvector:pg15
+        env:
+          POSTGRES_USER: krai_user
+          POSTGRES_DB: krai
+          # Ephemeral CI-only DB: trust auth means no password literal in the repo.
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U krai_user"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_CONNECTION_URL: postgresql://krai_user@localhost:5432/krai
+      POSTGRES_URL: postgresql://krai_user@localhost:5432/krai
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install CPU PyTorch
+        run: pip install torch==2.11.0 torchvision==0.26.0 --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Install backend dependencies
+        run: pip install -r backend/requirements.txt
+
+      - name: Apply database migrations
+        run: python scripts/run_migrations.py
+
+      - name: Run integration tests
+        run: python -m pytest backend/tests -m "integration" --timeout=120 --tb=short -q
