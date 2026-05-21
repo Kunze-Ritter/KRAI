@@ -28,6 +28,10 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
+      # pycairo (transitive dep) builds from source and needs the system cairo lib.
+      - name: Install system build deps
+        run: sudo apt-get update && sudo apt-get install -y libcairo2-dev pkg-config
+
       # Install CPU torch first so the heavy CUDA wheel is never pulled in CI.
       - name: Install CPU PyTorch
         run: pip install torch==2.11.0 torchvision==0.26.0 --index-url https://download.pytorch.org/whl/cpu
@@ -73,6 +77,10 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'pip'
+
+      # pycairo (transitive dep) builds from source and needs the system cairo lib.
+      - name: Install system build deps
+        run: sudo apt-get update && sudo apt-get install -y libcairo2-dev pkg-config
 
       - name: Install CPU PyTorch
         run: pip install torch==2.11.0 torchvision==0.26.0 --index-url https://download.pytorch.org/whl/cpu

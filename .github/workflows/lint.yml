@@ -18,8 +18,10 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
+      # Pin to the versions used by .pre-commit-config.yaml so CI matches local results
+      # (unpinned linters drift — a newer ruff flags rules the local gate never saw).
       - name: Install dependencies
-        run: pip install ruff black isort mypy bandit
+        run: pip install ruff==0.8.1 black==24.10.0 isort==5.13.2 "bandit[toml]==1.8.0" mypy
 
       - name: Run Ruff
         run: ruff check backend/
