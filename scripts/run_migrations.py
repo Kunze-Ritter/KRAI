@@ -60,31 +60,6 @@ def first_comment(path: Path) -> str:
     return ""
 
 
-def split_statements(sql: str) -> list[str]:
-    """Split SQL into statements on top-level semicolons (ignoring those in parens).
-
-    Strips ``--`` line comments first so semicolons inside comments don't split.
-    """
-    sql = "\n".join(line.split("--", 1)[0] for line in sql.splitlines())
-    statements, current, depth = [], [], 0
-    for c in sql:
-        if c == "(":
-            depth += 1
-        elif c == ")":
-            depth -= 1
-        if c == ";" and depth == 0:
-            stmt = "".join(current).strip()
-            if stmt and not all(not ln.strip() or ln.strip().startswith("--") for ln in stmt.splitlines()):
-                statements.append(stmt)
-            current = []
-        else:
-            current.append(c)
-    tail = "".join(current).strip()
-    if tail and not all(not ln.strip() or ln.strip().startswith("--") for ln in tail.splitlines()):
-        statements.append(tail)
-    return statements
-
-
 async def applied_set(conn: asyncpg.Connection) -> set[str]:
     # The tracking table lives in krai_system, but on a brand-new database that schema
     # doesn't exist until a migration creates it — bootstrap it so tracking works first.
@@ -152,11 +127,14 @@ async def main() -> None:
             return
 
         for p in pending:
-            stmts = split_statements(p.read_text(encoding="utf-8"))
-            print(f"Applying {p.name} ({len(stmts)} statement(s)) ...")
+            print(f"Applying {p.name} ...")
+            # Execute the whole file in one call: asyncpg's simple-query protocol runs
+            # multiple statements and lets Postgres parse dollar-quoted bodies ($$...$$)
+            # and comments itself — far more robust than splitting on ';' in Python.
             async with conn.transaction():
-                for stmt in stmts:
-                    await conn.execute(stmt)
+                # utf-8-sig strips a leading BOM that some migration files carry
+                # (a raw BOM makes Postgres raise a syntax error at the first token).
+                await conn.execute(p.read_text(encoding="utf-8-sig"))
                 await record(conn, p.stem, first_comment(p))
             print(f"  OK: {p.name}")
         print(f"Applied {len(pending)} migration(s).")
