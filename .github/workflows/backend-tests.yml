@@ -1,10 +1,12 @@
 name: Backend Tests
 
 on:
-  push:
-    branches: [master, main, develop]
+  # PR-only (+ manual): the test jobs aren't a green gate yet (service-dependent tests
+  # #23, fresh-migration debt #25), so running them on every master push would be red
+  # noise + wasted runner time. They run where they inform review — on PRs.
   pull_request:
     branches: [master, main, develop]
+  workflow_dispatch:
 
 # Avoid piling up redundant runs on rapid pushes to the same ref.
 concurrency:
