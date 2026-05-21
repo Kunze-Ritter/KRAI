@@ -86,6 +86,9 @@ def split_statements(sql: str) -> list[str]:
 
 
 async def applied_set(conn: asyncpg.Connection) -> set[str]:
+    # The tracking table lives in krai_system, but on a brand-new database that schema
+    # doesn't exist until a migration creates it — bootstrap it so tracking works first.
+    await conn.execute("CREATE SCHEMA IF NOT EXISTS krai_system")
     await conn.execute(
         """
         CREATE TABLE IF NOT EXISTS krai_system.migrations (
