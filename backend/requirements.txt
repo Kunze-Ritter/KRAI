@@ -160,3 +160,4 @@ locust>=2.20.0
 faker>=24.0.0
 pytest-cov>=4.1.0
 pytest-mock>=3.14.0
+pytest-timeout>=2.2.0  # CI guard: a test blocking on an unavailable service fails fast
