@@ -45,12 +45,14 @@ RUN ln -s /usr/bin/python3.11 /usr/bin/python
 # Upgrade pip
 RUN python -m pip install --upgrade pip
 
-# Copy requirements
-COPY backend/requirements.txt .
+# Copy requirements + lock
+COPY backend/requirements.txt backend/constraints.txt ./
 
 # Install Python dependencies with CUDA support
 # Note: torch will be installed with CUDA support via index-url
-RUN pip install --no-cache-dir -r requirements.txt gunicorn \
+# constraints.txt pins the full resolved tree for reproducible builds (excludes
+# torch/torchvision/nvidia-*, which are the CUDA wheels installed below).
+RUN pip install --no-cache-dir -r requirements.txt -c constraints.txt gunicorn \
     --index-url https://download.pytorch.org/whl/cu124 \
     --extra-index-url https://pypi.org/simple
 
