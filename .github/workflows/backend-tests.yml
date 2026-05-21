@@ -39,7 +39,7 @@ jobs:
         run: pip install torch==2.11.0 torchvision==0.26.0 --index-url https://download.pytorch.org/whl/cpu
 
       - name: Install backend dependencies
-        run: pip install -r backend/requirements.txt
+        run: pip install -r backend/requirements.txt -c backend/constraints.txt
 
       # --timeout guards against tests that block on an unavailable live service
       # (so a hang fails fast on Linux instead of stalling the whole runner).
@@ -88,7 +88,7 @@ jobs:
         run: pip install torch==2.11.0 torchvision==0.26.0 --index-url https://download.pytorch.org/whl/cpu
 
       - name: Install backend dependencies
-        run: pip install -r backend/requirements.txt
+        run: pip install -r backend/requirements.txt -c backend/constraints.txt
 
       - name: Apply database migrations
         run: python scripts/run_migrations.py
